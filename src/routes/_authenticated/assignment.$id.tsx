@@ -410,6 +410,49 @@ function AssignmentView() {
           </Card>
         </>
       )}
+
+      <Dialog open={pdfOpen} onOpenChange={setPdfOpen}>
+        <DialogContent className="glass border-white/10 sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Export academic PDF</DialogTitle>
+            <DialogDescription>
+              These details appear on the cover page. All fields are optional except date.
+              A print dialog opens next — choose "Save as PDF" as the destination.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="pdf-name">Student name</Label>
+              <Input id="pdf-name" value={pdfMeta.studentName}
+                onChange={(e) => setPdfMeta({ ...pdfMeta, studentName: e.target.value })}
+                placeholder="Jane Doe" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="pdf-subject">Subject / Course</Label>
+              <Input id="pdf-subject" value={pdfMeta.subject}
+                onChange={(e) => setPdfMeta({ ...pdfMeta, subject: e.target.value })}
+                placeholder="e.g. PSY 201 — Introduction to Psychology" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="pdf-inst">Institution</Label>
+              <Input id="pdf-inst" value={pdfMeta.institution}
+                onChange={(e) => setPdfMeta({ ...pdfMeta, institution: e.target.value })}
+                placeholder="University of ..." />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="pdf-date">Date</Label>
+              <Input id="pdf-date" value={pdfMeta.date}
+                onChange={(e) => setPdfMeta({ ...pdfMeta, date: e.target.value })} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPdfOpen(false)}>Cancel</Button>
+            <Button onClick={downloadPdf} className="gradient-bg text-white border-0">
+              <Download className="h-4 w-4 mr-1.5" />Generate PDF
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
