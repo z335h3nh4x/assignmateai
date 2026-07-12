@@ -417,6 +417,9 @@ function AssignmentView() {
             <Button size="sm" variant="ghost" onClick={() => setPdfOpen(true)}><Download className="h-4 w-4 mr-1.5" />PDF</Button>
             <Button size="sm" variant="ghost" onClick={downloadDocx}><FileText className="h-4 w-4 mr-1.5" />DOCX</Button>
             <Button size="sm" variant="ghost" onClick={downloadTxt}><Download className="h-4 w-4 mr-1.5" />TXT</Button>
+            <Button size="sm" variant="ghost" onClick={() => setEditing((e) => !e)}>
+              {editing ? <><Eye className="h-4 w-4 mr-1.5" />View</> : <><Pencil className="h-4 w-4 mr-1.5" />Edit</>}
+            </Button>
             <div className="flex-1" />
             <Button size="sm" onClick={regenerate} disabled={regenerating} className="gradient-bg text-white border-0">
               <RefreshCw className={`h-4 w-4 mr-1.5 ${regenerating ? "animate-spin" : ""}`} />
@@ -425,13 +428,20 @@ function AssignmentView() {
           </Card>
 
           <Card className="glass border-white/10 p-8">
-            <article
-              className="prose prose-invert max-w-none"
-              dangerouslySetInnerHTML={{ __html: html }}
-            />
+            {editing ? (
+              <AutosaveEditor value={row.result} onSave={saveDraft} />
+            ) : (
+              <article
+                className="prose prose-invert max-w-none"
+                dangerouslySetInnerHTML={{ __html: html }}
+              />
+            )}
           </Card>
+
+          <AssignmentAssistant assignmentId={id} />
         </>
       )}
+
 
       <Dialog open={pdfOpen} onOpenChange={setPdfOpen}>
         <DialogContent className="glass border-white/10 sm:max-w-md">
