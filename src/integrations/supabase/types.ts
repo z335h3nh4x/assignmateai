@@ -14,15 +14,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      assignment_messages: {
+        Row: {
+          assignment_id: string
+          content: string
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          assignment_id: string
+          content: string
+          created_at?: string
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          assignment_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignment_messages_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assignments: {
         Row: {
+          citation_style: string
           created_at: string
           education_level: string
+          exports_count: number
+          grammar_report: Json | null
           id: string
           output_style: string
           prompt: string
+          quality_score: Json | null
           result: string | null
+          sources: Json
           status: string
+          template: string
           title: string
           tokens_used: number | null
           updated_at: string
@@ -30,13 +71,19 @@ export type Database = {
           word_count: number
         }
         Insert: {
+          citation_style?: string
           created_at?: string
           education_level: string
+          exports_count?: number
+          grammar_report?: Json | null
           id?: string
           output_style: string
           prompt: string
+          quality_score?: Json | null
           result?: string | null
+          sources?: Json
           status?: string
+          template?: string
           title: string
           tokens_used?: number | null
           updated_at?: string
@@ -44,13 +91,19 @@ export type Database = {
           word_count: number
         }
         Update: {
+          citation_style?: string
           created_at?: string
           education_level?: string
+          exports_count?: number
+          grammar_report?: Json | null
           id?: string
           output_style?: string
           prompt?: string
+          quality_score?: Json | null
           result?: string | null
+          sources?: Json
           status?: string
+          template?: string
           title?: string
           tokens_used?: number | null
           updated_at?: string
