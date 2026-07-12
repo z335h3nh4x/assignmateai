@@ -279,8 +279,12 @@ function buildAcademicDocument(md: string, meta: AcademicMeta) {
 function AssignmentView() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
+  const qc = useQueryClient();
+  const saveDraftFn = useServerFn(saveAssignmentDraft);
+  const incrementExportFn = useServerFn(incrementExport);
   const [regenerating, setRegenerating] = useState(false);
   const [pdfOpen, setPdfOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [pdfMeta, setPdfMeta] = useState({
     studentName: "",
     institution: "",
@@ -288,7 +292,7 @@ function AssignmentView() {
     date: new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }),
   });
 
-  const { data: row, isLoading, refetch } = useQuery({
+  const { data: row, isLoading } = useQuery({
     queryKey: ["assignment", id],
     queryFn: async () => {
       const { data, error } = await supabase.from("assignments").select("*").eq("id", id).maybeSingle();
@@ -297,6 +301,11 @@ function AssignmentView() {
     },
     refetchInterval: (q) => (q.state.data && q.state.data.status === "generating" ? 2000 : false),
   });
+
+  async function trackExport() {
+    try { await incrementExportFn({ data: { id } }); } catch { /* non-blocking */ }
+    qc.invalidateQueries({ queryKey: ["dashboard-stats"] });
+  }
 
   const html = useMemo(() => (row?.result ? renderMarkdown(row.result) : ""), [row?.result]);
 
