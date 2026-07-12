@@ -14,7 +14,129 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      assignments: {
+        Row: {
+          created_at: string
+          education_level: string
+          id: string
+          output_style: string
+          prompt: string
+          result: string | null
+          status: string
+          title: string
+          tokens_used: number | null
+          updated_at: string
+          user_id: string
+          word_count: number
+        }
+        Insert: {
+          created_at?: string
+          education_level: string
+          id?: string
+          output_style: string
+          prompt: string
+          result?: string | null
+          status?: string
+          title: string
+          tokens_used?: number | null
+          updated_at?: string
+          user_id: string
+          word_count: number
+        }
+        Update: {
+          created_at?: string
+          education_level?: string
+          id?: string
+          output_style?: string
+          prompt?: string
+          result?: string | null
+          status?: string
+          title?: string
+          tokens_used?: number | null
+          updated_at?: string
+          user_id?: string
+          word_count?: number
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          education_level: string | null
+          email: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          education_level?: string | null
+          email?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          education_level?: string | null
+          email?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          plan: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          plan?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          plan?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tokens: {
+        Row: {
+          balance: number
+          updated_at: string
+          used: number
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          updated_at?: string
+          used?: number
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          updated_at?: string
+          used?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
