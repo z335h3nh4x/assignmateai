@@ -40,7 +40,7 @@ function Nav() {
             <Link to="/auth" className="text-sm px-4 py-2 rounded-lg hover:bg-white/5 transition">
               Login
             </Link>
-            <Link to="/auth" search={{ mode: "signup" }} className="text-sm px-4 py-2 rounded-lg gradient-bg text-white font-medium glow">
+            <Link to="/auth" className="text-sm px-4 py-2 rounded-lg gradient-bg text-white font-medium glow">
               Try Free
             </Link>
           </div>
@@ -79,7 +79,7 @@ function Hero() {
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.3 }}
           className="mt-10 flex flex-wrap gap-3 justify-center"
         >
-          <Link to="/auth" search={{ mode: "signup" }} className="inline-flex items-center gap-2 rounded-xl gradient-bg text-white font-medium px-6 py-3.5 glow hover:scale-[1.02] transition">
+          <Link to="/auth" className="inline-flex items-center gap-2 rounded-xl gradient-bg text-white font-medium px-6 py-3.5 glow hover:scale-[1.02] transition">
             Try Free <ChevronRight className="h-4 w-4" />
           </Link>
           <a href="#features" className="inline-flex items-center gap-2 rounded-xl glass px-6 py-3.5 font-medium hover:bg-white/10 transition">
@@ -201,7 +201,7 @@ function Pricing() {
               </ul>
               <Link
                 to="/auth"
-                search={{ mode: "signup" }}
+               
                 className={`mt-8 block text-center rounded-xl px-4 py-3 font-medium transition ${
                   p.featured ? "gradient-bg text-white glow" : "glass hover:bg-white/10"
                 }`}
