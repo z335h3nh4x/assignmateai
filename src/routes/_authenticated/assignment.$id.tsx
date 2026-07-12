@@ -59,6 +59,220 @@ function downloadFile(name: string, mime: string, content: string | Blob) {
   URL.revokeObjectURL(url);
 }
 
+// Renders markdown into clean HTML for academic PDF, returning the body html,
+// a separate references block (if any), and the H2/H3 outline for the TOC.
+function renderAcademicMarkdown(md: string) {
+  const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!);
+  const inline = (s: string) =>
+    s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\*(.+?)\*/g, "<em>$1</em>");
+
+  // Split off "References" section if present (## References or # References at end)
+  let body = md;
+  let references = "";
+  const refMatch = md.match(/\n\s*#{1,3}\s*references\s*\n([\s\S]*)$/i);
+  if (refMatch) {
+    body = md.slice(0, refMatch.index);
+    references = refMatch[1].trim();
+  }
+
+  const outline: { level: number; text: string; id: string }[] = [];
+  const slug = (s: string) =>
+    s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 60) || "s";
+
+  const toHtml = (src: string, collectOutline: boolean) => {
+    const lines = src.split(/\r?\n/);
+    const out: string[] = [];
+    let inList = false;
+    const closeList = () => { if (inList) { out.push("</ul>"); inList = false; } };
+    for (const raw of lines) {
+      const line = raw.trimEnd();
+      let m: RegExpMatchArray | null;
+      if ((m = line.match(/^###\s+(.*)$/))) {
+        closeList();
+        const id = slug(m[1]);
+        if (collectOutline) outline.push({ level: 3, text: m[1], id });
+        out.push(`<h3 id="${id}">${inline(esc(m[1]))}</h3>`); continue;
+      }
+      if ((m = line.match(/^##\s+(.*)$/))) {
+        closeList();
+        const id = slug(m[1]);
+        if (collectOutline) outline.push({ level: 2, text: m[1], id });
+        out.push(`<h2 id="${id}">${inline(esc(m[1]))}</h2>`); continue;
+      }
+      if ((m = line.match(/^#\s+(.*)$/))) {
+        closeList();
+        const id = slug(m[1]);
+        if (collectOutline) outline.push({ level: 1, text: m[1], id });
+        out.push(`<h1 id="${id}">${inline(esc(m[1]))}</h1>`); continue;
+      }
+      if (/^\s*[-*]\s+/.test(line)) {
+        if (!inList) { out.push("<ul>"); inList = true; }
+        out.push(`<li>${inline(esc(line.replace(/^\s*[-*]\s+/, "")))}</li>`);
+        continue;
+      }
+      closeList();
+      if (line.trim() === "") { out.push(""); continue; }
+      out.push(`<p>${inline(esc(line))}</p>`);
+    }
+    closeList();
+    return out.join("\n");
+  };
+
+  return {
+    bodyHtml: toHtml(body.trim(), true),
+    referencesHtml: references ? toHtml(references, false) : "",
+    outline,
+  };
+}
+
+type AcademicMeta = {
+  title: string;
+  studentName: string;
+  institution: string;
+  subject: string;
+  date: string;
+};
+
+function buildAcademicDocument(md: string, meta: AcademicMeta) {
+  const { bodyHtml, referencesHtml, outline } = renderAcademicMarkdown(md);
+  const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!);
+
+  const wordCount = md.split(/\s+/).filter(Boolean).length;
+  // Show TOC only when there is meaningful structure and length
+  const tocEntries = outline.filter((o) => o.level <= 3);
+  const showToc = wordCount >= 1200 && tocEntries.filter((o) => o.level === 2).length >= 3;
+
+  const tocHtml = showToc
+    ? `<section class="toc">
+        <h2 class="centered">Table of Contents</h2>
+        <ol>
+          ${tocEntries
+            .map(
+              (o) =>
+                `<li class="lvl-${o.level}"><a href="#${o.id}">${esc(o.text)}</a></li>`,
+            )
+            .join("")}
+          ${referencesHtml ? `<li class="lvl-2"><a href="#references">References</a></li>` : ""}
+        </ol>
+      </section>`
+    : "";
+
+  const metaRows = [
+    meta.studentName && `<div><span class="lbl">Submitted by</span><span class="val">${esc(meta.studentName)}</span></div>`,
+    meta.subject && `<div><span class="lbl">Subject</span><span class="val">${esc(meta.subject)}</span></div>`,
+    meta.institution && `<div><span class="lbl">Institution</span><span class="val">${esc(meta.institution)}</span></div>`,
+    `<div><span class="lbl">Date</span><span class="val">${esc(meta.date)}</span></div>`,
+  ].filter(Boolean).join("");
+
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(meta.title)}</title>
+<style>
+  @page {
+    size: Letter;
+    margin: 1in;
+    @bottom-center {
+      content: counter(page);
+      font-family: "Times New Roman", Times, serif;
+      font-size: 10pt;
+      color: #000;
+    }
+  }
+  html, body {
+    font-family: "Times New Roman", Times, serif;
+    font-size: 12pt;
+    line-height: 1.5;
+    color: #000;
+    background: #fff;
+    margin: 0;
+    padding: 0;
+  }
+  /* Fallback footer for browsers without @page margin boxes */
+  .page-footer {
+    position: fixed;
+    bottom: 0.4in;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 10pt;
+    color: #000;
+  }
+  h1, h2, h3, h4 { font-family: "Times New Roman", Times, serif; font-weight: bold; page-break-after: avoid; }
+  h1 { font-size: 16pt; margin: 1.2em 0 0.6em; }
+  h2 { font-size: 14pt; margin: 1.2em 0 0.5em; }
+  h3 { font-size: 12pt; margin: 1em 0 0.4em; font-style: italic; font-weight: bold; }
+  p  { text-align: justify; text-justify: inter-word; margin: 0 0 0.6em; text-indent: 0.4in; hyphens: auto; }
+  p:first-of-type, h1 + p, h2 + p, h3 + p { text-indent: 0; }
+  ul, ol { margin: 0.4em 0 0.8em 0.4in; padding: 0; }
+  li { margin: 0.2em 0; text-align: justify; }
+  a { color: #000; text-decoration: none; }
+
+  /* Title page */
+  .title-page {
+    height: 9in;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    page-break-after: always;
+  }
+  .title-page .assignment-label {
+    font-size: 12pt;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 1.5em;
+  }
+  .title-page h1.doc-title {
+    font-size: 24pt;
+    line-height: 1.3;
+    margin: 0 0 2em;
+    max-width: 6in;
+  }
+  .title-meta { margin-top: 2em; line-height: 2; font-size: 12pt; }
+  .title-meta > div { display: block; }
+  .title-meta .lbl { display: block; text-transform: uppercase; letter-spacing: 0.15em; font-size: 9pt; color: #555; }
+  .title-meta .val { display: block; font-size: 13pt; margin-bottom: 0.6em; }
+
+  /* Table of contents */
+  .toc { page-break-after: always; }
+  .toc h2.centered { text-align: center; margin-bottom: 1.5em; }
+  .toc ol { list-style: none; margin: 0; padding: 0; }
+  .toc li { margin: 0.35em 0; }
+  .toc li.lvl-3 { padding-left: 0.4in; }
+  .toc a { display: block; }
+
+  /* References */
+  .references { page-break-before: always; }
+  .references h2 { text-align: center; margin-bottom: 1em; }
+  .references p { text-indent: -0.4in; padding-left: 0.4in; text-align: left; }
+
+  @media screen {
+    body { max-width: 7in; margin: 0.5in auto; padding: 1in; box-shadow: 0 0 20px rgba(0,0,0,.15); }
+    .page-footer { display: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="page-footer"></div>
+
+  <section class="title-page">
+    <div class="assignment-label">Academic Assignment</div>
+    <h1 class="doc-title">${esc(meta.title)}</h1>
+    <div class="title-meta">${metaRows}</div>
+  </section>
+
+  ${tocHtml}
+
+  <main class="content">
+    ${bodyHtml}
+  </main>
+
+  ${referencesHtml ? `<section class="references"><h2 id="references">References</h2>${referencesHtml}</section>` : ""}
+
+  <script>window.addEventListener('load', () => setTimeout(() => window.print(), 300));</script>
+</body></html>`;
+}
+
+
 function AssignmentView() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
