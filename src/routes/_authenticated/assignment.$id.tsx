@@ -1,9 +1,10 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
-  ArrowLeft, Copy, Download, RefreshCw, FileText, Loader2,
+  ArrowLeft, Copy, Download, RefreshCw, FileText, Loader2, Pencil, Eye,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +15,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AssignmentAssistant, AutosaveEditor } from "@/components/assignment-assistant";
+import { incrementExport, saveAssignmentDraft } from "@/lib/assignments.functions";
 
 export const Route = createFileRoute("/_authenticated/assignment/$id")({
   head: () => ({ meta: [{ title: "Assignment — AssignAI" }] }),
