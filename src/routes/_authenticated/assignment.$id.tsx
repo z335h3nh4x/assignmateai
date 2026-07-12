@@ -1,9 +1,10 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
-  ArrowLeft, Copy, Download, RefreshCw, FileText, Loader2,
+  ArrowLeft, Copy, Download, RefreshCw, FileText, Loader2, Pencil, Eye,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +15,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AssignmentAssistant, AutosaveEditor } from "@/components/assignment-assistant";
+import { incrementExport, saveAssignmentDraft } from "@/lib/assignments.functions";
 
 export const Route = createFileRoute("/_authenticated/assignment/$id")({
   head: () => ({ meta: [{ title: "Assignment — AssignAI" }] }),
@@ -276,8 +279,12 @@ function buildAcademicDocument(md: string, meta: AcademicMeta) {
 function AssignmentView() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
+  const qc = useQueryClient();
+  const saveDraftFn = useServerFn(saveAssignmentDraft);
+  const incrementExportFn = useServerFn(incrementExport);
   const [regenerating, setRegenerating] = useState(false);
   const [pdfOpen, setPdfOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [pdfMeta, setPdfMeta] = useState({
     studentName: "",
     institution: "",
@@ -285,7 +292,7 @@ function AssignmentView() {
     date: new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }),
   });
 
-  const { data: row, isLoading, refetch } = useQuery({
+  const { data: row, isLoading } = useQuery({
     queryKey: ["assignment", id],
     queryFn: async () => {
       const { data, error } = await supabase.from("assignments").select("*").eq("id", id).maybeSingle();
@@ -295,17 +302,24 @@ function AssignmentView() {
     refetchInterval: (q) => (q.state.data && q.state.data.status === "generating" ? 2000 : false),
   });
 
+  async function trackExport() {
+    try { await incrementExportFn({ data: { id } }); } catch { /* non-blocking */ }
+    qc.invalidateQueries({ queryKey: ["dashboard-stats"] });
+  }
+
   const html = useMemo(() => (row?.result ? renderMarkdown(row.result) : ""), [row?.result]);
 
   function copy() {
     if (!row?.result) return;
     navigator.clipboard.writeText(row.result);
     toast.success("Copied to clipboard");
+    void trackExport();
   }
 
   function downloadTxt() {
     if (!row?.result) return;
     downloadFile(`${row.title}.txt`, "text/plain;charset=utf-8", row.result);
+    void trackExport();
   }
 
   function downloadPdf() {
@@ -323,14 +337,20 @@ function AssignmentView() {
     w.document.write(doc);
     w.document.close();
     setPdfOpen(false);
+    void trackExport();
   }
 
   function downloadDocx() {
     if (!row?.result) return;
-    // Minimal Word-compatible HTML (.doc). Fully-featured DOCX would need a lib.
     const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
       <head><meta charset="utf-8"><title>${row.title}</title></head><body>${renderMarkdown(row.result)}</body></html>`;
     downloadFile(`${row.title}.doc`, "application/msword", html);
+    void trackExport();
+  }
+
+  async function saveDraft(next: string) {
+    await saveDraftFn({ data: { id, result: next } });
+    qc.setQueryData(["assignment", id], (prev: typeof row) => (prev ? { ...prev, result: next } : prev));
   }
 
   async function regenerate() {
@@ -345,6 +365,8 @@ function AssignmentView() {
           outputStyle: row.output_style as "simple" | "detailed" | "academic" | "humanized",
           wordCount: row.word_count,
           title: row.title,
+          template: (row.template ?? "essay") as "essay" | "case_study" | "lab_report" | "research_paper" | "presentation" | "business_report",
+          citationStyle: (row.citation_style ?? "none") as "none" | "apa7" | "mla9" | "harvard" | "chicago" | "ieee",
         },
       });
       toast.success("Regenerated");
@@ -395,6 +417,9 @@ function AssignmentView() {
             <Button size="sm" variant="ghost" onClick={() => setPdfOpen(true)}><Download className="h-4 w-4 mr-1.5" />PDF</Button>
             <Button size="sm" variant="ghost" onClick={downloadDocx}><FileText className="h-4 w-4 mr-1.5" />DOCX</Button>
             <Button size="sm" variant="ghost" onClick={downloadTxt}><Download className="h-4 w-4 mr-1.5" />TXT</Button>
+            <Button size="sm" variant="ghost" onClick={() => setEditing((e) => !e)}>
+              {editing ? <><Eye className="h-4 w-4 mr-1.5" />View</> : <><Pencil className="h-4 w-4 mr-1.5" />Edit</>}
+            </Button>
             <div className="flex-1" />
             <Button size="sm" onClick={regenerate} disabled={regenerating} className="gradient-bg text-white border-0">
               <RefreshCw className={`h-4 w-4 mr-1.5 ${regenerating ? "animate-spin" : ""}`} />
@@ -403,13 +428,20 @@ function AssignmentView() {
           </Card>
 
           <Card className="glass border-white/10 p-8">
-            <article
-              className="prose prose-invert max-w-none"
-              dangerouslySetInnerHTML={{ __html: html }}
-            />
+            {editing ? (
+              <AutosaveEditor value={row.result} onSave={saveDraft} />
+            ) : (
+              <article
+                className="prose prose-invert max-w-none"
+                dangerouslySetInnerHTML={{ __html: html }}
+              />
+            )}
           </Card>
+
+          <AssignmentAssistant assignmentId={id} />
         </>
       )}
+
 
       <Dialog open={pdfOpen} onOpenChange={setPdfOpen}>
         <DialogContent className="glass border-white/10 sm:max-w-md">
