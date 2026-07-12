@@ -163,7 +163,7 @@ function Dashboard() {
       toast.error("Enter a valid URL (include https://)");
       return;
     }
-    setSources((cur) => [...cur, { kind: "url", url: u }].slice(0, 8));
+    setSources((cur) => [...cur, { kind: "url" as const, url: u }].slice(0, 8));
     setUrlInput("");
   }
 
