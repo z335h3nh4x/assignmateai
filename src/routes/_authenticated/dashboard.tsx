@@ -173,7 +173,7 @@ function Dashboard() {
       toast.error("Paste at least 20 characters of reference text.");
       return;
     }
-    setSources((cur) => [...cur, { kind: "text", text: t }].slice(0, 8));
+    setSources((cur) => [...cur, { kind: "text" as const, text: t }].slice(0, 8));
     setPastedRef("");
   }
 
