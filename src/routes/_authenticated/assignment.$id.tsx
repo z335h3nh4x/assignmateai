@@ -277,6 +277,13 @@ function AssignmentView() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const [regenerating, setRegenerating] = useState(false);
+  const [pdfOpen, setPdfOpen] = useState(false);
+  const [pdfMeta, setPdfMeta] = useState({
+    studentName: "",
+    institution: "",
+    subject: "",
+    date: new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }),
+  });
 
   const { data: row, isLoading, refetch } = useQuery({
     queryKey: ["assignment", id],
