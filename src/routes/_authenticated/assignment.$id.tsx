@@ -310,14 +310,19 @@ function AssignmentView() {
 
   function downloadPdf() {
     if (!row?.result) return;
-    // Print-to-PDF via a styled new window (works in all modern browsers)
     const w = window.open("", "_blank");
-    if (!w) return toast.error("Popup blocked");
-    w.document.write(`<html><head><title>${row.title}</title>
-      <style>body{font-family:Georgia,serif;max-width:720px;margin:40px auto;padding:0 24px;color:#111;line-height:1.6}
-      h1,h2,h3{font-family:'Helvetica Neue',sans-serif}
-      </style></head><body>${renderMarkdown(row.result)}<script>window.onload=()=>setTimeout(()=>window.print(),200);</script></body></html>`);
+    if (!w) return toast.error("Popup blocked — allow popups to export PDF");
+    const doc = buildAcademicDocument(row.result, {
+      title: row.title,
+      studentName: pdfMeta.studentName.trim(),
+      institution: pdfMeta.institution.trim(),
+      subject: pdfMeta.subject.trim(),
+      date: pdfMeta.date.trim() || new Date().toLocaleDateString(),
+    });
+    w.document.open();
+    w.document.write(doc);
     w.document.close();
+    setPdfOpen(false);
   }
 
   function downloadDocx() {
