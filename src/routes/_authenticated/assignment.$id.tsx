@@ -313,11 +313,13 @@ function AssignmentView() {
     if (!row?.result) return;
     navigator.clipboard.writeText(row.result);
     toast.success("Copied to clipboard");
+    void trackExport();
   }
 
   function downloadTxt() {
     if (!row?.result) return;
     downloadFile(`${row.title}.txt`, "text/plain;charset=utf-8", row.result);
+    void trackExport();
   }
 
   function downloadPdf() {
@@ -335,14 +337,20 @@ function AssignmentView() {
     w.document.write(doc);
     w.document.close();
     setPdfOpen(false);
+    void trackExport();
   }
 
   function downloadDocx() {
     if (!row?.result) return;
-    // Minimal Word-compatible HTML (.doc). Fully-featured DOCX would need a lib.
     const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
       <head><meta charset="utf-8"><title>${row.title}</title></head><body>${renderMarkdown(row.result)}</body></html>`;
     downloadFile(`${row.title}.doc`, "application/msword", html);
+    void trackExport();
+  }
+
+  async function saveDraft(next: string) {
+    await saveDraftFn({ data: { id, result: next } });
+    qc.setQueryData(["assignment", id], (prev: typeof row) => (prev ? { ...prev, result: next } : prev));
   }
 
   async function regenerate() {
@@ -357,6 +365,8 @@ function AssignmentView() {
           outputStyle: row.output_style as "simple" | "detailed" | "academic" | "humanized",
           wordCount: row.word_count,
           title: row.title,
+          template: (row.template ?? "essay") as "essay" | "case_study" | "lab_report" | "research_paper" | "presentation" | "business_report",
+          citationStyle: (row.citation_style ?? "none") as "none" | "apa7" | "mla9" | "harvard" | "chicago" | "ieee",
         },
       });
       toast.success("Regenerated");
