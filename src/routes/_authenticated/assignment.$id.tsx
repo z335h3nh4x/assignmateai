@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
-  ArrowLeft, Copy, Download, RefreshCw, FileText, Loader2, Pencil, Eye,
+  ArrowLeft, Copy, Download, RefreshCw, FileText, Loader2, Pencil, Eye, BookOpen,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -15,8 +15,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { AssignmentAssistant, AutosaveEditor } from "@/components/assignment-assistant";
 import { incrementExport, saveAssignmentDraft } from "@/lib/assignments.functions";
+import { buildNotebookDocument, type NotebookInk, type NotebookStyle } from "@/lib/notebook-pdf";
 
 export const Route = createFileRoute("/_authenticated/assignment/$id")({
   head: () => ({ meta: [{ title: "Assignment — AssignAI" }] }),
