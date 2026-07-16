@@ -9,25 +9,24 @@ const SourceSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("text"), label: z.string().optional(), text: z.string() }),
 ]);
 
+const AttachmentSchema = z.object({
+  name: z.string(),
+  mimeType: z.string(),
+  dataUrl: z.string(),
+});
+
 const GenerateInput = z.object({
-  prompt: z.string().min(3).max(30000),
+  prompt: z.string().max(30000).optional().default(""),
   educationLevel: z.enum(["school", "college", "university", "masters"]),
   outputStyle: z.enum(["simple", "detailed", "academic", "humanized"]),
   wordCount: z.number().int().min(300).max(6000),
   title: z.string().max(200).optional(),
+  subject: z.string().max(200).optional(),
+  detectedQuestions: z.array(z.string().max(4000)).max(30).optional(),
   template: z.enum(["essay", "case_study", "lab_report", "research_paper", "presentation", "business_report"]).default("essay"),
   citationStyle: z.enum(["none", "apa7", "mla9", "harvard", "chicago", "ieee"]).default("none"),
   sources: z.array(SourceSchema).max(8).default([]),
-  attachments: z
-    .array(
-      z.object({
-        name: z.string(),
-        mimeType: z.string(),
-        dataUrl: z.string(),
-      }),
-    )
-    .max(4)
-    .optional(),
+  attachments: z.array(AttachmentSchema).max(6).optional(),
 });
 
 export const generateAssignment = createServerFn({ method: "POST" })
