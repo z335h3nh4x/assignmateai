@@ -522,6 +522,76 @@ function AssignmentView() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={notebookOpen} onOpenChange={setNotebookOpen}>
+        <DialogContent className="glass border-white/10 sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Export notebook PDF</DialogTitle>
+            <DialogDescription>
+              Exports your assignment as a ruled-notebook page with handwriting-style text.
+              A print dialog opens next — choose "Save as PDF" as the destination.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Ink color</Label>
+                <Select value={notebookMeta.ink} onValueChange={(v) => setNotebookMeta({ ...notebookMeta, ink: v as NotebookInk })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="blue">Blue pen</SelectItem>
+                    <SelectItem value="black">Black pen</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Handwriting</Label>
+                <Select value={notebookMeta.style} onValueChange={(v) => setNotebookMeta({ ...notebookMeta, style: v as NotebookStyle })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="clean">Clean notebook</SelectItem>
+                    <SelectItem value="natural">Natural handwriting</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="nb-name">Student name</Label>
+              <Input id="nb-name" value={notebookMeta.studentName}
+                onChange={(e) => setNotebookMeta({ ...notebookMeta, studentName: e.target.value })}
+                placeholder="Jane Doe" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="nb-date">Date</Label>
+              <Input id="nb-date" value={notebookMeta.date}
+                onChange={(e) => setNotebookMeta({ ...notebookMeta, date: e.target.value })} />
+            </div>
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="nb-show-name" className="cursor-pointer">Show student name</Label>
+                <Switch id="nb-show-name" checked={notebookMeta.showStudentName}
+                  onCheckedChange={(v) => setNotebookMeta({ ...notebookMeta, showStudentName: v })} />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="nb-show-date" className="cursor-pointer">Show date</Label>
+                <Switch id="nb-show-date" checked={notebookMeta.showDate}
+                  onCheckedChange={(v) => setNotebookMeta({ ...notebookMeta, showDate: v })} />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="nb-show-pg" className="cursor-pointer">Show page numbers</Label>
+                <Switch id="nb-show-pg" checked={notebookMeta.showPageNumbers}
+                  onCheckedChange={(v) => setNotebookMeta({ ...notebookMeta, showPageNumbers: v })} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setNotebookOpen(false)}>Cancel</Button>
+            <Button onClick={downloadNotebookPdf} className="gradient-bg text-white border-0">
+              <BookOpen className="h-4 w-4 mr-1.5" />Generate notebook PDF
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
