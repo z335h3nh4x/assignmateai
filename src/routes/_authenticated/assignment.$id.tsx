@@ -363,6 +363,27 @@ function AssignmentView() {
     void trackExport();
   }
 
+  function downloadNotebookPdf() {
+    if (!row?.result) return;
+    const w = window.open("", "_blank");
+    if (!w) return toast.error("Popup blocked — allow popups to export PDF");
+    const doc = buildNotebookDocument(row.result, {
+      title: row.title,
+      studentName: notebookMeta.studentName.trim(),
+      date: notebookMeta.date.trim() || new Date().toLocaleDateString(),
+      ink: notebookMeta.ink,
+      style: notebookMeta.style,
+      showDate: notebookMeta.showDate,
+      showStudentName: notebookMeta.showStudentName,
+      showPageNumbers: notebookMeta.showPageNumbers,
+    });
+    w.document.open();
+    w.document.write(doc);
+    w.document.close();
+    setNotebookOpen(false);
+    void trackExport();
+  }
+
   async function saveDraft(next: string) {
     await saveDraftFn({ data: { id, result: next } });
     qc.setQueryData(["assignment", id], (prev: typeof row) => (prev ? { ...prev, result: next } : prev));
