@@ -450,7 +450,8 @@ function AssignmentView() {
         <>
           <Card className="glass border-white/10 p-3 flex flex-wrap gap-2">
             <Button size="sm" variant="ghost" onClick={copy}><Copy className="h-4 w-4 mr-1.5" />Copy</Button>
-            <Button size="sm" variant="ghost" onClick={() => setPdfOpen(true)}><Download className="h-4 w-4 mr-1.5" />PDF</Button>
+            <Button size="sm" variant="ghost" onClick={() => setPdfOpen(true)}><Download className="h-4 w-4 mr-1.5" />Academic PDF</Button>
+            <Button size="sm" variant="ghost" onClick={() => setNotebookOpen(true)}><BookOpen className="h-4 w-4 mr-1.5" />Notebook PDF</Button>
             <Button size="sm" variant="ghost" onClick={downloadDocx}><FileText className="h-4 w-4 mr-1.5" />DOCX</Button>
             <Button size="sm" variant="ghost" onClick={downloadTxt}><Download className="h-4 w-4 mr-1.5" />TXT</Button>
             <Button size="sm" variant="ghost" onClick={() => setEditing((e) => !e)}>
