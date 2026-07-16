@@ -289,12 +289,22 @@ function AssignmentView() {
   const incrementExportFn = useServerFn(incrementExport);
   const [regenerating, setRegenerating] = useState(false);
   const [pdfOpen, setPdfOpen] = useState(false);
+  const [notebookOpen, setNotebookOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [pdfMeta, setPdfMeta] = useState({
     studentName: "",
     institution: "",
     subject: "",
     date: new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }),
+  });
+  const [notebookMeta, setNotebookMeta] = useState({
+    studentName: "",
+    date: new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }),
+    ink: "blue" as NotebookInk,
+    style: "clean" as NotebookStyle,
+    showDate: true,
+    showStudentName: true,
+    showPageNumbers: true,
   });
 
   const { data: row, isLoading } = useQuery({
