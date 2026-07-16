@@ -54,31 +54,62 @@ export const generateAssignment = createServerFn({ method: "POST" })
     const fetchedUrlText = await fetchAllUrlTexts(data.sources);
     const sourcesBlock = summariseSourcesForPrompt(data.sources, fetchedUrlText);
 
+    const hasAttachments = (data.attachments?.length ?? 0) > 0;
+    const questions = (data.detectedQuestions ?? []).filter((q) => q.trim().length > 0);
+    const hasQuestions = questions.length > 0;
+    const userPrompt = data.prompt?.trim() ?? "";
+
+    if (!hasAttachments && !hasQuestions && userPrompt.length < 3) {
+      throw new Error("Upload an assignment file or enter a prompt to continue.");
+    }
+
+    const questionsBlock = hasQuestions
+      ? `\n\nThe student wants you to answer ONLY the following question(s) detected from their assignment. Answer each one separately with its own heading. Do not skip any.\n\n${questions
+          .map((q, i) => `Question ${i + 1}: ${q}`)
+          .join("\n\n")}`
+      : "";
+
+    const primarySourceRule = hasAttachments
+      ? `\nPRIMARY SOURCE: The uploaded file(s) attached in this message ARE the assignment. Read them carefully (including OCR of any images / handwritten pages). Extract the actual questions and answer them. Do NOT summarise or rewrite the uploaded assignment — solve it.`
+      : "";
+
     const systemPrompt = `You are AssignAI, an expert assignment writer for students.
 
 Rules:
-- Answer EVERY question in the assignment fully.
-- Format with clear headings (##), subheadings (###), bullet points, and proper paragraphs.
-- Target length: approximately ${data.wordCount} words. Do not go far under.
+- Answer EVERY question in the assignment fully and individually.
+- Format with clear headings (##) per question, subheadings (###), bullet points, and proper paragraphs.
+- Target length: approximately ${data.wordCount} words total. Do not go far under.
 - Target level: ${levelMap[data.educationLevel]}.
 - Writing style: ${styleMap[data.outputStyle]}
 - Do NOT use AI clichés like "In today's fast-paced world", "It is important to note", "delve into".
+- Never summarise, quote back, or restate the uploaded assignment. Produce the SOLUTION.
+- Include equations (in LaTeX-style \`$...$\` or plain text) and simple ASCII/described diagrams where the subject requires them.
 - Return the answer in clean Markdown.
+${primarySourceRule}
 
 Document structure:
 ${templatePrompt(data.template)}
 
 Citations:
 ${citationPrompt(data.citationStyle)}
-${sourcesBlock ? `\n${sourcesBlock}` : ""}`;
+${sourcesBlock ? `\n${sourcesBlock}` : ""}${questionsBlock}`;
 
-    const title = data.title?.trim() || data.prompt.slice(0, 80);
+    const detectedTitle = data.title?.trim();
+    const subjectPrefix = data.subject?.trim();
+    const title = detectedTitle
+      ? subjectPrefix && !detectedTitle.toLowerCase().includes(subjectPrefix.toLowerCase())
+        ? `${subjectPrefix} — ${detectedTitle}`
+        : detectedTitle
+      : subjectPrefix
+        ? `${subjectPrefix} Assignment`
+        : userPrompt.slice(0, 80) || "Untitled assignment";
+
     const { data: created, error: createErr } = await supabase
       .from("assignments")
       .insert({
         user_id: userId,
         title,
-        prompt: data.prompt,
+        prompt: userPrompt || (hasQuestions ? questions.join("\n\n") : "[uploaded assignment]"),
         education_level: data.educationLevel,
         output_style: data.outputStyle,
         word_count: data.wordCount,
@@ -92,8 +123,16 @@ ${sourcesBlock ? `\n${sourcesBlock}` : ""}`;
     if (createErr || !created) throw new Error(createErr?.message ?? "Could not create assignment");
 
     try {
+      const instructionText = hasAttachments
+        ? `Read the attached assignment file(s) carefully and solve every question found in them.${
+            userPrompt ? `\n\nExtra instructions from the student: ${userPrompt}` : ""
+          }`
+        : hasQuestions
+          ? `Solve the detected questions listed in the system prompt.${userPrompt ? `\n\nExtra notes: ${userPrompt}` : ""}`
+          : userPrompt;
+
       const userContent: Exclude<Parameters<typeof callLovableAI>[0]["messages"][number]["content"], string> = [
-        { type: "text", text: data.prompt },
+        { type: "text", text: instructionText },
       ];
       for (const att of data.attachments ?? []) {
         if (att.mimeType.startsWith("image/")) {
@@ -118,7 +157,7 @@ ${sourcesBlock ? `\n${sourcesBlock}` : ""}`;
       const result = await callLovableAI({
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: userContent.length === 1 ? data.prompt : userContent },
+          { role: "user", content: userContent.length === 1 ? instructionText : userContent },
         ],
       });
 
