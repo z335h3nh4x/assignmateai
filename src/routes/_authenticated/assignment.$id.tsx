@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
-  ArrowLeft, Copy, Download, RefreshCw, FileText, Loader2, Pencil, Eye,
+  ArrowLeft, Copy, Download, RefreshCw, FileText, Loader2, Pencil, Eye, BookOpen,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -15,8 +15,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { AssignmentAssistant, AutosaveEditor } from "@/components/assignment-assistant";
 import { incrementExport, saveAssignmentDraft } from "@/lib/assignments.functions";
+import { buildNotebookDocument, type NotebookInk, type NotebookStyle } from "@/lib/notebook-pdf";
 
 export const Route = createFileRoute("/_authenticated/assignment/$id")({
   head: () => ({ meta: [{ title: "Assignment — AssignAI" }] }),
@@ -284,12 +289,22 @@ function AssignmentView() {
   const incrementExportFn = useServerFn(incrementExport);
   const [regenerating, setRegenerating] = useState(false);
   const [pdfOpen, setPdfOpen] = useState(false);
+  const [notebookOpen, setNotebookOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [pdfMeta, setPdfMeta] = useState({
     studentName: "",
     institution: "",
     subject: "",
     date: new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }),
+  });
+  const [notebookMeta, setNotebookMeta] = useState({
+    studentName: "",
+    date: new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }),
+    ink: "blue" as NotebookInk,
+    style: "clean" as NotebookStyle,
+    showDate: true,
+    showStudentName: true,
+    showPageNumbers: true,
   });
 
   const { data: row, isLoading } = useQuery({
@@ -345,6 +360,27 @@ function AssignmentView() {
     const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
       <head><meta charset="utf-8"><title>${row.title}</title></head><body>${renderMarkdown(row.result)}</body></html>`;
     downloadFile(`${row.title}.doc`, "application/msword", html);
+    void trackExport();
+  }
+
+  function downloadNotebookPdf() {
+    if (!row?.result) return;
+    const w = window.open("", "_blank");
+    if (!w) return toast.error("Popup blocked — allow popups to export PDF");
+    const doc = buildNotebookDocument(row.result, {
+      title: row.title,
+      studentName: notebookMeta.studentName.trim(),
+      date: notebookMeta.date.trim() || new Date().toLocaleDateString(),
+      ink: notebookMeta.ink,
+      style: notebookMeta.style,
+      showDate: notebookMeta.showDate,
+      showStudentName: notebookMeta.showStudentName,
+      showPageNumbers: notebookMeta.showPageNumbers,
+    });
+    w.document.open();
+    w.document.write(doc);
+    w.document.close();
+    setNotebookOpen(false);
     void trackExport();
   }
 
@@ -414,7 +450,8 @@ function AssignmentView() {
         <>
           <Card className="glass border-white/10 p-3 flex flex-wrap gap-2">
             <Button size="sm" variant="ghost" onClick={copy}><Copy className="h-4 w-4 mr-1.5" />Copy</Button>
-            <Button size="sm" variant="ghost" onClick={() => setPdfOpen(true)}><Download className="h-4 w-4 mr-1.5" />PDF</Button>
+            <Button size="sm" variant="ghost" onClick={() => setPdfOpen(true)}><Download className="h-4 w-4 mr-1.5" />Academic PDF</Button>
+            <Button size="sm" variant="ghost" onClick={() => setNotebookOpen(true)}><BookOpen className="h-4 w-4 mr-1.5" />Notebook PDF</Button>
             <Button size="sm" variant="ghost" onClick={downloadDocx}><FileText className="h-4 w-4 mr-1.5" />DOCX</Button>
             <Button size="sm" variant="ghost" onClick={downloadTxt}><Download className="h-4 w-4 mr-1.5" />TXT</Button>
             <Button size="sm" variant="ghost" onClick={() => setEditing((e) => !e)}>
@@ -481,6 +518,76 @@ function AssignmentView() {
             <Button variant="ghost" onClick={() => setPdfOpen(false)}>Cancel</Button>
             <Button onClick={downloadPdf} className="gradient-bg text-white border-0">
               <Download className="h-4 w-4 mr-1.5" />Generate PDF
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={notebookOpen} onOpenChange={setNotebookOpen}>
+        <DialogContent className="glass border-white/10 sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Export notebook PDF</DialogTitle>
+            <DialogDescription>
+              Exports your assignment as a ruled-notebook page with handwriting-style text.
+              A print dialog opens next — choose "Save as PDF" as the destination.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Ink color</Label>
+                <Select value={notebookMeta.ink} onValueChange={(v) => setNotebookMeta({ ...notebookMeta, ink: v as NotebookInk })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="blue">Blue pen</SelectItem>
+                    <SelectItem value="black">Black pen</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Handwriting</Label>
+                <Select value={notebookMeta.style} onValueChange={(v) => setNotebookMeta({ ...notebookMeta, style: v as NotebookStyle })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="clean">Clean notebook</SelectItem>
+                    <SelectItem value="natural">Natural handwriting</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="nb-name">Student name</Label>
+              <Input id="nb-name" value={notebookMeta.studentName}
+                onChange={(e) => setNotebookMeta({ ...notebookMeta, studentName: e.target.value })}
+                placeholder="Jane Doe" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="nb-date">Date</Label>
+              <Input id="nb-date" value={notebookMeta.date}
+                onChange={(e) => setNotebookMeta({ ...notebookMeta, date: e.target.value })} />
+            </div>
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="nb-show-name" className="cursor-pointer">Show student name</Label>
+                <Switch id="nb-show-name" checked={notebookMeta.showStudentName}
+                  onCheckedChange={(v) => setNotebookMeta({ ...notebookMeta, showStudentName: v })} />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="nb-show-date" className="cursor-pointer">Show date</Label>
+                <Switch id="nb-show-date" checked={notebookMeta.showDate}
+                  onCheckedChange={(v) => setNotebookMeta({ ...notebookMeta, showDate: v })} />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="nb-show-pg" className="cursor-pointer">Show page numbers</Label>
+                <Switch id="nb-show-pg" checked={notebookMeta.showPageNumbers}
+                  onCheckedChange={(v) => setNotebookMeta({ ...notebookMeta, showPageNumbers: v })} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setNotebookOpen(false)}>Cancel</Button>
+            <Button onClick={downloadNotebookPdf} className="gradient-bg text-white border-0">
+              <BookOpen className="h-4 w-4 mr-1.5" />Generate notebook PDF
             </Button>
           </DialogFooter>
         </DialogContent>
