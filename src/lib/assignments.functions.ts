@@ -347,3 +347,70 @@ export const getDashboardStats = createServerFn({ method: "POST" })
       })),
     };
   });
+
+// ---------- Analyse uploaded assignment files ----------
+const AnalyzeInput = z.object({
+  attachments: z.array(AttachmentSchema).min(1).max(6),
+  extraText: z.string().max(20000).optional(),
+});
+
+export const analyzeUpload = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => AnalyzeInput.parse(data))
+  .handler(async ({ data }) => {
+    const { callLovableAI } = await import("./ai-gateway.server");
+
+    const userContent: Exclude<Parameters<typeof callLovableAI>[0]["messages"][number]["content"], string> = [
+      {
+        type: "text",
+        text: `Analyse the attached student assignment file(s). Perform OCR on any images or handwritten pages. Detect:
+- The assignment title (short, e.g. "Free and Forced Oscillations")
+- The subject / course (e.g. "Engineering Physics")
+- Every distinct question in the assignment, preserving their original numbering when present
+- Whether the assignment is handwritten
+
+Return ONLY compact JSON, no markdown fences. Shape:
+{
+  "title": "string (short, may be empty)",
+  "subject": "string (may be empty)",
+  "handwritten": true|false,
+  "questions": ["full text of question 1", "full text of question 2", ...]
+}
+If you can only find one question, return it as a single-item array. Never invent questions that are not in the document.${
+          data.extraText ? `\n\nAdditional pasted text from the student:\n${data.extraText.slice(0, 8000)}` : ""
+        }`,
+      },
+    ];
+    for (const att of data.attachments) {
+      if (att.mimeType.startsWith("image/")) {
+        userContent.push({ type: "image_url", image_url: { url: att.dataUrl } });
+      } else if (att.mimeType === "application/pdf") {
+        userContent.push({ type: "file", file: { filename: att.name, file_data: att.dataUrl } });
+      }
+    }
+
+    const raw = await callLovableAI({
+      messages: [
+        { role: "system", content: "You are an assignment analyser. Reply with strict JSON only." },
+        { role: "user", content: userContent },
+      ],
+      temperature: 0.1,
+    });
+
+    const cleaned = raw.trim().replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
+    let parsed: { title?: string; subject?: string; handwritten?: boolean; questions?: unknown };
+    try {
+      parsed = JSON.parse(cleaned);
+    } catch {
+      throw new Error("Could not analyse the uploaded file. Please try again.");
+    }
+    const questions = Array.isArray(parsed.questions)
+      ? parsed.questions.filter((q): q is string => typeof q === "string" && q.trim().length > 0).slice(0, 30)
+      : [];
+    return {
+      title: typeof parsed.title === "string" ? parsed.title.trim() : "",
+      subject: typeof parsed.subject === "string" ? parsed.subject.trim() : "",
+      handwritten: Boolean(parsed.handwritten),
+      questions,
+    };
+  });
