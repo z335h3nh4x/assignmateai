@@ -96,6 +96,8 @@ export function buildNotebookDocument(markdown: string, meta: NotebookMeta): str
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Patrick+Hand&family=Kalam:wght@400;700&display=swap">
+${PRINT_HEAD_ASSETS}
+<style>${PRINT_RICH_CSS}</style>
 <style>
   @page { size: A4; margin: 0; }
   * { box-sizing: border-box; }
