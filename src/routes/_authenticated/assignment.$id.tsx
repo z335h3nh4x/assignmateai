@@ -75,70 +75,42 @@ function downloadFile(name: string, mime: string, content: string | Blob) {
   URL.revokeObjectURL(url);
 }
 
-// Renders markdown into clean HTML for academic PDF, returning the body html,
-// a separate references block (if any), and the H2/H3 outline for the TOC.
+// Split off "References" section (## References or # References at end)
+// and inject stable ids into every heading so the TOC and internal anchors work.
 function renderAcademicMarkdown(md: string) {
-  const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!);
-  const inline = (s: string) =>
-    s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\*(.+?)\*/g, "<em>$1</em>");
-
-  // Split off "References" section if present (## References or # References at end)
   let body = md;
-  let references = "";
+  let referencesMd = "";
   const refMatch = md.match(/\n\s*#{1,3}\s*references\s*\n([\s\S]*)$/i);
   if (refMatch) {
     body = md.slice(0, refMatch.index);
-    references = refMatch[1].trim();
+    referencesMd = refMatch[1].trim();
   }
+
+  const bodyRaw = renderRichMarkdown(body.trim());
+  const referencesRaw = referencesMd ? renderRichMarkdown(referencesMd) : "";
 
   const outline: { level: number; text: string; id: string }[] = [];
   const slug = (s: string) =>
     s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 60) || "s";
-
-  const toHtml = (src: string, collectOutline: boolean) => {
-    const lines = src.split(/\r?\n/);
-    const out: string[] = [];
-    let inList = false;
-    const closeList = () => { if (inList) { out.push("</ul>"); inList = false; } };
-    for (const raw of lines) {
-      const line = raw.trimEnd();
-      let m: RegExpMatchArray | null;
-      if ((m = line.match(/^###\s+(.*)$/))) {
-        closeList();
-        const id = slug(m[1]);
-        if (collectOutline) outline.push({ level: 3, text: m[1], id });
-        out.push(`<h3 id="${id}">${inline(esc(m[1]))}</h3>`); continue;
-      }
-      if ((m = line.match(/^##\s+(.*)$/))) {
-        closeList();
-        const id = slug(m[1]);
-        if (collectOutline) outline.push({ level: 2, text: m[1], id });
-        out.push(`<h2 id="${id}">${inline(esc(m[1]))}</h2>`); continue;
-      }
-      if ((m = line.match(/^#\s+(.*)$/))) {
-        closeList();
-        const id = slug(m[1]);
-        if (collectOutline) outline.push({ level: 1, text: m[1], id });
-        out.push(`<h1 id="${id}">${inline(esc(m[1]))}</h1>`); continue;
-      }
-      if (/^\s*[-*]\s+/.test(line)) {
-        if (!inList) { out.push("<ul>"); inList = true; }
-        out.push(`<li>${inline(esc(line.replace(/^\s*[-*]\s+/, "")))}</li>`);
-        continue;
-      }
-      closeList();
-      if (line.trim() === "") { out.push(""); continue; }
-      out.push(`<p>${inline(esc(line))}</p>`);
-    }
-    closeList();
-    return out.join("\n");
+  const seen = new Map<string, number>();
+  const uniq = (base: string) => {
+    const n = (seen.get(base) ?? 0) + 1;
+    seen.set(base, n);
+    return n === 1 ? base : `${base}-${n}`;
   };
 
-  return {
-    bodyHtml: toHtml(body.trim(), true),
-    referencesHtml: references ? toHtml(references, false) : "",
-    outline,
-  };
+  const bodyHtml = bodyRaw.replace(
+    /<h([1-3])(\s[^>]*)?>([\s\S]*?)<\/h\1>/g,
+    (_full, lvl: string, attrs: string | undefined, inner: string) => {
+      const level = Number(lvl);
+      const text = inner.replace(/<[^>]+>/g, "").trim();
+      const id = uniq(slug(text));
+      outline.push({ level, text, id });
+      return `<h${lvl}${attrs ?? ""} id="${id}">${inner}</h${lvl}>`;
+    },
+  );
+
+  return { bodyHtml, referencesHtml: referencesRaw, outline };
 }
 
 type AcademicMeta = {
@@ -148,6 +120,8 @@ type AcademicMeta = {
   subject: string;
   date: string;
 };
+
+
 
 function buildAcademicDocument(md: string, meta: AcademicMeta) {
   const { bodyHtml, referencesHtml, outline } = renderAcademicMarkdown(md);
