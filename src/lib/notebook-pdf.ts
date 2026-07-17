@@ -1,6 +1,12 @@
 // Builds a notebook-style HTML document for printing to PDF.
 // Text stays selectable — the notebook look is pure HTML/CSS.
 
+import {
+  renderRichMarkdown,
+  PRINT_HEAD_ASSETS,
+  PRINT_RICH_CSS,
+} from "./render-markdown";
+
 export type NotebookInk = "blue" | "black";
 export type NotebookStyle = "clean" | "natural";
 
@@ -18,79 +24,12 @@ export type NotebookMeta = {
 const esc = (s: string) =>
   s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!);
 
-const inline = (s: string) =>
-  s
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/\*(.+?)\*/g, "<em>$1</em>");
-
-// Convert a simple markdown subset into notebook-friendly HTML blocks.
+// Rich renderer produces standard HTML — we just tag it with a class so the
+// notebook CSS below styles paragraphs, lists, tables etc. on ruled lines.
 function mdToBlocks(md: string): string {
-  const lines = md.split(/\r?\n/);
-  const out: string[] = [];
-  let inUl = false;
-  let inOl = false;
-  let tableBuf: string[] = [];
-  const closeLists = () => {
-    if (inUl) { out.push("</ul>"); inUl = false; }
-    if (inOl) { out.push("</ol>"); inOl = false; }
-  };
-  const flushTable = () => {
-    if (tableBuf.length === 0) return;
-    const rows = tableBuf.map((l) => l.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim()));
-    // detect separator row
-    const sepIdx = rows.findIndex((r) => r.every((c) => /^:?-{2,}:?$/.test(c)));
-    let header: string[] | null = null;
-    let body = rows;
-    if (sepIdx > 0) {
-      header = rows[sepIdx - 1];
-      body = rows.slice(sepIdx + 1);
-    }
-    let html = '<table class="nb-table">';
-    if (header) {
-      html += "<thead><tr>" + header.map((c) => `<th>${inline(esc(c))}</th>`).join("") + "</tr></thead>";
-    }
-    html += "<tbody>" + body.map((r) => "<tr>" + r.map((c) => `<td>${inline(esc(c))}</td>`).join("") + "</tr>").join("") + "</tbody></table>";
-    out.push(html);
-    tableBuf = [];
-  };
-
-  for (const raw of lines) {
-    const line = raw.replace(/\s+$/g, "");
-
-    if (/^\s*\|.*\|\s*$/.test(line)) {
-      closeLists();
-      tableBuf.push(line);
-      continue;
-    } else if (tableBuf.length) {
-      flushTable();
-    }
-
-    let m: RegExpMatchArray | null;
-    if ((m = line.match(/^###\s+(.*)$/))) { closeLists(); out.push(`<h3 class="nb-h3">${inline(esc(m[1]))}</h3>`); continue; }
-    if ((m = line.match(/^##\s+(.*)$/)))  { closeLists(); out.push(`<h2 class="nb-h2">${inline(esc(m[1]))}</h2>`); continue; }
-    if ((m = line.match(/^#\s+(.*)$/)))   { closeLists(); out.push(`<h1 class="nb-h1">${inline(esc(m[1]))}</h1>`); continue; }
-
-    if ((m = line.match(/^\s*(\d+)\.\s+(.*)$/))) {
-      if (inUl) { out.push("</ul>"); inUl = false; }
-      if (!inOl) { out.push('<ol class="nb-ol">'); inOl = true; }
-      out.push(`<li>${inline(esc(m[2]))}</li>`);
-      continue;
-    }
-    if ((m = line.match(/^\s*[-*]\s+(.*)$/))) {
-      if (inOl) { out.push("</ol>"); inOl = false; }
-      if (!inUl) { out.push('<ul class="nb-ul">'); inUl = true; }
-      out.push(`<li>${inline(esc(m[1]))}</li>`);
-      continue;
-    }
-
-    closeLists();
-    if (line.trim() === "") { out.push('<div class="nb-blank"></div>'); continue; }
-    out.push(`<p class="nb-p">${inline(esc(line))}</p>`);
-  }
-  flushTable();
-  closeLists();
-  return out.join("\n");
+  return `<div class="nb-body">${renderRichMarkdown(md)}</div>`;
 }
+
 
 export function buildNotebookDocument(markdown: string, meta: NotebookMeta): string {
   const bodyHtml = mdToBlocks(markdown);
@@ -110,39 +49,46 @@ export function buildNotebookDocument(markdown: string, meta: NotebookMeta): str
     </header>
   `;
 
+  // Natural handwriting jitter — only applied to plain text nodes so KaTeX
+  // formulas, tables and code blocks stay intact.
   const naturalScript = meta.style === "natural" ? `
     <script>
       (function () {
         function rand(a, b) { return a + Math.random() * (b - a); }
-        var nodes = document.querySelectorAll('.nb-p, .nb-h1, .nb-h2, .nb-h3, .nb-ul li, .nb-ol li, .nb-title, .nb-header-left, .nb-header-right, .nb-table td, .nb-table th');
-        nodes.forEach(function (n) {
-          var text = n.textContent || '';
-          if (!text.trim()) return;
-          // Split into words, wrap each with a span carrying tiny random transforms.
+        var SKIP = new Set(['CODE','PRE','TABLE','THEAD','TBODY','TR','TH','TD','SVG','MATH']);
+        var walker = document.createTreeWalker(document.querySelector('.nb-body'), NodeFilter.SHOW_TEXT, null);
+        var textNodes = [];
+        while (walker.nextNode()) {
+          var n = walker.currentNode;
+          if (!n.nodeValue || !n.nodeValue.trim()) continue;
+          var p = n.parentElement;
+          var skip = false;
+          while (p) {
+            if (SKIP.has(p.tagName) || p.classList.contains('katex') || p.classList.contains('mermaid')) { skip = true; break; }
+            p = p.parentElement;
+          }
+          if (!skip) textNodes.push(n);
+        }
+        textNodes.forEach(function (n) {
+          var text = n.nodeValue;
           var frag = document.createDocumentFragment();
           var parts = text.split(/(\\s+)/);
           parts.forEach(function (p) {
             if (/^\\s+$/.test(p)) { frag.appendChild(document.createTextNode(p)); return; }
             var s = document.createElement('span');
             s.textContent = p;
-            var r = rand(-0.8, 0.8);
-            var y = rand(-1.2, 1.2);
-            var w = rand(0.97, 1.03);
-            var o = rand(0.85, 1);
             s.style.display = 'inline-block';
-            s.style.transform = 'translateY(' + y.toFixed(2) + 'px) rotate(' + r.toFixed(2) + 'deg)';
-            s.style.letterSpacing = (rand(-0.3, 0.6)).toFixed(2) + 'px';
-            s.style.fontWeight = Math.random() < 0.15 ? '600' : '400';
-            s.style.opacity = o.toFixed(2);
-            s.style.fontStretch = (w * 100).toFixed(0) + '%';
+            s.style.transform = 'translateY(' + rand(-1.2,1.2).toFixed(2) + 'px) rotate(' + rand(-0.8,0.8).toFixed(2) + 'deg)';
+            s.style.letterSpacing = rand(-0.3,0.6).toFixed(2) + 'px';
+            s.style.opacity = rand(0.85,1).toFixed(2);
             frag.appendChild(s);
           });
-          n.textContent = '';
-          n.appendChild(frag);
+          n.parentNode.replaceChild(frag, n);
         });
       })();
     <\/script>
   ` : "";
+
 
   return `<!doctype html><html><head>
 <meta charset="utf-8">
@@ -150,6 +96,8 @@ export function buildNotebookDocument(markdown: string, meta: NotebookMeta): str
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Patrick+Hand&family=Kalam:wght@400;700&display=swap">
+${PRINT_HEAD_ASSETS}
+<style>${PRINT_RICH_CSS}</style>
 <style>
   @page { size: A4; margin: 0; }
   * { box-sizing: border-box; }
@@ -216,49 +164,85 @@ export function buildNotebookDocument(markdown: string, meta: NotebookMeta): str
     font-weight: 600;
   }
 
-  .nb-p {
-    margin: 0;
+  .nb-body p {
+    margin: 0 0 ${RULE}px;
     padding: 0;
     text-align: left;
+    line-height: ${RULE}px;
     word-wrap: break-word;
     overflow-wrap: break-word;
   }
-  .nb-blank { height: ${RULE}px; }
-
-  .nb-h1, .nb-h2, .nb-h3 {
-    margin: 0;
+  .nb-body h1, .nb-body h2, .nb-body h3 {
+    margin: 0 0 ${RULE / 2}px;
     padding: 0;
     line-height: ${RULE}px;
     font-weight: 600;
     text-decoration: underline;
     text-underline-offset: 5px;
   }
-  .nb-h1 { font-size: ${meta.style === "natural" ? "32px" : "26px"}; height: ${RULE * 2}px; line-height: ${RULE * 2}px; }
-  .nb-h2 { font-size: ${meta.style === "natural" ? "28px" : "24px"}; }
-  .nb-h3 { font-size: ${meta.style === "natural" ? "26px" : "22px"}; font-style: italic; }
+  .nb-body h1 { font-size: ${meta.style === "natural" ? "32px" : "26px"}; line-height: ${RULE * 2}px; }
+  .nb-body h2 { font-size: ${meta.style === "natural" ? "28px" : "24px"}; }
+  .nb-body h3 { font-size: ${meta.style === "natural" ? "26px" : "22px"}; font-style: italic; }
+  .nb-body ul, .nb-body ol { margin: 0 0 ${RULE}px; padding-left: 30px; }
+  .nb-body li { line-height: ${RULE}px; margin: 0; }
 
-  .nb-ul, .nb-ol { margin: 0; padding-left: 30px; }
-  .nb-ul li, .nb-ol li { line-height: ${RULE}px; margin: 0; }
-  .nb-ul { list-style: none; }
-  .nb-ul li::before { content: "•"; display: inline-block; width: 1em; margin-left: -1em; }
-
-  .nb-table {
+  /* Tables, code, math, mermaid — same rules everywhere. */
+  .nb-body .table-wrap { overflow-x: auto; margin: 0 0 ${RULE}px; }
+  .nb-body table.md-table {
     width: 100%;
     border-collapse: collapse;
-    margin: 0 0 ${RULE}px;
-    font-family: ${fontFamily};
+    font-family: 'Kalam', 'Patrick Hand', cursive;
+    font-size: ${meta.style === "natural" ? "20px" : "18px"};
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
-  .nb-table th, .nb-table td {
-    border: 1px solid ${inkColor};
-    padding: 4px 8px;
-    line-height: ${RULE - 4}px;
+  .nb-body table.md-table th, .nb-body table.md-table td {
+    border: 1.5px solid ${inkColor};
+    padding: 6px 10px;
+    line-height: 1.3;
     text-align: left;
     vertical-align: top;
   }
-  .nb-table th { font-weight: 600; }
-
-  strong { font-weight: 700; }
-  em { font-style: italic; }
+  .nb-body table.md-table th { font-weight: 700; background: rgba(0,0,0,0.04); }
+  .nb-body table.md-table tr { page-break-inside: avoid; break-inside: avoid; }
+  .nb-body pre.code-block {
+    background: #fafaf3;
+    border: 1px solid ${inkColor};
+    border-radius: 4px;
+    padding: 10px 12px;
+    font-family: 'Courier New', Consolas, monospace;
+    font-size: 14px;
+    line-height: 1.45;
+    color: ${inkColor};
+    overflow-x: auto;
+    margin: 0 0 ${RULE}px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .nb-body code { font-family: 'Courier New', Consolas, monospace; }
+  .nb-body .katex, .nb-body .katex-display { color: ${inkColor}; }
+  .nb-body .katex-display {
+    margin: 0.5em 0 ${RULE / 2}px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .nb-body .mermaid {
+    text-align: center;
+    margin: 0 0 ${RULE}px;
+    padding: 8px;
+    background: #ffffff;
+    border: 1px solid ${inkColor};
+    border-radius: 4px;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .nb-body .mermaid svg { max-width: 100%; height: auto; }
+  .nb-body strong { font-weight: 700; }
+  .nb-body em { font-style: italic; }
 
   ${meta.showPageNumbers ? `
   .nb-pgnum {
@@ -304,23 +288,26 @@ export function buildNotebookDocument(markdown: string, meta: NotebookMeta): str
         var headerHTML = ${JSON.stringify(headerRow)};
         var showPageNumbers = ${meta.showPageNumbers ? "true" : "false"};
 
-        // Move content nodes after the initial header + title into a queue.
-        var titleEl = first.querySelector('.nb-title');
+        // Rich markdown is wrapped in a <div class="nb-body"> — paginate its
+        // children across additional pages, each with its own .nb-body wrapper
+        // so the descendant CSS selectors keep matching.
         var pgNumEl = first.querySelector('.nb-pgnum');
         if (pgNumEl) pgNumEl.remove();
+        var firstBody = first.querySelector('.nb-body');
+        if (!firstBody) return;
         var contentNodes = [];
-        var node = titleEl ? titleEl.nextSibling : first.firstChild;
-        while (node) {
-          var next = node.nextSibling;
-          if (node.nodeType === 1) contentNodes.push(node);
-          first.removeChild(node);
-          node = next;
+        while (firstBody.firstChild) {
+          var n = firstBody.firstChild;
+          if (n.nodeType === 1) contentNodes.push(n);
+          firstBody.removeChild(n);
         }
+
+
 
         function newPage(pageNum) {
           var p = document.createElement('section');
           p.className = 'page';
-          p.innerHTML = headerHTML;
+          p.innerHTML = headerHTML + '<div class="nb-body"></div>';
           if (showPageNumbers) {
             var n = document.createElement('div');
             n.className = 'nb-pgnum';
@@ -335,6 +322,8 @@ export function buildNotebookDocument(markdown: string, meta: NotebookMeta): str
           return page.scrollHeight <= PAGE_HEIGHT_PX + 2;
         }
 
+        function bodyOf(page) { return page.querySelector('.nb-body'); }
+
         var pageNum = 1;
         if (showPageNumbers) {
           var n = document.createElement('div');
@@ -345,24 +334,21 @@ export function buildNotebookDocument(markdown: string, meta: NotebookMeta): str
         var current = first;
 
         contentNodes.forEach(function (el) {
-          // Insert before page number so it stays at the bottom.
-          var pg = current.querySelector('.nb-pgnum');
-          if (pg) current.insertBefore(el, pg); else current.appendChild(el);
+          var body = bodyOf(current);
+          body.appendChild(el);
           if (!fits(current)) {
-            current.removeChild(el);
+            body.removeChild(el);
             pageNum += 1;
             current = newPage(pageNum);
-            var pg2 = current.querySelector('.nb-pgnum');
-            if (pg2) current.insertBefore(el, pg2); else current.appendChild(el);
-            // If a single element is taller than a page (huge table/paragraph),
-            // let the browser handle it naturally — keep it on this page.
+            bodyOf(current).appendChild(el);
           }
         });
       }
 
       function ready() {
         paginate();
-        setTimeout(function () { window.print(); }, 400);
+        // Give KaTeX/mermaid a moment to render before opening the print dialog.
+        setTimeout(function () { window.print(); }, 1200);
       }
 
       if (document.fonts && document.fonts.ready) {

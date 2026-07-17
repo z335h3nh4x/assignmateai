@@ -1,11 +1,14 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   ArrowLeft, Copy, Download, RefreshCw, FileText, Loader2, Pencil, Eye, BookOpen,
 } from "lucide-react";
+
+import "katex/dist/katex.min.css";
+import "highlight.js/styles/github-dark.css";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -22,42 +25,17 @@ import {
 import { AssignmentAssistant, AutosaveEditor } from "@/components/assignment-assistant";
 import { incrementExport, saveAssignmentDraft } from "@/lib/assignments.functions";
 import { buildNotebookDocument, type NotebookInk, type NotebookStyle } from "@/lib/notebook-pdf";
+import {
+  renderRichMarkdown,
+  PRINT_HEAD_ASSETS,
+  PRINT_RICH_CSS,
+} from "@/lib/render-markdown";
 
 export const Route = createFileRoute("/_authenticated/assignment/$id")({
   head: () => ({ meta: [{ title: "Assignment — AssignAI" }] }),
   component: AssignmentView,
 });
 
-function renderMarkdown(md: string): string {
-  // Minimal markdown to HTML: headings, bold, italic, bullets, paragraphs
-  const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!);
-  const lines = md.split(/\r?\n/);
-  const out: string[] = [];
-  let inList = false;
-  const closeList = () => { if (inList) { out.push("</ul>"); inList = false; } };
-  for (let raw of lines) {
-    const line = raw.trimEnd();
-    if (/^###\s+/.test(line)) { closeList(); out.push(`<h3 class="font-display text-lg font-semibold mt-6 mb-2">${esc(line.replace(/^###\s+/, ""))}</h3>`); continue; }
-    if (/^##\s+/.test(line))  { closeList(); out.push(`<h2 class="font-display text-2xl font-bold mt-8 mb-3">${esc(line.replace(/^##\s+/, ""))}</h2>`); continue; }
-    if (/^#\s+/.test(line))   { closeList(); out.push(`<h1 class="font-display text-3xl font-bold mt-8 mb-4">${esc(line.replace(/^#\s+/, ""))}</h1>`); continue; }
-    if (/^\s*[-*]\s+/.test(line)) {
-      if (!inList) { out.push('<ul class="list-disc pl-6 space-y-1 my-3">'); inList = true; }
-      out.push(`<li>${inlineFmt(esc(line.replace(/^\s*[-*]\s+/, "")))}</li>`);
-      continue;
-    }
-    closeList();
-    if (line.trim() === "") { out.push(""); continue; }
-    out.push(`<p class="my-3 leading-relaxed">${inlineFmt(esc(line))}</p>`);
-  }
-  closeList();
-  return out.join("\n");
-
-  function inlineFmt(s: string) {
-    return s
-      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-      .replace(/\*(.+?)\*/g, "<em>$1</em>");
-  }
-}
 
 function downloadFile(name: string, mime: string, content: string | Blob) {
   const blob = content instanceof Blob ? content : new Blob([content], { type: mime });
@@ -67,70 +45,42 @@ function downloadFile(name: string, mime: string, content: string | Blob) {
   URL.revokeObjectURL(url);
 }
 
-// Renders markdown into clean HTML for academic PDF, returning the body html,
-// a separate references block (if any), and the H2/H3 outline for the TOC.
+// Split off "References" section (## References or # References at end)
+// and inject stable ids into every heading so the TOC and internal anchors work.
 function renderAcademicMarkdown(md: string) {
-  const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!);
-  const inline = (s: string) =>
-    s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\*(.+?)\*/g, "<em>$1</em>");
-
-  // Split off "References" section if present (## References or # References at end)
   let body = md;
-  let references = "";
+  let referencesMd = "";
   const refMatch = md.match(/\n\s*#{1,3}\s*references\s*\n([\s\S]*)$/i);
   if (refMatch) {
     body = md.slice(0, refMatch.index);
-    references = refMatch[1].trim();
+    referencesMd = refMatch[1].trim();
   }
+
+  const bodyRaw = renderRichMarkdown(body.trim());
+  const referencesRaw = referencesMd ? renderRichMarkdown(referencesMd) : "";
 
   const outline: { level: number; text: string; id: string }[] = [];
   const slug = (s: string) =>
     s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 60) || "s";
-
-  const toHtml = (src: string, collectOutline: boolean) => {
-    const lines = src.split(/\r?\n/);
-    const out: string[] = [];
-    let inList = false;
-    const closeList = () => { if (inList) { out.push("</ul>"); inList = false; } };
-    for (const raw of lines) {
-      const line = raw.trimEnd();
-      let m: RegExpMatchArray | null;
-      if ((m = line.match(/^###\s+(.*)$/))) {
-        closeList();
-        const id = slug(m[1]);
-        if (collectOutline) outline.push({ level: 3, text: m[1], id });
-        out.push(`<h3 id="${id}">${inline(esc(m[1]))}</h3>`); continue;
-      }
-      if ((m = line.match(/^##\s+(.*)$/))) {
-        closeList();
-        const id = slug(m[1]);
-        if (collectOutline) outline.push({ level: 2, text: m[1], id });
-        out.push(`<h2 id="${id}">${inline(esc(m[1]))}</h2>`); continue;
-      }
-      if ((m = line.match(/^#\s+(.*)$/))) {
-        closeList();
-        const id = slug(m[1]);
-        if (collectOutline) outline.push({ level: 1, text: m[1], id });
-        out.push(`<h1 id="${id}">${inline(esc(m[1]))}</h1>`); continue;
-      }
-      if (/^\s*[-*]\s+/.test(line)) {
-        if (!inList) { out.push("<ul>"); inList = true; }
-        out.push(`<li>${inline(esc(line.replace(/^\s*[-*]\s+/, "")))}</li>`);
-        continue;
-      }
-      closeList();
-      if (line.trim() === "") { out.push(""); continue; }
-      out.push(`<p>${inline(esc(line))}</p>`);
-    }
-    closeList();
-    return out.join("\n");
+  const seen = new Map<string, number>();
+  const uniq = (base: string) => {
+    const n = (seen.get(base) ?? 0) + 1;
+    seen.set(base, n);
+    return n === 1 ? base : `${base}-${n}`;
   };
 
-  return {
-    bodyHtml: toHtml(body.trim(), true),
-    referencesHtml: references ? toHtml(references, false) : "",
-    outline,
-  };
+  const bodyHtml = bodyRaw.replace(
+    /<h([1-3])(\s[^>]*)?>([\s\S]*?)<\/h\1>/g,
+    (_full, lvl: string, attrs: string | undefined, inner: string) => {
+      const level = Number(lvl);
+      const text = inner.replace(/<[^>]+>/g, "").trim();
+      const id = uniq(slug(text));
+      outline.push({ level, text, id });
+      return `<h${lvl}${attrs ?? ""} id="${id}">${inner}</h${lvl}>`;
+    },
+  );
+
+  return { bodyHtml, referencesHtml: referencesRaw, outline };
 }
 
 type AcademicMeta = {
@@ -140,6 +90,8 @@ type AcademicMeta = {
   subject: string;
   date: string;
 };
+
+
 
 function buildAcademicDocument(md: string, meta: AcademicMeta) {
   const { bodyHtml, referencesHtml, outline } = renderAcademicMarkdown(md);
@@ -173,6 +125,8 @@ function buildAcademicDocument(md: string, meta: AcademicMeta) {
   ].filter(Boolean).join("");
 
   return `<!doctype html><html><head><meta charset="utf-8"><title> </title>
+${PRINT_HEAD_ASSETS}
+<style>${PRINT_RICH_CSS}</style>
 <style>
   @page {
     size: Letter;
@@ -275,7 +229,8 @@ function buildAcademicDocument(md: string, meta: AcademicMeta) {
 
   <script>
     document.title = " ";
-    window.addEventListener('load', () => setTimeout(() => window.print(), 300));
+    // Wait for KaTeX/highlight.js CSS + mermaid diagrams to settle before printing.
+    window.addEventListener('load', () => setTimeout(() => window.print(), 1200));
   </script>
 </body></html>`;
 }
@@ -322,7 +277,27 @@ function AssignmentView() {
     qc.invalidateQueries({ queryKey: ["dashboard-stats"] });
   }
 
-  const html = useMemo(() => (row?.result ? renderMarkdown(row.result) : ""), [row?.result]);
+  const html = useMemo(() => (row?.result ? renderRichMarkdown(row.result) : ""), [row?.result]);
+  const previewRef = useRef<HTMLElement | null>(null);
+
+  // Render mermaid diagrams in the on-screen preview when content changes.
+  useEffect(() => {
+    if (!html || !previewRef.current) return;
+    const el = previewRef.current;
+    if (!el.querySelector(".mermaid")) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const mermaid = (await import("mermaid")).default;
+        if (cancelled) return;
+        mermaid.initialize({ startOnLoad: false, theme: "dark", securityLevel: "loose" });
+        await mermaid.run({ nodes: el.querySelectorAll<HTMLElement>(".mermaid") });
+      } catch {
+        /* silently ignore diagram failures — the raw code stays visible */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [html]);
 
   function copy() {
     if (!row?.result) return;
@@ -357,8 +332,12 @@ function AssignmentView() {
 
   function downloadDocx() {
     if (!row?.result) return;
+    const body = renderRichMarkdown(row.result);
     const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
-      <head><meta charset="utf-8"><title>${row.title}</title></head><body>${renderMarkdown(row.result)}</body></html>`;
+      <head><meta charset="utf-8"><title>${row.title}</title>
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+      <style>${PRINT_RICH_CSS}</style>
+      </head><body>${body}</body></html>`;
     downloadFile(`${row.title}.doc`, "application/msword", html);
     void trackExport();
   }
@@ -469,7 +448,8 @@ function AssignmentView() {
               <AutosaveEditor value={row.result} onSave={saveDraft} />
             ) : (
               <article
-                className="prose prose-invert max-w-none"
+                ref={previewRef}
+                className="assignment-preview prose prose-invert max-w-none"
                 dangerouslySetInnerHTML={{ __html: html }}
               />
             )}
