@@ -155,49 +155,85 @@ export function buildNotebookDocument(markdown: string, meta: NotebookMeta): str
     font-weight: 600;
   }
 
-  .nb-p {
-    margin: 0;
+  .nb-body p {
+    margin: 0 0 ${RULE}px;
     padding: 0;
     text-align: left;
+    line-height: ${RULE}px;
     word-wrap: break-word;
     overflow-wrap: break-word;
   }
-  .nb-blank { height: ${RULE}px; }
-
-  .nb-h1, .nb-h2, .nb-h3 {
-    margin: 0;
+  .nb-body h1, .nb-body h2, .nb-body h3 {
+    margin: 0 0 ${RULE / 2}px;
     padding: 0;
     line-height: ${RULE}px;
     font-weight: 600;
     text-decoration: underline;
     text-underline-offset: 5px;
   }
-  .nb-h1 { font-size: ${meta.style === "natural" ? "32px" : "26px"}; height: ${RULE * 2}px; line-height: ${RULE * 2}px; }
-  .nb-h2 { font-size: ${meta.style === "natural" ? "28px" : "24px"}; }
-  .nb-h3 { font-size: ${meta.style === "natural" ? "26px" : "22px"}; font-style: italic; }
+  .nb-body h1 { font-size: ${meta.style === "natural" ? "32px" : "26px"}; line-height: ${RULE * 2}px; }
+  .nb-body h2 { font-size: ${meta.style === "natural" ? "28px" : "24px"}; }
+  .nb-body h3 { font-size: ${meta.style === "natural" ? "26px" : "22px"}; font-style: italic; }
+  .nb-body ul, .nb-body ol { margin: 0 0 ${RULE}px; padding-left: 30px; }
+  .nb-body li { line-height: ${RULE}px; margin: 0; }
 
-  .nb-ul, .nb-ol { margin: 0; padding-left: 30px; }
-  .nb-ul li, .nb-ol li { line-height: ${RULE}px; margin: 0; }
-  .nb-ul { list-style: none; }
-  .nb-ul li::before { content: "•"; display: inline-block; width: 1em; margin-left: -1em; }
-
-  .nb-table {
+  /* Tables, code, math, mermaid — same rules everywhere. */
+  .nb-body .table-wrap { overflow-x: auto; margin: 0 0 ${RULE}px; }
+  .nb-body table.md-table {
     width: 100%;
     border-collapse: collapse;
-    margin: 0 0 ${RULE}px;
-    font-family: ${fontFamily};
+    font-family: 'Kalam', 'Patrick Hand', cursive;
+    font-size: ${meta.style === "natural" ? "20px" : "18px"};
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
-  .nb-table th, .nb-table td {
-    border: 1px solid ${inkColor};
-    padding: 4px 8px;
-    line-height: ${RULE - 4}px;
+  .nb-body table.md-table th, .nb-body table.md-table td {
+    border: 1.5px solid ${inkColor};
+    padding: 6px 10px;
+    line-height: 1.3;
     text-align: left;
     vertical-align: top;
   }
-  .nb-table th { font-weight: 600; }
-
-  strong { font-weight: 700; }
-  em { font-style: italic; }
+  .nb-body table.md-table th { font-weight: 700; background: rgba(0,0,0,0.04); }
+  .nb-body table.md-table tr { page-break-inside: avoid; break-inside: avoid; }
+  .nb-body pre.code-block {
+    background: #fafaf3;
+    border: 1px solid ${inkColor};
+    border-radius: 4px;
+    padding: 10px 12px;
+    font-family: 'Courier New', Consolas, monospace;
+    font-size: 14px;
+    line-height: 1.45;
+    color: ${inkColor};
+    overflow-x: auto;
+    margin: 0 0 ${RULE}px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .nb-body code { font-family: 'Courier New', Consolas, monospace; }
+  .nb-body .katex, .nb-body .katex-display { color: ${inkColor}; }
+  .nb-body .katex-display {
+    margin: 0.5em 0 ${RULE / 2}px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .nb-body .mermaid {
+    text-align: center;
+    margin: 0 0 ${RULE}px;
+    padding: 8px;
+    background: #ffffff;
+    border: 1px solid ${inkColor};
+    border-radius: 4px;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .nb-body .mermaid svg { max-width: 100%; height: auto; }
+  .nb-body strong { font-weight: 700; }
+  .nb-body em { font-style: italic; }
 
   ${meta.showPageNumbers ? `
   .nb-pgnum {
