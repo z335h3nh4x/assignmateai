@@ -274,7 +274,27 @@ function AssignmentView() {
     qc.invalidateQueries({ queryKey: ["dashboard-stats"] });
   }
 
-  const html = useMemo(() => (row?.result ? renderMarkdown(row.result) : ""), [row?.result]);
+  const html = useMemo(() => (row?.result ? renderRichMarkdown(row.result) : ""), [row?.result]);
+  const previewRef = useRef<HTMLElement | null>(null);
+
+  // Render mermaid diagrams in the on-screen preview when content changes.
+  useEffect(() => {
+    if (!html || !previewRef.current) return;
+    const el = previewRef.current;
+    if (!el.querySelector(".mermaid")) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const mermaid = (await import("mermaid")).default;
+        if (cancelled) return;
+        mermaid.initialize({ startOnLoad: false, theme: "dark", securityLevel: "loose" });
+        await mermaid.run({ nodes: el.querySelectorAll<HTMLElement>(".mermaid") });
+      } catch {
+        /* silently ignore diagram failures — the raw code stays visible */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [html]);
 
   function copy() {
     if (!row?.result) return;
