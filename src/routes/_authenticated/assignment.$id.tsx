@@ -329,8 +329,12 @@ function AssignmentView() {
 
   function downloadDocx() {
     if (!row?.result) return;
+    const body = renderRichMarkdown(row.result);
     const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
-      <head><meta charset="utf-8"><title>${row.title}</title></head><body>${renderMarkdown(row.result)}</body></html>`;
+      <head><meta charset="utf-8"><title>${row.title}</title>
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+      <style>${PRINT_RICH_CSS}</style>
+      </head><body>${body}</body></html>`;
     downloadFile(`${row.title}.doc`, "application/msword", html);
     void trackExport();
   }
