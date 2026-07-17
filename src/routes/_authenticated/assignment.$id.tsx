@@ -229,7 +229,8 @@ ${PRINT_HEAD_ASSETS}
 
   <script>
     document.title = " ";
-    window.addEventListener('load', () => setTimeout(() => window.print(), 300));
+    // Wait for KaTeX/highlight.js CSS + mermaid diagrams to settle before printing.
+    window.addEventListener('load', () => setTimeout(() => window.print(), 1200));
   </script>
 </body></html>`;
 }
