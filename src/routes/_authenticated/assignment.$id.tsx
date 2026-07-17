@@ -448,7 +448,8 @@ function AssignmentView() {
               <AutosaveEditor value={row.result} onSave={saveDraft} />
             ) : (
               <article
-                className="prose prose-invert max-w-none"
+                ref={previewRef}
+                className="assignment-preview prose prose-invert max-w-none"
                 dangerouslySetInnerHTML={{ __html: html }}
               />
             )}
