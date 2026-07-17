@@ -36,36 +36,6 @@ export const Route = createFileRoute("/_authenticated/assignment/$id")({
   component: AssignmentView,
 });
 
-function renderMarkdown(md: string): string {
-  // Minimal markdown to HTML: headings, bold, italic, bullets, paragraphs
-  const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!);
-  const lines = md.split(/\r?\n/);
-  const out: string[] = [];
-  let inList = false;
-  const closeList = () => { if (inList) { out.push("</ul>"); inList = false; } };
-  for (let raw of lines) {
-    const line = raw.trimEnd();
-    if (/^###\s+/.test(line)) { closeList(); out.push(`<h3 class="font-display text-lg font-semibold mt-6 mb-2">${esc(line.replace(/^###\s+/, ""))}</h3>`); continue; }
-    if (/^##\s+/.test(line))  { closeList(); out.push(`<h2 class="font-display text-2xl font-bold mt-8 mb-3">${esc(line.replace(/^##\s+/, ""))}</h2>`); continue; }
-    if (/^#\s+/.test(line))   { closeList(); out.push(`<h1 class="font-display text-3xl font-bold mt-8 mb-4">${esc(line.replace(/^#\s+/, ""))}</h1>`); continue; }
-    if (/^\s*[-*]\s+/.test(line)) {
-      if (!inList) { out.push('<ul class="list-disc pl-6 space-y-1 my-3">'); inList = true; }
-      out.push(`<li>${inlineFmt(esc(line.replace(/^\s*[-*]\s+/, "")))}</li>`);
-      continue;
-    }
-    closeList();
-    if (line.trim() === "") { out.push(""); continue; }
-    out.push(`<p class="my-3 leading-relaxed">${inlineFmt(esc(line))}</p>`);
-  }
-  closeList();
-  return out.join("\n");
-
-  function inlineFmt(s: string) {
-    return s
-      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-      .replace(/\*(.+?)\*/g, "<em>$1</em>");
-  }
-}
 
 function downloadFile(name: string, mime: string, content: string | Blob) {
   const blob = content instanceof Blob ? content : new Blob([content], { type: mime });
