@@ -96,13 +96,31 @@ ${sourcesBlock ? `\n${sourcesBlock}` : ""}${questionsBlock}`;
 
     const detectedTitle = data.title?.trim();
     const subjectPrefix = data.subject?.trim();
-    const title = detectedTitle
-      ? subjectPrefix && !detectedTitle.toLowerCase().includes(subjectPrefix.toLowerCase())
+    // Never let a generic instruction prompt become the assignment title.
+    const GENERIC_PROMPT_RE = /^(please\s+)?(solve|complete|do|finish|answer|write|help( me)?( with)?)( this| it| the assignment| my assignment)?[.!?]*$/i;
+    const looksGeneric = (s: string) => !s || s.length < 8 || GENERIC_PROMPT_RE.test(s.trim());
+    const titleFromFile = (name?: string) =>
+      name ? name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim() : "";
+    const firstAttachmentTitle = titleFromFile(data.attachments?.[0]?.name);
+    const firstQuestionTitle = questions[0]
+      ? questions[0].replace(/^[\s\d.)]+/, "").split(/[.?\n]/)[0].slice(0, 70).trim()
+      : "";
+    let title: string;
+    if (detectedTitle) {
+      title = subjectPrefix && !detectedTitle.toLowerCase().includes(subjectPrefix.toLowerCase())
         ? `${subjectPrefix} — ${detectedTitle}`
-        : detectedTitle
-      : subjectPrefix
-        ? `${subjectPrefix} Assignment`
-        : userPrompt.slice(0, 80) || "Untitled assignment";
+        : detectedTitle;
+    } else if (subjectPrefix) {
+      title = `${subjectPrefix} Assignment`;
+    } else if (!looksGeneric(userPrompt)) {
+      title = userPrompt.slice(0, 80);
+    } else if (firstAttachmentTitle && !/^(assignment|scan|img|image|doc|document|untitled|new)\b/i.test(firstAttachmentTitle)) {
+      title = firstAttachmentTitle;
+    } else if (firstQuestionTitle) {
+      title = firstQuestionTitle;
+    } else {
+      title = "Assignment";
+    }
 
     const { data: created, error: createErr } = await supabase
       .from("assignments")
