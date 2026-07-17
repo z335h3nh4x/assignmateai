@@ -49,39 +49,46 @@ export function buildNotebookDocument(markdown: string, meta: NotebookMeta): str
     </header>
   `;
 
+  // Natural handwriting jitter — only applied to plain text nodes so KaTeX
+  // formulas, tables and code blocks stay intact.
   const naturalScript = meta.style === "natural" ? `
     <script>
       (function () {
         function rand(a, b) { return a + Math.random() * (b - a); }
-        var nodes = document.querySelectorAll('.nb-p, .nb-h1, .nb-h2, .nb-h3, .nb-ul li, .nb-ol li, .nb-title, .nb-header-left, .nb-header-right, .nb-table td, .nb-table th');
-        nodes.forEach(function (n) {
-          var text = n.textContent || '';
-          if (!text.trim()) return;
-          // Split into words, wrap each with a span carrying tiny random transforms.
+        var SKIP = new Set(['CODE','PRE','TABLE','THEAD','TBODY','TR','TH','TD','SVG','MATH']);
+        var walker = document.createTreeWalker(document.querySelector('.nb-body'), NodeFilter.SHOW_TEXT, null);
+        var textNodes = [];
+        while (walker.nextNode()) {
+          var n = walker.currentNode;
+          if (!n.nodeValue || !n.nodeValue.trim()) continue;
+          var p = n.parentElement;
+          var skip = false;
+          while (p) {
+            if (SKIP.has(p.tagName) || p.classList.contains('katex') || p.classList.contains('mermaid')) { skip = true; break; }
+            p = p.parentElement;
+          }
+          if (!skip) textNodes.push(n);
+        }
+        textNodes.forEach(function (n) {
+          var text = n.nodeValue;
           var frag = document.createDocumentFragment();
           var parts = text.split(/(\\s+)/);
           parts.forEach(function (p) {
             if (/^\\s+$/.test(p)) { frag.appendChild(document.createTextNode(p)); return; }
             var s = document.createElement('span');
             s.textContent = p;
-            var r = rand(-0.8, 0.8);
-            var y = rand(-1.2, 1.2);
-            var w = rand(0.97, 1.03);
-            var o = rand(0.85, 1);
             s.style.display = 'inline-block';
-            s.style.transform = 'translateY(' + y.toFixed(2) + 'px) rotate(' + r.toFixed(2) + 'deg)';
-            s.style.letterSpacing = (rand(-0.3, 0.6)).toFixed(2) + 'px';
-            s.style.fontWeight = Math.random() < 0.15 ? '600' : '400';
-            s.style.opacity = o.toFixed(2);
-            s.style.fontStretch = (w * 100).toFixed(0) + '%';
+            s.style.transform = 'translateY(' + rand(-1.2,1.2).toFixed(2) + 'px) rotate(' + rand(-0.8,0.8).toFixed(2) + 'deg)';
+            s.style.letterSpacing = rand(-0.3,0.6).toFixed(2) + 'px';
+            s.style.opacity = rand(0.85,1).toFixed(2);
             frag.appendChild(s);
           });
-          n.textContent = '';
-          n.appendChild(frag);
+          n.parentNode.replaceChild(frag, n);
         });
       })();
     <\/script>
   ` : "";
+
 
   return `<!doctype html><html><head>
 <meta charset="utf-8">
