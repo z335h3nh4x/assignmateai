@@ -289,9 +289,16 @@ ${PRINT_HEAD_ASSETS}
         var showPageNumbers = ${meta.showPageNumbers ? "true" : "false"};
 
         // Move content nodes after the initial header + title into a queue.
+        // Rich markdown is wrapped in a <div class="nb-body"> — flatten it so
+        // paginate can distribute individual paragraphs/tables across pages.
         var titleEl = first.querySelector('.nb-title');
         var pgNumEl = first.querySelector('.nb-pgnum');
         if (pgNumEl) pgNumEl.remove();
+        var bodyWrap = first.querySelector('.nb-body');
+        if (bodyWrap) {
+          while (bodyWrap.firstChild) first.insertBefore(bodyWrap.firstChild, bodyWrap);
+          bodyWrap.remove();
+        }
         var contentNodes = [];
         var node = titleEl ? titleEl.nextSibling : first.firstChild;
         while (node) {
@@ -300,6 +307,7 @@ ${PRINT_HEAD_ASSETS}
           first.removeChild(node);
           node = next;
         }
+
 
         function newPage(pageNum) {
           var p = document.createElement('section');
