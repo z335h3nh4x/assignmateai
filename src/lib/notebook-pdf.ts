@@ -1,6 +1,12 @@
 // Builds a notebook-style HTML document for printing to PDF.
 // Text stays selectable — the notebook look is pure HTML/CSS.
 
+import {
+  renderRichMarkdown,
+  PRINT_HEAD_ASSETS,
+  PRINT_RICH_CSS,
+} from "./render-markdown";
+
 export type NotebookInk = "blue" | "black";
 export type NotebookStyle = "clean" | "natural";
 
@@ -18,79 +24,12 @@ export type NotebookMeta = {
 const esc = (s: string) =>
   s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!);
 
-const inline = (s: string) =>
-  s
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/\*(.+?)\*/g, "<em>$1</em>");
-
-// Convert a simple markdown subset into notebook-friendly HTML blocks.
+// Rich renderer produces standard HTML — we just tag it with a class so the
+// notebook CSS below styles paragraphs, lists, tables etc. on ruled lines.
 function mdToBlocks(md: string): string {
-  const lines = md.split(/\r?\n/);
-  const out: string[] = [];
-  let inUl = false;
-  let inOl = false;
-  let tableBuf: string[] = [];
-  const closeLists = () => {
-    if (inUl) { out.push("</ul>"); inUl = false; }
-    if (inOl) { out.push("</ol>"); inOl = false; }
-  };
-  const flushTable = () => {
-    if (tableBuf.length === 0) return;
-    const rows = tableBuf.map((l) => l.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim()));
-    // detect separator row
-    const sepIdx = rows.findIndex((r) => r.every((c) => /^:?-{2,}:?$/.test(c)));
-    let header: string[] | null = null;
-    let body = rows;
-    if (sepIdx > 0) {
-      header = rows[sepIdx - 1];
-      body = rows.slice(sepIdx + 1);
-    }
-    let html = '<table class="nb-table">';
-    if (header) {
-      html += "<thead><tr>" + header.map((c) => `<th>${inline(esc(c))}</th>`).join("") + "</tr></thead>";
-    }
-    html += "<tbody>" + body.map((r) => "<tr>" + r.map((c) => `<td>${inline(esc(c))}</td>`).join("") + "</tr>").join("") + "</tbody></table>";
-    out.push(html);
-    tableBuf = [];
-  };
-
-  for (const raw of lines) {
-    const line = raw.replace(/\s+$/g, "");
-
-    if (/^\s*\|.*\|\s*$/.test(line)) {
-      closeLists();
-      tableBuf.push(line);
-      continue;
-    } else if (tableBuf.length) {
-      flushTable();
-    }
-
-    let m: RegExpMatchArray | null;
-    if ((m = line.match(/^###\s+(.*)$/))) { closeLists(); out.push(`<h3 class="nb-h3">${inline(esc(m[1]))}</h3>`); continue; }
-    if ((m = line.match(/^##\s+(.*)$/)))  { closeLists(); out.push(`<h2 class="nb-h2">${inline(esc(m[1]))}</h2>`); continue; }
-    if ((m = line.match(/^#\s+(.*)$/)))   { closeLists(); out.push(`<h1 class="nb-h1">${inline(esc(m[1]))}</h1>`); continue; }
-
-    if ((m = line.match(/^\s*(\d+)\.\s+(.*)$/))) {
-      if (inUl) { out.push("</ul>"); inUl = false; }
-      if (!inOl) { out.push('<ol class="nb-ol">'); inOl = true; }
-      out.push(`<li>${inline(esc(m[2]))}</li>`);
-      continue;
-    }
-    if ((m = line.match(/^\s*[-*]\s+(.*)$/))) {
-      if (inOl) { out.push("</ol>"); inOl = false; }
-      if (!inUl) { out.push('<ul class="nb-ul">'); inUl = true; }
-      out.push(`<li>${inline(esc(m[1]))}</li>`);
-      continue;
-    }
-
-    closeLists();
-    if (line.trim() === "") { out.push('<div class="nb-blank"></div>'); continue; }
-    out.push(`<p class="nb-p">${inline(esc(line))}</p>`);
-  }
-  flushTable();
-  closeLists();
-  return out.join("\n");
+  return `<div class="nb-body">${renderRichMarkdown(md)}</div>`;
 }
+
 
 export function buildNotebookDocument(markdown: string, meta: NotebookMeta): string {
   const bodyHtml = mdToBlocks(markdown);
