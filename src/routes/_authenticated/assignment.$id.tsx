@@ -125,6 +125,8 @@ function buildAcademicDocument(md: string, meta: AcademicMeta) {
   ].filter(Boolean).join("");
 
   return `<!doctype html><html><head><meta charset="utf-8"><title> </title>
+${PRINT_HEAD_ASSETS}
+<style>${PRINT_RICH_CSS}</style>
 <style>
   @page {
     size: Letter;
