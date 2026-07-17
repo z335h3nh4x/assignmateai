@@ -172,17 +172,23 @@ function buildAcademicDocument(md: string, meta: AcademicMeta) {
     `<div><span class="lbl">Date</span><span class="val">${esc(meta.date)}</span></div>`,
   ].filter(Boolean).join("");
 
-  return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(meta.title)}</title>
+  return `<!doctype html><html><head><meta charset="utf-8"><title> </title>
 <style>
   @page {
     size: Letter;
     margin: 1in;
+    @top-left { content: ""; }
+    @top-center { content: ""; }
+    @top-right { content: ""; }
     @bottom-center {
       content: counter(page);
       font-family: "Times New Roman", Times, serif;
       font-size: 10pt;
       color: #000;
     }
+  }
+  @page :first {
+    @bottom-center { content: ""; }
   }
   html, body {
     font-family: "Times New Roman", Times, serif;
@@ -193,35 +199,26 @@ function buildAcademicDocument(md: string, meta: AcademicMeta) {
     margin: 0;
     padding: 0;
   }
-  /* Fallback footer for browsers without @page margin boxes */
-  .page-footer {
-    position: fixed;
-    bottom: 0.4in;
-    left: 0;
-    right: 0;
-    text-align: center;
-    font-size: 10pt;
-    color: #000;
-  }
-  h1, h2, h3, h4 { font-family: "Times New Roman", Times, serif; font-weight: bold; page-break-after: avoid; }
-  h1 { font-size: 16pt; margin: 1.2em 0 0.6em; }
-  h2 { font-size: 14pt; margin: 1.2em 0 0.5em; }
-  h3 { font-size: 12pt; margin: 1em 0 0.4em; font-style: italic; font-weight: bold; }
-  p  { text-align: justify; text-justify: inter-word; margin: 0 0 0.6em; text-indent: 0.4in; hyphens: auto; }
+  h1, h2, h3, h4 { font-family: "Times New Roman", Times, serif; font-weight: bold; page-break-after: avoid; break-after: avoid; }
+  h1 { font-size: 16pt; margin: 1.1em 0 0.5em; }
+  h2 { font-size: 13.5pt; margin: 1em 0 0.4em; }
+  h3 { font-size: 12pt; margin: 0.8em 0 0.3em; font-style: italic; font-weight: bold; }
+  p  { text-align: justify; text-justify: inter-word; margin: 0 0 0.55em; text-indent: 0.4in; hyphens: auto; orphans: 3; widows: 3; }
   p:first-of-type, h1 + p, h2 + p, h3 + p { text-indent: 0; }
-  ul, ol { margin: 0.4em 0 0.8em 0.4in; padding: 0; }
-  li { margin: 0.2em 0; text-align: justify; }
+  ul, ol { margin: 0.3em 0 0.7em 0.4in; padding: 0; }
+  li { margin: 0.15em 0; text-align: justify; }
   a { color: #000; text-decoration: none; }
 
   /* Title page */
   .title-page {
-    height: 9in;
+    min-height: 8.5in;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     text-align: center;
     page-break-after: always;
+    break-after: page;
   }
   .title-page .assignment-label {
     font-size: 12pt;
@@ -235,33 +232,33 @@ function buildAcademicDocument(md: string, meta: AcademicMeta) {
     margin: 0 0 2em;
     max-width: 6in;
   }
-  .title-meta { margin-top: 2em; line-height: 2; font-size: 12pt; }
+  .title-meta { margin-top: 2em; line-height: 1.9; font-size: 12pt; }
   .title-meta > div { display: block; }
   .title-meta .lbl { display: block; text-transform: uppercase; letter-spacing: 0.15em; font-size: 9pt; color: #555; }
   .title-meta .val { display: block; font-size: 13pt; margin-bottom: 0.6em; }
 
   /* Table of contents */
-  .toc { page-break-after: always; }
+  .toc { page-break-after: always; break-after: page; }
   .toc h2.centered { text-align: center; margin-bottom: 1.5em; }
   .toc ol { list-style: none; margin: 0; padding: 0; }
-  .toc li { margin: 0.35em 0; }
+  .toc li { margin: 0.3em 0; }
   .toc li.lvl-3 { padding-left: 0.4in; }
   .toc a { display: block; }
 
+  /* Main content: keep flow tight, only force a break for references */
+  main.content { page-break-after: avoid; }
+
   /* References */
-  .references { page-break-before: always; }
+  .references { page-break-before: always; break-before: page; }
   .references h2 { text-align: center; margin-bottom: 1em; }
   .references p { text-indent: -0.4in; padding-left: 0.4in; text-align: left; }
 
   @media screen {
     body { max-width: 7in; margin: 0.5in auto; padding: 1in; box-shadow: 0 0 20px rgba(0,0,0,.15); }
-    .page-footer { display: none; }
   }
 </style>
 </head>
 <body>
-  <div class="page-footer"></div>
-
   <section class="title-page">
     <div class="assignment-label">Academic Assignment</div>
     <h1 class="doc-title">${esc(meta.title)}</h1>
@@ -276,7 +273,10 @@ function buildAcademicDocument(md: string, meta: AcademicMeta) {
 
   ${referencesHtml ? `<section class="references"><h2 id="references">References</h2>${referencesHtml}</section>` : ""}
 
-  <script>window.addEventListener('load', () => setTimeout(() => window.print(), 300));</script>
+  <script>
+    document.title = " ";
+    window.addEventListener('load', () => setTimeout(() => window.print(), 300));
+  </script>
 </body></html>`;
 }
 
