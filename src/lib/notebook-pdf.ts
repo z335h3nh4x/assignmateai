@@ -288,25 +288,20 @@ ${PRINT_HEAD_ASSETS}
         var headerHTML = ${JSON.stringify(headerRow)};
         var showPageNumbers = ${meta.showPageNumbers ? "true" : "false"};
 
-        // Move content nodes after the initial header + title into a queue.
-        // Rich markdown is wrapped in a <div class="nb-body"> — flatten it so
-        // paginate can distribute individual paragraphs/tables across pages.
-        var titleEl = first.querySelector('.nb-title');
+        // Rich markdown is wrapped in a <div class="nb-body"> — paginate its
+        // children across additional pages, each with its own .nb-body wrapper
+        // so the descendant CSS selectors keep matching.
         var pgNumEl = first.querySelector('.nb-pgnum');
         if (pgNumEl) pgNumEl.remove();
-        var bodyWrap = first.querySelector('.nb-body');
-        if (bodyWrap) {
-          while (bodyWrap.firstChild) first.insertBefore(bodyWrap.firstChild, bodyWrap);
-          bodyWrap.remove();
-        }
+        var firstBody = first.querySelector('.nb-body');
+        if (!firstBody) return;
         var contentNodes = [];
-        var node = titleEl ? titleEl.nextSibling : first.firstChild;
-        while (node) {
-          var next = node.nextSibling;
-          if (node.nodeType === 1) contentNodes.push(node);
-          first.removeChild(node);
-          node = next;
+        while (firstBody.firstChild) {
+          var n = firstBody.firstChild;
+          if (n.nodeType === 1) contentNodes.push(n);
+          firstBody.removeChild(n);
         }
+
 
 
         function newPage(pageNum) {
