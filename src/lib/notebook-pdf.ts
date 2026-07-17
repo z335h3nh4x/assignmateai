@@ -307,7 +307,7 @@ ${PRINT_HEAD_ASSETS}
         function newPage(pageNum) {
           var p = document.createElement('section');
           p.className = 'page';
-          p.innerHTML = headerHTML;
+          p.innerHTML = headerHTML + '<div class="nb-body"></div>';
           if (showPageNumbers) {
             var n = document.createElement('div');
             n.className = 'nb-pgnum';
@@ -322,6 +322,8 @@ ${PRINT_HEAD_ASSETS}
           return page.scrollHeight <= PAGE_HEIGHT_PX + 2;
         }
 
+        function bodyOf(page) { return page.querySelector('.nb-body'); }
+
         var pageNum = 1;
         if (showPageNumbers) {
           var n = document.createElement('div');
@@ -332,24 +334,21 @@ ${PRINT_HEAD_ASSETS}
         var current = first;
 
         contentNodes.forEach(function (el) {
-          // Insert before page number so it stays at the bottom.
-          var pg = current.querySelector('.nb-pgnum');
-          if (pg) current.insertBefore(el, pg); else current.appendChild(el);
+          var body = bodyOf(current);
+          body.appendChild(el);
           if (!fits(current)) {
-            current.removeChild(el);
+            body.removeChild(el);
             pageNum += 1;
             current = newPage(pageNum);
-            var pg2 = current.querySelector('.nb-pgnum');
-            if (pg2) current.insertBefore(el, pg2); else current.appendChild(el);
-            // If a single element is taller than a page (huge table/paragraph),
-            // let the browser handle it naturally — keep it on this page.
+            bodyOf(current).appendChild(el);
           }
         });
       }
 
       function ready() {
         paginate();
-        setTimeout(function () { window.print(); }, 400);
+        // Give KaTeX/mermaid a moment to render before opening the print dialog.
+        setTimeout(function () { window.print(); }, 1200);
       }
 
       if (document.fonts && document.fonts.ready) {
