@@ -22,12 +22,17 @@ const GenerateInput = z.object({
   wordCount: z.number().int().min(300).max(6000),
   title: z.string().max(200).optional(),
   subject: z.string().max(200).optional(),
+  subjectDomain: z.string().max(80).optional(),
   detectedQuestions: z.array(z.string().max(4000)).max(30).optional(),
+  detectedInstructions: z.string().max(4000).optional(),
+  detectedMarks: z.array(z.object({ q: z.string().max(80), marks: z.string().max(40) })).max(30).optional(),
+  requiresDiagrams: z.boolean().optional(),
   template: z.enum(["essay", "case_study", "lab_report", "research_paper", "presentation", "business_report"]).default("essay"),
   citationStyle: z.enum(["none", "apa7", "mla9", "harvard", "chicago", "ieee"]).default("none"),
   sources: z.array(SourceSchema).max(8).default([]),
   attachments: z.array(AttachmentSchema).max(6).optional(),
 });
+
 
 export const generateAssignment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
