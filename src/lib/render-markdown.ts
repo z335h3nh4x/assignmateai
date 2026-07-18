@@ -72,57 +72,235 @@ function escapeHtml(s: string) {
 }
 
 /**
- * Preprocess markdown so math renders with generous vertical spacing and
- * never gets crammed inline. Rendering-only — never changes numeric values.
+ * Tokenizer-based math preprocessor.
  *
- *  - `\[ ... \]` / `\( ... \)` → `$$...$$` / `$...$`
- *  - inline `$...$` that contains a matrix / environment / long expression is
- *    promoted to a `$$...$$` display block on its own line
- *  - `$$...$$` blocks are surrounded by blank lines so marked parses them as
- *    their own paragraph (real vertical space before/after)
- *  - a paragraph with multiple `$X = ...$` chunks is split so every named
- *    equation lands on its own display line (e.g. M₁, M₂, M₃ ...)
+ * The Markdown document is scanned once into a sequence of tokens:
+ *   - fenced code blocks (```...```)
+ *   - inline code spans (`...`)
+ *   - display math ($$...$$ or \[...\])
+ *   - inline math   ($...$   or \(...\))
+ *   - plain text (everything else, byte-for-byte preserved)
+ *
+ * ONLY math tokens are ever rewritten (delimiter normalization + inline→display
+ * promotion when the expression is heavy or when consecutive named equations
+ * are chained). Text/code tokens are emitted verbatim. Blank lines around
+ * display math are added by appending "\n\n" between tokens — never by
+ * splicing characters into headings, bold, lists, tables, blockquotes, etc.
+ *
+ * This fixes the class of bugs where the previous regex-based preprocessor
+ * merged `**bold**` with `$$...$$` producing garbage like `**...for$$`.
  */
-function preprocessMathLayout(md: string): string {
-  let out = md;
+type MathTok =
+  | { type: "text"; value: string }
+  | { type: "code_fence"; value: string }
+  | { type: "code_inline"; value: string }
+  | { type: "math_inline"; value: string }
+  | { type: "math_display"; value: string };
 
-  // 1. LaTeX bracket delimiters → dollar delimiters.
-  out = out
-    .replace(/\\\[([\s\S]+?)\\\]/g, (_m, inner) => `\n\n$$${inner}$$\n\n`)
-    .replace(/\\\(([\s\S]+?)\\\)/g, (_m, inner) => `$${inner}$`);
+function tokenizeForMath(md: string): MathTok[] {
+  const toks: MathTok[] = [];
+  let buf = "";
+  const flush = () => {
+    if (buf) {
+      toks.push({ type: "text", value: buf });
+      buf = "";
+    }
+  };
+  let i = 0;
+  const n = md.length;
 
-  // 2. Promote heavy inline math to display, skipping fenced code / $$ blocks.
-  const heavyInline = /(?<!\$)\$([^\$\n]{1,400})\$(?!\$)/g;
-  const isHeavy = (expr: string) =>
-    /\\begin\{|\\end\{|\\frac|\\sum|\\int|\\prod|\\lim|\\sqrt|\\left|\\right|\\\\|&/.test(expr) ||
-    expr.length > 60;
+  while (i < n) {
+    const c = md[i];
+    const prev = i > 0 ? md[i - 1] : "";
 
-  const parts = out.split(/(```[\s\S]*?```|\$\$[\s\S]*?\$\$)/g);
-  for (let i = 0; i < parts.length; i++) {
-    const seg = parts[i];
-    if (!seg) continue;
-    if (seg.startsWith("```") || seg.startsWith("$$")) continue;
-    parts[i] = seg.replace(heavyInline, (full, expr: string) => {
-      if (!isHeavy(expr)) return full;
-      return `\n\n$$${expr.trim()}$$\n\n`;
-    });
+    // fenced code block ```
+    if (c === "`" && md.startsWith("```", i)) {
+      const end = md.indexOf("```", i + 3);
+      if (end !== -1) {
+        flush();
+        toks.push({ type: "code_fence", value: md.slice(i, end + 3) });
+        i = end + 3;
+        continue;
+      }
+    }
+
+    // inline code (any run of backticks) — never treat contents as math
+    if (c === "`") {
+      let run = 0;
+      while (md[i + run] === "`") run++;
+      const marker = "`".repeat(run);
+      const end = md.indexOf(marker, i + run);
+      if (end !== -1) {
+        flush();
+        toks.push({ type: "code_inline", value: md.slice(i, end + run) });
+        i = end + run;
+        continue;
+      }
+    }
+
+    // display math \[ ... \]
+    if (c === "\\" && md[i + 1] === "[") {
+      const end = md.indexOf("\\]", i + 2);
+      if (end !== -1) {
+        flush();
+        toks.push({ type: "math_display", value: md.slice(i + 2, end).trim() });
+        i = end + 2;
+        continue;
+      }
+    }
+
+    // inline math \( ... \)
+    if (c === "\\" && md[i + 1] === "(") {
+      const end = md.indexOf("\\)", i + 2);
+      if (end !== -1) {
+        flush();
+        toks.push({ type: "math_inline", value: md.slice(i + 2, end).trim() });
+        i = end + 2;
+        continue;
+      }
+    }
+
+    // display math $$ ... $$
+    if (c === "$" && md[i + 1] === "$" && prev !== "\\") {
+      const end = md.indexOf("$$", i + 2);
+      if (end !== -1) {
+        flush();
+        toks.push({ type: "math_display", value: md.slice(i + 2, end).trim() });
+        i = end + 2;
+        continue;
+      }
+    }
+
+    // inline math $ ... $ (skip escaped \$; require non-empty content;
+    // stop at blank line to avoid runaway matches on stray dollar signs)
+    if (c === "$" && prev !== "\\") {
+      let j = i + 1;
+      let ok = false;
+      while (j < n) {
+        const cj = md[j];
+        if (cj === "\n" && md[j + 1] === "\n") break;
+        if (cj === "$" && md[j - 1] !== "\\") {
+          ok = true;
+          break;
+        }
+        j++;
+      }
+      if (ok) {
+        const inner = md.slice(i + 1, j);
+        // Only accept if it plausibly looks like math (has a LaTeX construct
+        // or an operator / identifier without leading/trailing whitespace).
+        // This avoids swallowing pairs of currency dollars in prose.
+        const looksLikeMath =
+          inner.trim().length > 0 &&
+          (/\\[A-Za-z]+|[_^={}]|\\\\/.test(inner) ||
+            /^\S.*\S$/.test(inner) ||
+            /^\S$/.test(inner));
+        if (looksLikeMath) {
+          flush();
+          toks.push({ type: "math_inline", value: inner.trim() });
+          i = j + 1;
+          continue;
+        }
+      }
+    }
+
+    buf += c;
+    i++;
   }
-  out = parts.join("");
+  flush();
+  return toks;
+}
 
-  // 3. Blank lines around every $$...$$ block.
-  out = out.replace(
-    /([^\n])[ \t]*\$\$([\s\S]+?)\$\$[ \t]*([^\n])/g,
-    (_m, before, inner, after) => `${before}\n\n$$${inner.trim()}$$\n\n${after}`,
+function isHeavyMath(expr: string): boolean {
+  return (
+    /\\begin\{|\\end\{|\\frac|\\sum|\\int|\\prod|\\lim|\\sqrt|\\left|\\right|\\\\|&/.test(
+      expr,
+    ) || expr.length > 60
   );
+}
 
-  // 4. Split run-on inline equations: `$M_1 = ...$ $M_2 = ...$ $M_3 = ...$`.
-  out = out.replace(/((?:\$[^$\n]*=[^$\n]*\$\s*){2,})/g, (block) => {
-    const eqs = block.match(/\$[^$\n]*=[^$\n]*\$/g) ?? [];
-    if (eqs.length < 2) return block;
-    return "\n\n" + eqs.map((e) => `$$${e.slice(1, -1).trim()}$$`).join("\n\n") + "\n\n";
-  });
+function transformMathTokens(toks: MathTok[]): MathTok[] {
+  // 1. Promote heavy inline math to display.
+  for (const t of toks) {
+    if (t.type === "math_inline" && isHeavyMath(t.value)) {
+      (t as MathTok).type = "math_display";
+    }
+  }
 
+  // 2. Detect chains of named equations separated only by whitespace text:
+  //    $M_1 = ...$ $M_2 = ...$ $M_3 = ...$  → each becomes display math.
+  let i = 0;
+  while (i < toks.length) {
+    if (toks[i].type === "math_inline" && toks[i].value.includes("=")) {
+      const group: number[] = [i];
+      let j = i + 1;
+      while (j < toks.length) {
+        const t = toks[j];
+        if (t.type === "text" && /^[ \t\r\n]+$/.test(t.value)) {
+          j++;
+          continue;
+        }
+        if (t.type === "math_inline" && t.value.includes("=")) {
+          group.push(j);
+          j++;
+          continue;
+        }
+        break;
+      }
+      if (group.length >= 2) {
+        for (const idx of group) {
+          (toks[idx] as MathTok).type = "math_display";
+        }
+        i = j;
+        continue;
+      }
+    }
+    i++;
+  }
+  return toks;
+}
+
+function serializeMathTokens(toks: MathTok[]): string {
+  let out = "";
+  const ensureBlankLineBefore = () => {
+    if (out.length === 0) return;
+    if (out.endsWith("\n\n")) return;
+    if (out.endsWith("\n")) out += "\n";
+    else out += "\n\n";
+  };
+
+  for (let k = 0; k < toks.length; k++) {
+    const t = toks[k];
+    switch (t.type) {
+      case "text":
+      case "code_fence":
+      case "code_inline":
+        out += t.value;
+        break;
+      case "math_inline":
+        out += `$${t.value}$`;
+        break;
+      case "math_display": {
+        ensureBlankLineBefore();
+        out += `$$\n${t.value}\n$$`;
+        // Trim trailing inline whitespace + optional single newline from the
+        // very next text token so we control the paragraph gap ourselves.
+        const next = toks[k + 1];
+        if (next && next.type === "text") {
+          next.value = next.value.replace(/^[ \t]*\n?[ \t]*/, "");
+        }
+        out += "\n\n";
+        break;
+      }
+    }
+  }
   return out;
+}
+
+export function preprocessMathLayout(md: string): string {
+  const toks = tokenizeForMath(md);
+  const transformed = transformMathTokens(toks);
+  return serializeMathTokens(transformed);
 }
 
 export function renderRichMarkdown(md: string): string {
