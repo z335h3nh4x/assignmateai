@@ -36,9 +36,15 @@ type Attachment = { name: string; mimeType: string; dataUrl: string; size: numbe
 type Detection = {
   title: string;
   subject: string;
+  subjectDomain: string;
   handwritten: boolean;
+  requiresDiagrams: boolean;
+  instructions: string;
+  wordCountSuggested: number | null;
+  marks: { q: string; marks: string }[];
   questions: string[];
 };
+
 
 const ACCEPT = ".pdf,.docx,.txt,image/*";
 const SOURCE_ACCEPT = ".pdf,.docx,.txt";
@@ -103,10 +109,16 @@ function Dashboard() {
         return {
           title: "",
           subject: "",
+          subjectDomain: "",
           handwritten: false,
+          requiresDiagrams: false,
+          instructions: "",
+          wordCountSuggested: null,
+          marks: [],
           questions: [pastedAssignmentText.trim()],
         } satisfies Detection;
       }
+
       return await analyzeFn({
         data: {
           attachments: analysable.map(({ name, mimeType, dataUrl }) => ({ name, mimeType, dataUrl })),
@@ -120,14 +132,26 @@ function Dashboard() {
       if (res.title && !title) {
         setTitle(res.subject ? `${res.subject} — ${res.title}` : res.title);
       }
+      if (res.wordCountSuggested && res.wordCountSuggested >= 300) {
+        // snap to nearest option
+        const opts = [500, 1000, 1500, 2000];
+        const nearest = opts.reduce((a, b) =>
+          Math.abs(b - res.wordCountSuggested!) < Math.abs(a - res.wordCountSuggested!) ? b : a,
+        );
+        setWordCount(String(nearest));
+      }
       toast.success(
-        res.questions.length
-          ? `Detected ${res.questions.length} question${res.questions.length === 1 ? "" : "s"}`
-          : "File analysed",
+        [
+          res.subjectDomain ? `Subject: ${res.subjectDomain}` : null,
+          res.questions.length ? `${res.questions.length} question${res.questions.length === 1 ? "" : "s"}` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ") || "File analysed",
       );
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Could not analyse file"),
   });
+
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -145,7 +169,12 @@ function Dashboard() {
             wordCount: parseInt(wordCount, 10),
             title: title || detection?.title || undefined,
             subject: detection?.subject || undefined,
+            subjectDomain: detection?.subjectDomain || undefined,
             detectedQuestions,
+            detectedInstructions: detection?.instructions || undefined,
+            detectedMarks: detection?.marks?.length ? detection.marks : undefined,
+            requiresDiagrams: detection?.requiresDiagrams || undefined,
+
             template,
             citationStyle: citation,
             sources,
@@ -371,9 +400,28 @@ function Dashboard() {
                 <div className="text-xs text-muted-foreground mt-0.5">
                   {[detection.subject, detection.title].filter(Boolean).join(" — ") || "Untitled"}
                   {detection.handwritten ? " · handwritten" : ""}
+                  {detection.requiresDiagrams ? " · diagrams required" : ""}
                 </div>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {detection.subjectDomain && (
+                    <span className="text-[10px] uppercase tracking-wide rounded-full bg-primary/20 text-primary px-2 py-0.5">
+                      {detection.subjectDomain}
+                    </span>
+                  )}
+                  {detection.wordCountSuggested && (
+                    <span className="text-[10px] uppercase tracking-wide rounded-full bg-white/10 px-2 py-0.5">
+                      ~{detection.wordCountSuggested} words
+                    </span>
+                  )}
+                </div>
+                {detection.instructions && (
+                  <div className="mt-2 rounded-lg bg-black/20 border border-white/10 px-3 py-2 text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">Teacher's instructions:</span> {detection.instructions}
+                  </div>
+                )}
               </div>
             </div>
+
 
             {detection.questions.length > 0 ? (
               <div className="space-y-2">
