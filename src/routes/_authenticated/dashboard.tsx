@@ -132,14 +132,26 @@ function Dashboard() {
       if (res.title && !title) {
         setTitle(res.subject ? `${res.subject} — ${res.title}` : res.title);
       }
+      if (res.wordCountSuggested && res.wordCountSuggested >= 300) {
+        // snap to nearest option
+        const opts = [500, 1000, 1500, 2000];
+        const nearest = opts.reduce((a, b) =>
+          Math.abs(b - res.wordCountSuggested!) < Math.abs(a - res.wordCountSuggested!) ? b : a,
+        );
+        setWordCount(String(nearest));
+      }
       toast.success(
-        res.questions.length
-          ? `Detected ${res.questions.length} question${res.questions.length === 1 ? "" : "s"}`
-          : "File analysed",
+        [
+          res.subjectDomain ? `Subject: ${res.subjectDomain}` : null,
+          res.questions.length ? `${res.questions.length} question${res.questions.length === 1 ? "" : "s"}` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ") || "File analysed",
       );
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Could not analyse file"),
   });
+
 
   const mutation = useMutation({
     mutationFn: async () => {
