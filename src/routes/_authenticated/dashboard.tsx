@@ -109,10 +109,16 @@ function Dashboard() {
         return {
           title: "",
           subject: "",
+          subjectDomain: "",
           handwritten: false,
+          requiresDiagrams: false,
+          instructions: "",
+          wordCountSuggested: null,
+          marks: [],
           questions: [pastedAssignmentText.trim()],
         } satisfies Detection;
       }
+
       return await analyzeFn({
         data: {
           attachments: analysable.map(({ name, mimeType, dataUrl }) => ({ name, mimeType, dataUrl })),
