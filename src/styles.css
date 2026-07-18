@@ -188,10 +188,16 @@
   font-size: 0.9em;
 }
 .assignment-preview .katex-display {
-  margin: 0.9rem 0;
+  margin: 1.25rem 0 1.35rem;
+  padding: 0.15rem 0;
   overflow-x: auto;
   overflow-y: hidden;
 }
+.assignment-preview .katex-display + .katex-display { margin-top: 0.6rem; }
+.assignment-preview .katex-display + p,
+.assignment-preview p + .katex-display { margin-top: 0.9rem; }
+.assignment-preview .katex .mtable,
+.assignment-preview .katex .array { margin: 0.2rem 0; }
 .assignment-preview .mermaid {
   background: #ffffff;
   color: #111;
