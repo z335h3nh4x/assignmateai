@@ -169,7 +169,12 @@ function Dashboard() {
             wordCount: parseInt(wordCount, 10),
             title: title || detection?.title || undefined,
             subject: detection?.subject || undefined,
+            subjectDomain: detection?.subjectDomain || undefined,
             detectedQuestions,
+            detectedInstructions: detection?.instructions || undefined,
+            detectedMarks: detection?.marks?.length ? detection.marks : undefined,
+            requiresDiagrams: detection?.requiresDiagrams || undefined,
+
             template,
             citationStyle: citation,
             sources,
