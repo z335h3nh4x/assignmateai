@@ -36,9 +36,15 @@ type Attachment = { name: string; mimeType: string; dataUrl: string; size: numbe
 type Detection = {
   title: string;
   subject: string;
+  subjectDomain: string;
   handwritten: boolean;
+  requiresDiagrams: boolean;
+  instructions: string;
+  wordCountSuggested: number | null;
+  marks: { q: string; marks: string }[];
   questions: string[];
 };
+
 
 const ACCEPT = ".pdf,.docx,.txt,image/*";
 const SOURCE_ACCEPT = ".pdf,.docx,.txt";
