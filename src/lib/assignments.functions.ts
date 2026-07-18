@@ -172,7 +172,7 @@ ${templatePrompt(data.template)}
 
 Citations:
 ${citationPrompt(data.citationStyle)}
-${sourcesBlock ? `\n${sourcesBlock}` : ""}${questionsBlock}`;
+${sourcesBlock ? `\n${sourcesBlock}` : ""}${instructionsBlock}${marksBlock}${diagramsBlock}${questionsBlock}`;
 
 
     const detectedTitle = data.title?.trim();
