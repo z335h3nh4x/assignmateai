@@ -71,12 +71,63 @@ function escapeHtml(s: string) {
   );
 }
 
+/**
+ * Preprocess markdown so math renders with generous vertical spacing and
+ * never gets crammed inline. Rendering-only — never changes numeric values.
+ *
+ *  - `\[ ... \]` / `\( ... \)` → `$$...$$` / `$...$`
+ *  - inline `$...$` that contains a matrix / environment / long expression is
+ *    promoted to a `$$...$$` display block on its own line
+ *  - `$$...$$` blocks are surrounded by blank lines so marked parses them as
+ *    their own paragraph (real vertical space before/after)
+ *  - a paragraph with multiple `$X = ...$` chunks is split so every named
+ *    equation lands on its own display line (e.g. M₁, M₂, M₃ ...)
+ */
+function preprocessMathLayout(md: string): string {
+  let out = md;
+
+  // 1. LaTeX bracket delimiters → dollar delimiters.
+  out = out
+    .replace(/\\\[([\s\S]+?)\\\]/g, (_m, inner) => `\n\n$$${inner}$$\n\n`)
+    .replace(/\\\(([\s\S]+?)\\\)/g, (_m, inner) => `$${inner}$`);
+
+  // 2. Promote heavy inline math to display, skipping fenced code / $$ blocks.
+  const heavyInline = /(?<!\$)\$([^\$\n]{1,400})\$(?!\$)/g;
+  const isHeavy = (expr: string) =>
+    /\\begin\{|\\end\{|\\frac|\\sum|\\int|\\prod|\\lim|\\sqrt|\\left|\\right|\\\\|&/.test(expr) ||
+    expr.length > 60;
+
+  const parts = out.split(/(```[\s\S]*?```|\$\$[\s\S]*?\$\$)/g);
+  for (let i = 0; i < parts.length; i++) {
+    const seg = parts[i];
+    if (!seg) continue;
+    if (seg.startsWith("```") || seg.startsWith("$$")) continue;
+    parts[i] = seg.replace(heavyInline, (full, expr: string) => {
+      if (!isHeavy(expr)) return full;
+      return `\n\n$$${expr.trim()}$$\n\n`;
+    });
+  }
+  out = parts.join("");
+
+  // 3. Blank lines around every $$...$$ block.
+  out = out.replace(
+    /([^\n])[ \t]*\$\$([\s\S]+?)\$\$[ \t]*([^\n])/g,
+    (_m, before, inner, after) => `${before}\n\n$$${inner.trim()}$$\n\n${after}`,
+  );
+
+  // 4. Split run-on inline equations: `$M_1 = ...$ $M_2 = ...$ $M_3 = ...$`.
+  out = out.replace(/((?:\$[^$\n]*=[^$\n]*\$\s*){2,})/g, (block) => {
+    const eqs = block.match(/\$[^$\n]*=[^$\n]*\$/g) ?? [];
+    if (eqs.length < 2) return block;
+    return "\n\n" + eqs.map((e) => `$$${e.slice(1, -1).trim()}$$`).join("\n\n") + "\n\n";
+  });
+
+  return out;
+}
+
 export function renderRichMarkdown(md: string): string {
   if (!md) return "";
-  // Normalise \[ ... \] and \( ... \) LaTeX delimiters into $$ / $ so KaTeX picks them up.
-  const normalised = md
-    .replace(/\\\[([\s\S]+?)\\\]/g, (_m, inner) => `\n$$${inner}$$\n`)
-    .replace(/\\\(([\s\S]+?)\\\)/g, (_m, inner) => `$${inner}$`);
+  const normalised = preprocessMathLayout(md);
   return marked.parse(normalised) as string;
 }
 
