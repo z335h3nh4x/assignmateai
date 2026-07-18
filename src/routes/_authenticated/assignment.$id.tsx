@@ -306,11 +306,6 @@ function AssignmentView() {
     void trackExport();
   }
 
-  function downloadTxt() {
-    if (!row?.result) return;
-    downloadFile(`${row.title}.txt`, "text/plain;charset=utf-8", row.result);
-    void trackExport();
-  }
 
   function downloadPdf() {
     if (!row?.result) return;
@@ -432,7 +427,7 @@ function AssignmentView() {
             <Button size="sm" variant="ghost" onClick={() => setPdfOpen(true)}><Download className="h-4 w-4 mr-1.5" />Academic PDF</Button>
             <Button size="sm" variant="ghost" onClick={() => setNotebookOpen(true)}><BookOpen className="h-4 w-4 mr-1.5" />Notebook PDF</Button>
             <Button size="sm" variant="ghost" onClick={downloadDocx}><FileText className="h-4 w-4 mr-1.5" />DOCX</Button>
-            <Button size="sm" variant="ghost" onClick={downloadTxt}><Download className="h-4 w-4 mr-1.5" />TXT</Button>
+
             <Button size="sm" variant="ghost" onClick={() => setEditing((e) => !e)}>
               {editing ? <><Eye className="h-4 w-4 mr-1.5" />View</> : <><Pencil className="h-4 w-4 mr-1.5" />Edit</>}
             </Button>
