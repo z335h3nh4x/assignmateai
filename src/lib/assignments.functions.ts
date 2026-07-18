@@ -41,7 +41,9 @@ export const generateAssignment = createServerFn({ method: "POST" })
     const { callLovableAI } = await import("./ai-gateway.server");
     const { templatePrompt, citationPrompt, summariseSourcesForPrompt } = await import("./templates");
     const { fetchAllUrlTexts } = await import("./assignments.server");
+    const { composeReasoning } = await import("./reasoning");
     const { supabase, userId } = context;
+
 
     const styleMap: Record<string, string> = {
       simple: "Use short sentences and plain language. Explain like a student is reading it for the first time.",
@@ -78,43 +80,11 @@ export const generateAssignment = createServerFn({ method: "POST" })
       ? `\nPRIMARY SOURCE OF TRUTH: The uploaded file(s) attached in this message ARE the assignment. Read them carefully (including OCR of any images / handwritten pages). Extract the actual questions and answer them. If any hint in the user's typed prompt conflicts with the uploaded file, TRUST THE UPLOADED FILE — the file wins.`
       : "";
 
-    // Subject-adaptive style guidance. `subjectDomain` is auto-detected upstream.
-    const domain = (data.subjectDomain ?? "").toLowerCase();
-    const domainGuidance = (() => {
-      if (/math|calculus|algebra|statistic|probability|geometry|trigonom/.test(domain))
-        return "MATHEMATICS MODE: Present each problem with a clear statement, a short line about the method chosen, then a fully worked step-by-step solution in LaTeX (`$...$` / `$$...$$`). Show every algebraic step, box or bold the final answer, and add one sentence interpreting the result.";
-      if (/physics|mechanic|thermo|electromagnet|oscillation|optic|quantum|astro/.test(domain))
-        return "PHYSICS MODE: For each problem give (a) given data, (b) the governing law/formula with a one-line explanation of what it means physically, (c) derivation or substitution in LaTeX, (d) numerical answer with SI units, (e) a short physical interpretation. Include a labelled diagram (Mermaid or ASCII) where a diagram is genuinely needed.";
-      if (/chemistry|organic|inorganic|physical chem|reaction|stoichiom|equilibrium/.test(domain))
-        return "CHEMISTRY MODE: Write balanced chemical equations, state reagents/conditions above arrows in words, show mechanism steps for organic questions, and show mole/stoichiometry calculations step by step with units. Use LaTeX for any math.";
-      if (/biology|botany|zoology|anatomy|physiolog|genetic|ecolog|microbio|biochem/.test(domain))
-        return "BIOLOGY MODE: Prefer flowing academic paragraphs with clear subheadings per part-question. Describe diagrams in words (labelled parts) where a real diagram would appear. Keep terminology precise but explanations human.";
-      if (/computer science|programming|data structure|algorithm|software|operating system|dbms|database|network|ai|machine learning/.test(domain))
-        return "COMPUTER SCIENCE MODE: For coding questions include a short problem restatement, an algorithm/approach paragraph, a fenced code block in the correct language, a dry-run or example, and Big-O complexity (time and space). Use Mermaid flowcharts for algorithms/pipelines. For DBMS use SQL fenced blocks.";
-      if (/electronics|digital|analog|vlsi|microprocessor|microcontroller|embedded|signal/.test(domain))
-        return "ELECTRONICS MODE: For logic questions produce a proper Markdown truth table AND a K-map table AND the simplified Boolean expression in LaTeX. For circuit questions produce a Mermaid `flowchart LR` gate-level diagram. For numerical problems (RC, RL, filters, amplifiers) show substitution and units.";
-      if (/electrical|power system|machine|circuit|transmission/.test(domain))
-        return "ELECTRICAL ENGINEERING MODE: Show circuit analysis step by step (KVL/KCL, phasors) in LaTeX, include a Mermaid schematic where possible, and always carry SI units through calculations.";
-      if (/mechanical|thermodynamic|fluid|manufacturing|machine design|strength of material/.test(domain))
-        return "MECHANICAL ENGINEERING MODE: For each problem give free-body / schematic description, governing equation, substitution with units, numerical answer, and a one-line engineering interpretation. Use SI units.";
-      if (/civil|structural|geotech|surveying|transportation|hydraulic|concrete/.test(domain))
-        return "CIVIL ENGINEERING MODE: Provide sketches (described), load diagrams, design calculations with code references where relevant, and final design values with units.";
-      if (/english|literature|linguistic|writing|composition|poetry|prose/.test(domain))
-        return "ENGLISH / LITERATURE MODE: Write in flowing paragraphs with a clear thesis, textual evidence (short quotes if relevant), and analysis. Avoid bullet lists entirely unless the question is a list question.";
-      if (/business|management|marketing|finance|accounting|human resource|entrepreneur|strategy/.test(domain))
-        return "BUSINESS MODE: Use a professional report register with numbered subheadings (Executive summary → Analysis → Recommendations → Conclusion), frameworks where relevant (SWOT/PESTLE/Porter's), and tables for comparisons.";
-      if (/econom/.test(domain))
-        return "ECONOMICS MODE: Combine narrative explanation with proper graphs (described or Mermaid), equations in LaTeX, and clear labelling of variables. Show derivations for equilibrium / elasticity problems.";
-      if (/law|legal|jurisprudence|constitution/.test(domain))
-        return "LAW MODE: Use IRAC (Issue, Rule, Application, Conclusion) per question. Cite statutes / cases by name in italics. Write in formal legal prose.";
-      if (/history/.test(domain))
-        return "HISTORY MODE: Write chronological, argument-driven paragraphs. Anchor claims in dates, actors, and consequences. Avoid bullets.";
-      if (/geograph|earth science|climate/.test(domain))
-        return "GEOGRAPHY MODE: Combine descriptive paragraphs with clearly-labelled sketch descriptions (or Mermaid where relevant) and short data tables for statistics.";
-      if (/philosoph|ethic|psycholog|sociolog|political/.test(domain))
-        return "HUMANITIES MODE: Argument-driven essay in flowing paragraphs, cite thinkers by name, engage with counter-arguments, no bullet lists.";
-      return "GENERAL ACADEMIC MODE: Choose the format that a real student in this subject would use. Prefer flowing paragraphs; use tables, code, math or diagrams only where the question genuinely calls for them.";
-    })();
+    // Compose reasoning: GLOBAL RULES + SUBJECT profile + per-question INTENT profiles.
+    const reasoning = composeReasoning({
+      subjectDomain: data.subjectDomain,
+      questions,
+    });
 
     const instructionsBlock = data.detectedInstructions
       ? `\n\nTeacher's instructions detected in the file (must be followed exactly):\n${data.detectedInstructions}`
@@ -127,52 +97,23 @@ export const generateAssignment = createServerFn({ method: "POST" })
     const diagramsBlock = data.requiresDiagrams
       ? `\n\nThe assignment explicitly asks for diagrams/figures — include them (Mermaid flowcharts, labelled sketches described in words, or K-map tables) wherever the question requires.`
       : "";
-    const subjectHeader = data.subjectDomain
-      ? `\n\nDETECTED SUBJECT: ${data.subjectDomain}. Adapt your entire writing style, formatting and depth to what a real student of this subject would submit.`
-      : "";
 
-    const systemPrompt = `You are writing an assignment as if you are a high-performing ${levelMap[data.educationLevel]} student preparing work for manual submission to a professor. You are NOT an AI assistant, tutor, or textbook. You are the student.${subjectHeader}
+    const levelLine = `Write at ${levelMap[data.educationLevel]}. Output-style preference: ${styleMap[data.outputStyle]}`;
+    const targetLine = `Target roughly ${data.wordCount} words in total across all answers.`;
 
-${domainGuidance}
+    const systemPrompt = `${reasoning.systemBlock}
 
-Voice and behaviour (permanent, non-negotiable):
-- Never sound like ChatGPT or a generic AI. No phrases like "In this assignment we will", "Let us delve into", "It is important to note", "In conclusion, it can be said that", "As an AI".
-- Never write in textbook style. Do not lecture the reader. Write as if you are showing your own understanding to your teacher.
-- Never dump a formula without first explaining, in your own words, what it represents and why it applies here.
-- Vary sentence length naturally. Mix short punchy sentences with longer explanatory ones. Avoid starting consecutive sentences the same way. Avoid repeating the same connective words ("Moreover", "Furthermore", "Additionally") back to back.
-- Never use robotic bullet lists unless the question explicitly asks for a list, comparison, or set of points. Prefer flowing paragraphs.
-
-
-Formatting for engineering / mathematics / CS / physics / electronics assignments (very important — this content is rendered with KaTeX + syntax highlighting + Mermaid diagrams, so you MUST use the right markup):
-- Write all mathematics using LaTeX inside \`$ ... $\` for inline math and \`$$ ... $$\` for displayed equations. Do NOT output raw \`\\frac\`, \`\\sum\`, \`\\int\`, matrices etc. as plain text — always wrap them in \`$...$\` or \`$$...$$\` so KaTeX renders them. Examples: \`$v = u + at$\`, \`$$\\omega = 2\\pi f$$\`, \`$$A = \\begin{bmatrix} 1 & 2 \\\\ 3 & 4 \\end{bmatrix}$$\`.
-- Matrices, determinants, integrals, summations, limits, systems of equations, vectors, partial derivatives — always use proper LaTeX inside math delimiters.
-- For truth tables, K-maps, observation tables, comparison tables, data tables — always use GitHub-Flavoured Markdown tables with a header row and separator (\`| A | B | Y |\` / \`|---|---|---|\`). Never write tables as plain text or ASCII art.
-- For Karnaugh maps specifically: write them as a proper 2×2 / 2×4 / 4×4 Markdown table with the input-variable labels in the header and first column, and the output values in each cell. Add a short sentence below explaining the groupings and the simplified expression (also in \`$...$\`).
-- For algorithms and programming code, use fenced code blocks with the correct language tag, e.g. \`\`\`python … \`\`\`, \`\`\`c … \`\`\`, \`\`\`cpp\`, \`\`\`java\`, \`\`\`js\`, \`\`\`sql\`, \`\`\`verilog\`, \`\`\`vhdl\`. Preserve indentation. For pseudocode, use \`\`\`text\` and write it as a numbered algorithm.
-- For flowcharts, workflows, procedures and simple block diagrams, output a \`\`\`mermaid\` fenced code block using valid Mermaid syntax (\`flowchart TD\`, \`graph LR\`, \`sequenceDiagram\`, \`stateDiagram-v2\`). Do NOT describe the diagram in prose when a diagram can be drawn.
-- For logic-circuit questions (AND / OR / NOT / NAND / NOR / XOR / XNOR), prefer a Mermaid \`flowchart LR\` that shows inputs → gate nodes → output, with gate names as node labels. If a diagram is impossible, fall back to a labelled Boolean expression in math delimiters, e.g. \`$Y = \\overline{A} \\cdot B + A \\cdot \\overline{B}$\`.
-- For numerical data that should be a chart (small datasets, comparisons, results), write a short Markdown table AND add a Mermaid \`pie\` or \`xychart-beta\` block when it genuinely helps.
-- Show every calculation step-by-step: state what you're computing, substitute the values (in math delimiters), then give the final numerical answer with units. Never dump a bare formula.
-- Return clean Markdown only. Do NOT wrap the whole assignment in a code fence. Do NOT output raw HTML.
-
-How to approach the work:
-1. Read the uploaded assignment completely and understand what the teacher is actually asking for each question. Restate the question briefly in your own words at the start of each answer so it is clear you understood it — do not copy the question verbatim.
-2. Answer EVERY question in the assignment, fully and individually, in the order they appear. Use a natural heading per question (e.g. "## Question 1" followed by a one-line paraphrase of what is being asked), never skip one.
-3. Before every calculation, write a short sentence explaining what you are about to calculate and why. Then show the working step by step, one line per step, with the values substituted in. Finish with the numerical answer and its units clearly stated.
-4. After the final numerical answer, add one or two sentences of plain academic English explaining what the answer means physically / practically — as a real student would, to show understanding to the marker.
-5. Write natural transitions between sections and between questions so the assignment reads as one coherent submission, not disconnected fragments.
-6. Keep the overall tone human, confident, and academic — the way a strong student writes when they actually understand the material. Slight imperfections in rhythm are fine; perfect symmetry sounds like AI.
-7. Target roughly ${data.wordCount} words in total across all answers. Do not go far under. Do not pad with filler to hit the count.
-8. Diagrams: if a diagram genuinely helps, describe it in a short labelled ASCII sketch or a clearly-worded description. Do not force diagrams where they are not needed.
-9. Return clean Markdown. Headings with \`##\` / \`###\`. Paragraphs separated by blank lines. No code fences around normal prose.
+${levelLine}
+${targetLine}
 ${primarySourceRule}
 
-Document structure guidance (apply loosely — do not let it override the "student voice" rules above):
+Document structure guidance (apply loosely — do not let it override the student-voice rules above):
 ${templatePrompt(data.template)}
 
 Citations:
 ${citationPrompt(data.citationStyle)}
 ${sourcesBlock ? `\n${sourcesBlock}` : ""}${instructionsBlock}${marksBlock}${diagramsBlock}${questionsBlock}`;
+
 
 
     const detectedTitle = data.title?.trim();
