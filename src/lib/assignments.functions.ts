@@ -75,10 +75,65 @@ export const generateAssignment = createServerFn({ method: "POST" })
       : "";
 
     const primarySourceRule = hasAttachments
-      ? `\nPRIMARY SOURCE: The uploaded file(s) attached in this message ARE the assignment. Read them carefully (including OCR of any images / handwritten pages). Extract the actual questions and answer them. Do NOT summarise or rewrite the uploaded assignment — solve it.`
+      ? `\nPRIMARY SOURCE OF TRUTH: The uploaded file(s) attached in this message ARE the assignment. Read them carefully (including OCR of any images / handwritten pages). Extract the actual questions and answer them. If any hint in the user's typed prompt conflicts with the uploaded file, TRUST THE UPLOADED FILE — the file wins.`
       : "";
 
-    const systemPrompt = `You are writing an assignment as if you are a high-performing ${levelMap[data.educationLevel]} student preparing work for manual submission to a professor. You are NOT an AI assistant, tutor, or textbook. You are the student.
+    // Subject-adaptive style guidance. `subjectDomain` is auto-detected upstream.
+    const domain = (data.subjectDomain ?? "").toLowerCase();
+    const domainGuidance = (() => {
+      if (/math|calculus|algebra|statistic|probability|geometry|trigonom/.test(domain))
+        return "MATHEMATICS MODE: Present each problem with a clear statement, a short line about the method chosen, then a fully worked step-by-step solution in LaTeX (`$...$` / `$$...$$`). Show every algebraic step, box or bold the final answer, and add one sentence interpreting the result.";
+      if (/physics|mechanic|thermo|electromagnet|oscillation|optic|quantum|astro/.test(domain))
+        return "PHYSICS MODE: For each problem give (a) given data, (b) the governing law/formula with a one-line explanation of what it means physically, (c) derivation or substitution in LaTeX, (d) numerical answer with SI units, (e) a short physical interpretation. Include a labelled diagram (Mermaid or ASCII) where a diagram is genuinely needed.";
+      if (/chemistry|organic|inorganic|physical chem|reaction|stoichiom|equilibrium/.test(domain))
+        return "CHEMISTRY MODE: Write balanced chemical equations, state reagents/conditions above arrows in words, show mechanism steps for organic questions, and show mole/stoichiometry calculations step by step with units. Use LaTeX for any math.";
+      if (/biology|botany|zoology|anatomy|physiolog|genetic|ecolog|microbio|biochem/.test(domain))
+        return "BIOLOGY MODE: Prefer flowing academic paragraphs with clear subheadings per part-question. Describe diagrams in words (labelled parts) where a real diagram would appear. Keep terminology precise but explanations human.";
+      if (/computer science|programming|data structure|algorithm|software|operating system|dbms|database|network|ai|machine learning/.test(domain))
+        return "COMPUTER SCIENCE MODE: For coding questions include a short problem restatement, an algorithm/approach paragraph, a fenced code block in the correct language, a dry-run or example, and Big-O complexity (time and space). Use Mermaid flowcharts for algorithms/pipelines. For DBMS use SQL fenced blocks.";
+      if (/electronics|digital|analog|vlsi|microprocessor|microcontroller|embedded|signal/.test(domain))
+        return "ELECTRONICS MODE: For logic questions produce a proper Markdown truth table AND a K-map table AND the simplified Boolean expression in LaTeX. For circuit questions produce a Mermaid `flowchart LR` gate-level diagram. For numerical problems (RC, RL, filters, amplifiers) show substitution and units.";
+      if (/electrical|power system|machine|circuit|transmission/.test(domain))
+        return "ELECTRICAL ENGINEERING MODE: Show circuit analysis step by step (KVL/KCL, phasors) in LaTeX, include a Mermaid schematic where possible, and always carry SI units through calculations.";
+      if (/mechanical|thermodynamic|fluid|manufacturing|machine design|strength of material/.test(domain))
+        return "MECHANICAL ENGINEERING MODE: For each problem give free-body / schematic description, governing equation, substitution with units, numerical answer, and a one-line engineering interpretation. Use SI units.";
+      if (/civil|structural|geotech|surveying|transportation|hydraulic|concrete/.test(domain))
+        return "CIVIL ENGINEERING MODE: Provide sketches (described), load diagrams, design calculations with code references where relevant, and final design values with units.";
+      if (/english|literature|linguistic|writing|composition|poetry|prose/.test(domain))
+        return "ENGLISH / LITERATURE MODE: Write in flowing paragraphs with a clear thesis, textual evidence (short quotes if relevant), and analysis. Avoid bullet lists entirely unless the question is a list question.";
+      if (/business|management|marketing|finance|accounting|human resource|entrepreneur|strategy/.test(domain))
+        return "BUSINESS MODE: Use a professional report register with numbered subheadings (Executive summary → Analysis → Recommendations → Conclusion), frameworks where relevant (SWOT/PESTLE/Porter's), and tables for comparisons.";
+      if (/econom/.test(domain))
+        return "ECONOMICS MODE: Combine narrative explanation with proper graphs (described or Mermaid), equations in LaTeX, and clear labelling of variables. Show derivations for equilibrium / elasticity problems.";
+      if (/law|legal|jurisprudence|constitution/.test(domain))
+        return "LAW MODE: Use IRAC (Issue, Rule, Application, Conclusion) per question. Cite statutes / cases by name in italics. Write in formal legal prose.";
+      if (/history/.test(domain))
+        return "HISTORY MODE: Write chronological, argument-driven paragraphs. Anchor claims in dates, actors, and consequences. Avoid bullets.";
+      if (/geograph|earth science|climate/.test(domain))
+        return "GEOGRAPHY MODE: Combine descriptive paragraphs with clearly-labelled sketch descriptions (or Mermaid where relevant) and short data tables for statistics.";
+      if (/philosoph|ethic|psycholog|sociolog|political/.test(domain))
+        return "HUMANITIES MODE: Argument-driven essay in flowing paragraphs, cite thinkers by name, engage with counter-arguments, no bullet lists.";
+      return "GENERAL ACADEMIC MODE: Choose the format that a real student in this subject would use. Prefer flowing paragraphs; use tables, code, math or diagrams only where the question genuinely calls for them.";
+    })();
+
+    const instructionsBlock = data.detectedInstructions
+      ? `\n\nTeacher's instructions detected in the file (must be followed exactly):\n${data.detectedInstructions}`
+      : "";
+    const marksBlock = (data.detectedMarks?.length ?? 0) > 0
+      ? `\n\nMarks per question (scale the depth of each answer proportionally):\n${data
+          .detectedMarks!.map((m) => `- ${m.q}: ${m.marks}`)
+          .join("\n")}`
+      : "";
+    const diagramsBlock = data.requiresDiagrams
+      ? `\n\nThe assignment explicitly asks for diagrams/figures — include them (Mermaid flowcharts, labelled sketches described in words, or K-map tables) wherever the question requires.`
+      : "";
+    const subjectHeader = data.subjectDomain
+      ? `\n\nDETECTED SUBJECT: ${data.subjectDomain}. Adapt your entire writing style, formatting and depth to what a real student of this subject would submit.`
+      : "";
+
+    const systemPrompt = `You are writing an assignment as if you are a high-performing ${levelMap[data.educationLevel]} student preparing work for manual submission to a professor. You are NOT an AI assistant, tutor, or textbook. You are the student.${subjectHeader}
+
+${domainGuidance}
 
 Voice and behaviour (permanent, non-negotiable):
 - Never sound like ChatGPT or a generic AI. No phrases like "In this assignment we will", "Let us delve into", "It is important to note", "In conclusion, it can be said that", "As an AI".
@@ -86,6 +141,7 @@ Voice and behaviour (permanent, non-negotiable):
 - Never dump a formula without first explaining, in your own words, what it represents and why it applies here.
 - Vary sentence length naturally. Mix short punchy sentences with longer explanatory ones. Avoid starting consecutive sentences the same way. Avoid repeating the same connective words ("Moreover", "Furthermore", "Additionally") back to back.
 - Never use robotic bullet lists unless the question explicitly asks for a list, comparison, or set of points. Prefer flowing paragraphs.
+
 
 Formatting for engineering / mathematics / CS / physics / electronics assignments (very important — this content is rendered with KaTeX + syntax highlighting + Mermaid diagrams, so you MUST use the right markup):
 - Write all mathematics using LaTeX inside \`$ ... $\` for inline math and \`$$ ... $$\` for displayed equations. Do NOT output raw \`\\frac\`, \`\\sum\`, \`\\int\`, matrices etc. as plain text — always wrap them in \`$...$\` or \`$$...$$\` so KaTeX renders them. Examples: \`$v = u + at$\`, \`$$\\omega = 2\\pi f$$\`, \`$$A = \\begin{bmatrix} 1 & 2 \\\\ 3 & 4 \\end{bmatrix}$$\`.
