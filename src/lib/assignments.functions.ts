@@ -41,7 +41,9 @@ export const generateAssignment = createServerFn({ method: "POST" })
     const { callLovableAI } = await import("./ai-gateway.server");
     const { templatePrompt, citationPrompt, summariseSourcesForPrompt } = await import("./templates");
     const { fetchAllUrlTexts } = await import("./assignments.server");
+    const { composeReasoning } = await import("./reasoning");
     const { supabase, userId } = context;
+
 
     const styleMap: Record<string, string> = {
       simple: "Use short sentences and plain language. Explain like a student is reading it for the first time.",
