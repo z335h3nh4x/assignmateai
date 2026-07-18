@@ -462,20 +462,33 @@ export const analyzeUpload = createServerFn({ method: "POST" })
     const userContent: Exclude<Parameters<typeof callLovableAI>[0]["messages"][number]["content"], string> = [
       {
         type: "text",
-        text: `Analyse the attached student assignment file(s). Perform OCR on any images or handwritten pages. Detect:
+        text: `Analyse the attached student assignment file(s). Perform OCR on any images / handwritten pages. Detect thoroughly:
 - The assignment title (short, e.g. "Free and Forced Oscillations")
-- The subject / course (e.g. "Engineering Physics")
-- Every distinct question in the assignment, preserving their original numbering when present
-- Whether the assignment is handwritten
+- The specific subject / course as written on the paper (e.g. "Engineering Physics", "DBMS Lab")
+- The broad subject DOMAIN in ONE of these canonical labels so downstream can adapt writing style:
+  "Mathematics", "Physics", "Chemistry", "Biology", "Computer Science", "Electronics", "Electrical Engineering",
+  "Mechanical Engineering", "Civil Engineering", "English / Literature", "Business / Management", "Economics",
+  "Law", "History", "Geography", "Humanities / Social Science", "Other"
+- Every distinct question in the assignment, preserving their original numbering (Q1, Q2, 1(a), 1(b) …) when present.
+- Any general instructions the teacher wrote at the top (e.g. "Answer any 5", "Show all working", "Submit handwritten").
+- Marks per question if written (e.g. "Q1: 5 marks", "Q2(a): 10").
+- Whether the assignment explicitly requires diagrams / figures / circuits / flowcharts.
+- Whether the assignment is handwritten.
+- The teacher-suggested total word count / page count if mentioned (else null).
 
 Return ONLY compact JSON, no markdown fences. Shape:
 {
   "title": "string (short, may be empty)",
   "subject": "string (may be empty)",
+  "subjectDomain": "one canonical label from the list above (may be empty)",
   "handwritten": true|false,
+  "requiresDiagrams": true|false,
+  "instructions": "string of teacher's general instructions, may be empty",
+  "wordCountSuggested": number|null,
+  "marks": [{ "q": "Q1", "marks": "5" }, ...],
   "questions": ["full text of question 1", "full text of question 2", ...]
 }
-If you can only find one question, return it as a single-item array. Never invent questions that are not in the document.${
+Never invent questions, marks, or instructions that are not in the document. Return empty strings / empty arrays / null when a field is not present.${
           data.extraText ? `\n\nAdditional pasted text from the student:\n${data.extraText.slice(0, 8000)}` : ""
         }`,
       },
@@ -497,7 +510,17 @@ If you can only find one question, return it as a single-item array. Never inven
     });
 
     const cleaned = raw.trim().replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
-    let parsed: { title?: string; subject?: string; handwritten?: boolean; questions?: unknown };
+    let parsed: {
+      title?: string;
+      subject?: string;
+      subjectDomain?: string;
+      handwritten?: boolean;
+      requiresDiagrams?: boolean;
+      instructions?: string;
+      wordCountSuggested?: number | null;
+      marks?: unknown;
+      questions?: unknown;
+    };
     try {
       parsed = JSON.parse(cleaned);
     } catch {
@@ -506,10 +529,30 @@ If you can only find one question, return it as a single-item array. Never inven
     const questions = Array.isArray(parsed.questions)
       ? parsed.questions.filter((q): q is string => typeof q === "string" && q.trim().length > 0).slice(0, 30)
       : [];
+    const marks = Array.isArray(parsed.marks)
+      ? (parsed.marks as unknown[])
+          .map((m) => (m && typeof m === "object" ? (m as { q?: unknown; marks?: unknown }) : null))
+          .filter((m): m is { q?: unknown; marks?: unknown } => !!m)
+          .map((m) => ({
+            q: typeof m.q === "string" ? m.q.trim().slice(0, 80) : "",
+            marks: typeof m.marks === "string" ? m.marks.trim().slice(0, 40) : String(m.marks ?? "").slice(0, 40),
+          }))
+          .filter((m) => m.q.length > 0)
+          .slice(0, 30)
+      : [];
     return {
       title: typeof parsed.title === "string" ? parsed.title.trim() : "",
       subject: typeof parsed.subject === "string" ? parsed.subject.trim() : "",
+      subjectDomain: typeof parsed.subjectDomain === "string" ? parsed.subjectDomain.trim() : "",
       handwritten: Boolean(parsed.handwritten),
+      requiresDiagrams: Boolean(parsed.requiresDiagrams),
+      instructions: typeof parsed.instructions === "string" ? parsed.instructions.trim().slice(0, 4000) : "",
+      wordCountSuggested:
+        typeof parsed.wordCountSuggested === "number" && parsed.wordCountSuggested > 0
+          ? Math.min(6000, Math.round(parsed.wordCountSuggested))
+          : null,
+      marks,
       questions,
     };
   });
+
