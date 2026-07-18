@@ -179,13 +179,17 @@ export const PRINT_RICH_CSS = `
     background: #f0f0f0; padding: 1px 5px; border-radius: 3px;
   }
   .katex-display {
-    margin: 0.6em 0;
+    margin: 1.3em 0 1.4em;
+    padding: 0.15em 0;
     overflow-x: auto;
     overflow-y: hidden;
     page-break-inside: avoid;
     break-inside: avoid;
   }
+  .katex-display + .katex-display { margin-top: 0.6em; }
+  .katex-display + p, p + .katex-display { margin-top: 0.9em; }
   .katex { font-size: 1.05em; }
+  .katex .mtable, .katex .array { margin: 0.2em 0; }
   .mermaid {
     text-align: center;
     margin: 1em 0;
