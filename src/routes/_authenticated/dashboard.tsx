@@ -400,9 +400,28 @@ function Dashboard() {
                 <div className="text-xs text-muted-foreground mt-0.5">
                   {[detection.subject, detection.title].filter(Boolean).join(" — ") || "Untitled"}
                   {detection.handwritten ? " · handwritten" : ""}
+                  {detection.requiresDiagrams ? " · diagrams required" : ""}
                 </div>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {detection.subjectDomain && (
+                    <span className="text-[10px] uppercase tracking-wide rounded-full bg-primary/20 text-primary px-2 py-0.5">
+                      {detection.subjectDomain}
+                    </span>
+                  )}
+                  {detection.wordCountSuggested && (
+                    <span className="text-[10px] uppercase tracking-wide rounded-full bg-white/10 px-2 py-0.5">
+                      ~{detection.wordCountSuggested} words
+                    </span>
+                  )}
+                </div>
+                {detection.instructions && (
+                  <div className="mt-2 rounded-lg bg-black/20 border border-white/10 px-3 py-2 text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">Teacher's instructions:</span> {detection.instructions}
+                  </div>
+                )}
               </div>
             </div>
+
 
             {detection.questions.length > 0 ? (
               <div className="space-y-2">
