@@ -324,17 +324,26 @@ ${q.text}`;
 export const saveAssignmentDraft = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
-    z.object({ id: z.string().uuid(), result: z.string().max(200000) }).parse(data),
+    z.object({
+      id: z.string().uuid(),
+      result: z.string().max(200000).optional(),
+      title: z.string().trim().min(1).max(200).optional(),
+    }).parse(data),
   )
   .handler(async ({ data, context }) => {
+    const patch: { result?: string; title?: string } = {};
+    if (typeof data.result === "string") patch.result = data.result;
+    if (typeof data.title === "string") patch.title = data.title;
+    if (Object.keys(patch).length === 0) return { ok: true };
     const { error } = await context.supabase
       .from("assignments")
-      .update({ result: data.result })
+      .update(patch)
       .eq("id", data.id)
       .eq("user_id", context.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
 
 // ---------- Increment export counter ----------
 export const incrementExport = createServerFn({ method: "POST" })
