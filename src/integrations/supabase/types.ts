@@ -60,6 +60,7 @@ export type Database = {
           output_style: string
           prompt: string
           quality_score: Json | null
+          question_statuses: Json | null
           result: string | null
           sources: Json
           status: string
@@ -80,6 +81,7 @@ export type Database = {
           output_style: string
           prompt: string
           quality_score?: Json | null
+          question_statuses?: Json | null
           result?: string | null
           sources?: Json
           status?: string
@@ -100,6 +102,7 @@ export type Database = {
           output_style?: string
           prompt?: string
           quality_score?: Json | null
+          question_statuses?: Json | null
           result?: string | null
           sources?: Json
           status?: string
