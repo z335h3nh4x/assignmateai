@@ -272,6 +272,24 @@ function AssignmentView() {
     refetchInterval: (q) => (q.state.data && q.state.data.status === "generating" ? 2000 : false),
   });
 
+  type QStatus = { id: string; text: string; status: "pending" | "completed" | "failed"; attempts: number; error?: string };
+  const questionStatuses = (row?.question_statuses as QStatus[] | null | undefined) ?? [];
+  const missingQuestions = questionStatuses.filter((q) => q.status !== "completed");
+  const hasMissing = missingQuestions.length > 0;
+  const canExport = !!row?.result && !hasMissing;
+
+  function guardExport(fn: () => void) {
+    if (!canExport) {
+      toast.error(
+        hasMissing
+          ? `Cannot export — missing answers for ${missingQuestions.map((q) => q.id).join(", ")}. Regenerate first.`
+          : "Assignment has no content yet.",
+      );
+      return;
+    }
+    fn();
+  }
+
   async function trackExport() {
     try { await incrementExportFn({ data: { id } }); } catch { /* non-blocking */ }
     qc.invalidateQueries({ queryKey: ["dashboard-stats"] });
