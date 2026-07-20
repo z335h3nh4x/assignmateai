@@ -144,6 +144,37 @@ ${sourcesBlock ? `\n${sourcesBlock}` : ""}${instructionsBlock}${marksBlock}${dia
       title = "Assignment";
     }
 
+    // ---------- Build shared attachments payload (files are always primary source) ----------
+    type UserContent = Exclude<Parameters<typeof callLovableAI>[0]["messages"][number]["content"], string>;
+    const attachmentParts: UserContent = [];
+    for (const att of data.attachments ?? []) {
+      if (att.mimeType.startsWith("image/")) {
+        attachmentParts.push({ type: "image_url", image_url: { url: att.dataUrl } });
+      } else if (att.mimeType === "application/pdf") {
+        attachmentParts.push({ type: "file", file: { filename: att.name, file_data: att.dataUrl } });
+      }
+    }
+    for (const s of data.sources) {
+      if (s.kind === "pdf") {
+        attachmentParts.push({ type: "file", file: { filename: s.name, file_data: s.dataUrl } });
+      }
+    }
+
+    // ---------- Per-question status tracker ----------
+    type QStatus = {
+      id: string;
+      text: string;
+      status: "pending" | "completed" | "failed";
+      attempts: number;
+      answer?: string;
+      error?: string;
+    };
+    const initialStatuses: QStatus[] = hasQuestions
+      ? questions.map((q, i) => ({ id: `Q${i + 1}`, text: q, status: "pending", attempts: 0 }))
+      : [];
+
+    console.log("[generateAssignment] detected questions:", initialStatuses.length, initialStatuses.map((q) => q.id));
+
     const { data: created, error: createErr } = await supabase
       .from("assignments")
       .insert({
@@ -157,55 +188,121 @@ ${sourcesBlock ? `\n${sourcesBlock}` : ""}${instructionsBlock}${marksBlock}${dia
         citation_style: data.citationStyle,
         sources: data.sources,
         status: "generating",
+        question_statuses: initialStatuses.length ? initialStatuses : null,
       })
       .select("id")
       .single();
     if (createErr || !created) throw new Error(createErr?.message ?? "Could not create assignment");
 
-    try {
+    async function persistStatuses(list: QStatus[]) {
+      await supabase
+        .from("assignments")
+        .update({ question_statuses: list })
+        .eq("id", created!.id);
+    }
+
+    async function generateOneQuestion(q: QStatus, perQuestionWords: number): Promise<string> {
+      const perQuestionSystem = `${systemPrompt}
+
+STRICT SCOPE: Answer ONLY the single question below. Do not answer other questions from the assignment. Do not repeat other answers. Begin the response with a heading exactly like: "## ${q.id}: <short question title>". Aim for roughly ${perQuestionWords} words.
+
+QUESTION (${q.id}):
+${q.text}`;
+
+      const instructionText = hasAttachments
+        ? `Solve ONLY ${q.id} from the attached assignment file(s). The exact question text is:\n\n${q.text}${userPrompt ? `\n\nExtra instructions from the student: ${userPrompt}` : ""}`
+        : `Solve ONLY ${q.id}:\n\n${q.text}${userPrompt ? `\n\nExtra notes: ${userPrompt}` : ""}`;
+
+      const userContent: UserContent = [{ type: "text", text: instructionText }, ...attachmentParts];
+
+      return await callLovableAI({
+        messages: [
+          { role: "system", content: perQuestionSystem },
+          { role: "user", content: userContent.length === 1 ? instructionText : userContent },
+        ],
+      });
+    }
+
+    async function generateSingleShot(): Promise<string> {
       const instructionText = hasAttachments
         ? `Read the attached assignment file(s) carefully and solve every question found in them.${
             userPrompt ? `\n\nExtra instructions from the student: ${userPrompt}` : ""
           }`
-        : hasQuestions
-          ? `Solve the detected questions listed in the system prompt.${userPrompt ? `\n\nExtra notes: ${userPrompt}` : ""}`
-          : userPrompt;
-
-      const userContent: Exclude<Parameters<typeof callLovableAI>[0]["messages"][number]["content"], string> = [
-        { type: "text", text: instructionText },
-      ];
-      for (const att of data.attachments ?? []) {
-        if (att.mimeType.startsWith("image/")) {
-          userContent.push({ type: "image_url", image_url: { url: att.dataUrl } });
-        } else if (att.mimeType === "application/pdf") {
-          userContent.push({
-            type: "file",
-            file: { filename: att.name, file_data: att.dataUrl },
-          });
-        }
-      }
-      // Also attach any PDF sources
-      for (const s of data.sources) {
-        if (s.kind === "pdf") {
-          userContent.push({
-            type: "file",
-            file: { filename: s.name, file_data: s.dataUrl },
-          });
-        }
-      }
-
-      const result = await callLovableAI({
+        : userPrompt;
+      const userContent: UserContent = [{ type: "text", text: instructionText }, ...attachmentParts];
+      return await callLovableAI({
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userContent.length === 1 ? instructionText : userContent },
         ],
       });
+    }
 
-      const tokens = Math.ceil(result.length / 4);
+    try {
+      let finalResult = "";
+      let finalStatus: "completed" | "partial" = "completed";
+      let missingIds: string[] = [];
+
+      if (initialStatuses.length === 0) {
+        // No detected questions -> single-shot path (legacy behaviour).
+        finalResult = await generateSingleShot();
+      } else {
+        const statuses = initialStatuses.map((s) => ({ ...s }));
+        const perQuestionWords = Math.max(150, Math.floor(data.wordCount / statuses.length));
+        const MAX_ATTEMPTS = 3; // 1 initial + 2 retries
+
+        for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+          const targets = statuses.filter((s) => s.status !== "completed");
+          if (targets.length === 0) break;
+          console.log(`[generateAssignment] attempt ${attempt}: generating`, targets.map((t) => t.id));
+          for (const q of targets) {
+            q.attempts += 1;
+            try {
+              const answer = await generateOneQuestion(q, perQuestionWords);
+              if (!answer || answer.trim().length < 20) {
+                throw new Error("Empty or too-short answer returned");
+              }
+              q.answer = answer.trim();
+              q.status = "completed";
+              q.error = undefined;
+              console.log(`[generateAssignment] ${q.id} completed on attempt ${q.attempts}`);
+            } catch (e) {
+              q.status = "failed";
+              q.error = e instanceof Error ? e.message : String(e);
+              console.warn(`[generateAssignment] ${q.id} failed on attempt ${q.attempts}:`, q.error);
+            }
+            await persistStatuses(statuses);
+          }
+        }
+
+        missingIds = statuses.filter((s) => s.status !== "completed").map((s) => s.id);
+        finalStatus = missingIds.length === 0 ? "completed" : "partial";
+
+        const completedBlocks = statuses
+          .filter((s) => s.status === "completed" && s.answer)
+          .map((s) => s.answer!.trim());
+        finalResult = completedBlocks.join("\n\n---\n\n");
+
+        if (missingIds.length > 0) {
+          const notice = `\n\n---\n\n> ⚠️ **Unable to generate answers for ${missingIds.join(", ")} after ${MAX_ATTEMPTS} attempts.** Please regenerate or try again.`;
+          finalResult = (finalResult || "").trim() + notice;
+        }
+
+        console.log("[generateAssignment] validation:", {
+          detected: statuses.length,
+          completed: statuses.length - missingIds.length,
+          missing: missingIds,
+          finalStatus,
+        });
+
+        await persistStatuses(statuses);
+      }
+
+      const tokens = Math.ceil(finalResult.length / 4);
 
       await supabase
         .from("assignments")
-        .update({ result, status: "completed", tokens_used: tokens })
+        .update({ result: finalResult, status: finalStatus, tokens_used: tokens })
         .eq("id", created.id);
 
       const { data: tokRow } = await supabase.from("tokens").select("used, balance").eq("user_id", userId).maybeSingle();
@@ -216,7 +313,7 @@ ${sourcesBlock ? `\n${sourcesBlock}` : ""}${instructionsBlock}${marksBlock}${dia
           .eq("user_id", userId);
       }
 
-      return { id: created.id, result };
+      return { id: created.id, result: finalResult, status: finalStatus, missing: missingIds };
     } catch (err) {
       await supabase.from("assignments").update({ status: "failed" }).eq("id", created.id);
       throw err;

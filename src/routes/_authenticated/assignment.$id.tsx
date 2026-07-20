@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
-  ArrowLeft, Copy, Download, RefreshCw, FileText, Loader2, Pencil, Eye, BookOpen,
+  ArrowLeft, Copy, Download, RefreshCw, FileText, Loader2, Pencil, Eye, BookOpen, AlertTriangle,
 } from "lucide-react";
 
 import "katex/dist/katex.min.css";
@@ -272,6 +272,24 @@ function AssignmentView() {
     refetchInterval: (q) => (q.state.data && q.state.data.status === "generating" ? 2000 : false),
   });
 
+  type QStatus = { id: string; text: string; status: "pending" | "completed" | "failed"; attempts: number; error?: string };
+  const questionStatuses = (row?.question_statuses as QStatus[] | null | undefined) ?? [];
+  const missingQuestions = questionStatuses.filter((q) => q.status !== "completed");
+  const hasMissing = missingQuestions.length > 0;
+  const canExport = !!row?.result && !hasMissing;
+
+  function guardExport(fn: () => void) {
+    if (!canExport) {
+      toast.error(
+        hasMissing
+          ? `Cannot export — missing answers for ${missingQuestions.map((q) => q.id).join(", ")}. Regenerate first.`
+          : "Assignment has no content yet.",
+      );
+      return;
+    }
+    fn();
+  }
+
   async function trackExport() {
     try { await incrementExportFn({ data: { id } }); } catch { /* non-blocking */ }
     qc.invalidateQueries({ queryKey: ["dashboard-stats"] });
@@ -420,13 +438,57 @@ function AssignmentView() {
         </Card>
       )}
 
-      {row.status === "completed" && row.result && (
+      {(row.status === "completed" || row.status === "partial") && row.result && (
         <>
+          {hasMissing && (
+            <Card className="glass border-amber-400/40 bg-amber-500/10 p-4 flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-400 mt-0.5 shrink-0" />
+              <div className="flex-1 text-sm">
+                <p className="font-semibold text-amber-200">
+                  Unable to generate answers for {missingQuestions.map((q) => q.id).join(", ")}. Please regenerate or try again.
+                </p>
+                <p className="text-amber-100/80 mt-1">
+                  PDF, Notebook and DOCX export are disabled until every detected question has a completed answer.
+                </p>
+              </div>
+              <Button size="sm" onClick={regenerate} disabled={regenerating} className="gradient-bg text-white border-0 shrink-0">
+                <RefreshCw className={`h-4 w-4 mr-1.5 ${regenerating ? "animate-spin" : ""}`} />
+                Retry
+              </Button>
+            </Card>
+          )}
+
+          {questionStatuses.length > 0 && (
+            <Card className="glass border-white/10 p-3 text-xs">
+              <div className="font-medium mb-1.5 text-muted-foreground">
+                Questions ({questionStatuses.filter((q) => q.status === "completed").length}/{questionStatuses.length} completed)
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {questionStatuses.map((q) => (
+                  <span
+                    key={q.id}
+                    title={q.text}
+                    className={`px-2 py-0.5 rounded-md border ${
+                      q.status === "completed"
+                        ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-200"
+                        : q.status === "failed"
+                          ? "border-rose-400/40 bg-rose-500/10 text-rose-200"
+                          : "border-white/20 bg-white/5 text-muted-foreground"
+                    }`}
+                  >
+                    {q.id} · {q.status}
+                    {q.attempts > 0 && q.status !== "completed" ? ` (×${q.attempts})` : ""}
+                  </span>
+                ))}
+              </div>
+            </Card>
+          )}
+
           <Card className="glass border-white/10 p-3 flex flex-wrap gap-2">
             <Button size="sm" variant="ghost" onClick={copy}><Copy className="h-4 w-4 mr-1.5" />Copy</Button>
-            <Button size="sm" variant="ghost" onClick={() => setPdfOpen(true)}><Download className="h-4 w-4 mr-1.5" />Academic PDF</Button>
-            <Button size="sm" variant="ghost" onClick={() => setNotebookOpen(true)}><BookOpen className="h-4 w-4 mr-1.5" />Notebook PDF</Button>
-            <Button size="sm" variant="ghost" onClick={downloadDocx}><FileText className="h-4 w-4 mr-1.5" />DOCX</Button>
+            <Button size="sm" variant="ghost" disabled={!canExport} onClick={() => guardExport(() => setPdfOpen(true))}><Download className="h-4 w-4 mr-1.5" />Academic PDF</Button>
+            <Button size="sm" variant="ghost" disabled={!canExport} onClick={() => guardExport(() => setNotebookOpen(true))}><BookOpen className="h-4 w-4 mr-1.5" />Notebook PDF</Button>
+            <Button size="sm" variant="ghost" disabled={!canExport} onClick={() => guardExport(downloadDocx)}><FileText className="h-4 w-4 mr-1.5" />DOCX</Button>
 
             <Button size="sm" variant="ghost" onClick={() => setEditing((e) => !e)}>
               {editing ? <><Eye className="h-4 w-4 mr-1.5" />View</> : <><Pencil className="h-4 w-4 mr-1.5" />Edit</>}
