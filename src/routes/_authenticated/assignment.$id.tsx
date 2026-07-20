@@ -381,6 +381,22 @@ function AssignmentView() {
     qc.setQueryData(["assignment", id], (prev: typeof row) => (prev ? { ...prev, result: next } : prev));
   }
 
+  const titleSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function onTitleChange(next: string) {
+    qc.setQueryData(["assignment", id], (prev: typeof row) => (prev ? { ...prev, title: next } : prev));
+    if (titleSaveTimer.current) clearTimeout(titleSaveTimer.current);
+    titleSaveTimer.current = setTimeout(async () => {
+      const trimmed = next.trim();
+      if (!trimmed) return;
+      try {
+        await saveDraftFn({ data: { id, title: trimmed } });
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Failed to save title");
+      }
+    }, 600);
+  }
+
+
   async function regenerate() {
     if (!row) return;
     setRegenerating(true);
