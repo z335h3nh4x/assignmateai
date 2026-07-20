@@ -381,6 +381,22 @@ function AssignmentView() {
     qc.setQueryData(["assignment", id], (prev: typeof row) => (prev ? { ...prev, result: next } : prev));
   }
 
+  const titleSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function onTitleChange(next: string) {
+    qc.setQueryData(["assignment", id], (prev: typeof row) => (prev ? { ...prev, title: next } : prev));
+    if (titleSaveTimer.current) clearTimeout(titleSaveTimer.current);
+    titleSaveTimer.current = setTimeout(async () => {
+      const trimmed = next.trim();
+      if (!trimmed) return;
+      try {
+        await saveDraftFn({ data: { id, title: trimmed } });
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Failed to save title");
+      }
+    }, 600);
+  }
+
+
   async function regenerate() {
     if (!row) return;
     setRegenerating(true);
@@ -416,11 +432,22 @@ function AssignmentView() {
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <div className="flex-1 min-w-0">
-          <h1 className="font-display text-2xl md:text-3xl font-bold truncate">{row.title}</h1>
+          {editing ? (
+            <Input
+              value={row.title}
+              onChange={(e) => onTitleChange(e.target.value)}
+              placeholder="Assignment title"
+              aria-label="Assignment title"
+              className="font-display text-2xl md:text-3xl font-bold h-auto py-1.5 px-2 bg-transparent border-white/10 focus-visible:ring-1"
+            />
+          ) : (
+            <h1 className="font-display text-2xl md:text-3xl font-bold truncate">{row.title}</h1>
+          )}
           <p className="text-xs text-muted-foreground mt-0.5">
             {row.education_level} · {row.output_style} · ~{row.word_count} words
           </p>
         </div>
+
       </div>
 
       {row.status === "generating" && (
