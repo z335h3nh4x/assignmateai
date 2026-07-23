@@ -165,7 +165,6 @@ export async function reserveAssignmentSlot(userId: string, credits = 0): Promis
   const res = data as unknown as ReserveOk | ReserveDeny;
   if (!res.allowed) {
     const reasonLabel: Record<QuotaReason, string> = {
-      daily_limit: "daily assignment limit",
       monthly_limit: "monthly assignment limit",
       credits: "monthly credit balance",
       upload_size: "upload size limit",
