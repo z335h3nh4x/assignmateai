@@ -8,6 +8,8 @@ import {
   ClipboardList, BarChart3, Download, Award, Sparkles, ScanSearch, CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Lock } from "lucide-react";
+import { useFeature } from "@/lib/use-plan-features";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -90,6 +92,11 @@ function Dashboard() {
   const [selectedQ, setSelectedQ] = useState<Set<number>>(new Set());
   const fileRef = useRef<HTMLInputElement>(null);
   const sourceFileRef = useRef<HTMLInputElement>(null);
+
+  const ocrFeature = useFeature("ocr");
+  const humanizedFeature = useFeature("humanized_writing");
+  const citationFeature = useFeature("citation_generator");
+  const templatesFeature = useFeature("premium_templates");
 
   const stats = useQuery({
     queryKey: ["dashboard-stats"],
@@ -369,11 +376,13 @@ function Dashboard() {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => analyseMutation.mutate()}
-                disabled={analyseMutation.isPending}
+                onClick={() => ocrFeature.guard(() => analyseMutation.mutate())}
+                disabled={ocrFeature.allowed && analyseMutation.isPending}
                 className="border-white/15"
               >
-                {analyseMutation.isPending ? (
+                {!ocrFeature.allowed ? (
+                  <><Lock className="h-4 w-4 mr-1.5" /> Scan & detect (OCR — upgrade)</>
+                ) : analyseMutation.isPending ? (
                   <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Reading assignment...</>
                 ) : detection ? (
                   <><ScanSearch className="h-4 w-4 mr-1.5" /> Re-scan uploaded files</>
