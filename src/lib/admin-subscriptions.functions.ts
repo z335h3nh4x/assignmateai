@@ -150,7 +150,7 @@ export const setPlanFlag = createServerFn({ method: "POST" })
     }
     const { error } = await supabaseAdmin
       .from("plans")
-      .update({ [data.field]: data.value })
+      .update({ [data.field]: data.value } as any)
       .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -200,7 +200,7 @@ export const listSubscribers = createServerFn({ method: "GET" })
     const planBySlug = new Map<string, { id: string; slug: string; name: string }>();
     for (const p of (plansRes.data ?? []) as any[]) {
       planById.set(p.id, { id: p.id, slug: p.slug, name: p.name });
-      planBySlug.set(p.slug, { id: p.id, name: p.name });
+      planBySlug.set(p.slug, { id: p.id, slug: p.slug, name: p.name });
     }
     const subMap = new Map<string, any>();
     for (const s of (subsRes.data ?? []) as any[]) subMap.set(s.user_id, s);
