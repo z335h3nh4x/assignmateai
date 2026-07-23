@@ -11,7 +11,6 @@ export type PublicPlan = {
   monthly_price_cents: number;
   yearly_price_cents: number;
   credits: number;
-  daily_limit: number;
   monthly_limit: number;
   max_words: number;
   max_upload_mb: number;
