@@ -70,6 +70,7 @@ const EMPTY_PLAN: PlanInput = {
   credits: 0,
   daily_limit: 0,
   monthly_limit: 0,
+  max_words: 0,
   
   max_upload_mb: 0,
   max_upload_pages: 0,
