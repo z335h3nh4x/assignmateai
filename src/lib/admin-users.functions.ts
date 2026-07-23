@@ -85,7 +85,7 @@ export const updateUserProfile = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const patch: Record<string, unknown> = {};
+    const patch: { display_name?: string | null; email?: string | null } = {};
     if (data.display_name !== undefined) patch.display_name = data.display_name;
     if (data.email !== undefined) patch.email = data.email;
     const { error } = await supabaseAdmin.from("profiles").update(patch).eq("id", data.userId);
