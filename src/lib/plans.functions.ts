@@ -42,9 +42,12 @@ export const listPublicPlans = createServerFn({ method: "GET" }).handler(async (
   const { data, error } = await sb
     .from("plans")
     .select(
-      "id, slug, name, description, currency, monthly_price_cents, yearly_price_cents, credits, daily_limit, monthly_limit, max_words, max_upload_mb, max_upload_pages, features, is_recommended, sort_order",
+      "id, slug, name, description, currency, monthly_price_cents, yearly_price_cents, credits, daily_limit, monthly_limit, max_words, max_upload_mb, max_upload_pages, features, is_recommended, sort_order, is_active, is_archived",
     )
+    .eq("is_active", true)
+    .eq("is_archived", false)
     .order("sort_order", { ascending: true });
   if (error) return [];
   return (data ?? []) as unknown as PublicPlan[];
 });
+
