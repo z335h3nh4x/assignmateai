@@ -41,10 +41,9 @@ export function UsagePanel() {
   const ent = useMyEntitlements();
   if (!ent) return null;
   const { plan, usage, remaining, resets } = ent;
-  const dailyExhausted = remaining.daily === 0;
   const monthlyExhausted = remaining.monthly === 0;
   const creditsExhausted = remaining.credits === 0;
-  const showUpgrade = plan.slug === "free" || dailyExhausted || monthlyExhausted || creditsExhausted;
+  const showUpgrade = plan.slug === "free" || monthlyExhausted || creditsExhausted;
 
   return (
     <Card className="glass border-white/10 p-4 space-y-3">
@@ -57,9 +56,7 @@ export function UsagePanel() {
           {plan.name}
         </span>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <Row label="Today" used={usage.day_used} limit={plan.daily_limit > 0 ? plan.daily_limit : null}
-          resetIn={fmtReset(resets.daily)} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Row label="This month" used={usage.month_used} limit={plan.monthly_limit > 0 ? plan.monthly_limit : null}
           resetIn={fmtReset(resets.monthly)} />
         <Row label="Credits" used={usage.credits_used} limit={plan.credits > 0 ? plan.credits : null}
@@ -68,9 +65,9 @@ export function UsagePanel() {
       {showUpgrade && (
         <div className="flex items-center justify-between pt-1">
           <p className="text-xs text-muted-foreground">
-            {dailyExhausted || monthlyExhausted || creditsExhausted
+            {monthlyExhausted || creditsExhausted
               ? "You've reached a limit on your current plan."
-              : "Upgrade for higher daily & monthly limits, larger uploads, and premium features."}
+              : "Upgrade for a higher monthly assignment limit, larger uploads, and premium features."}
           </p>
           <Button asChild size="sm" className="gradient-bg text-white border-0">
             <Link to="/" hash="pricing"><Sparkles className="h-3.5 w-3.5 mr-1" /> Upgrade</Link>

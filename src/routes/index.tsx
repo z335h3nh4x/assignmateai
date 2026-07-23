@@ -172,7 +172,6 @@ function planFeatureLines(p: PublicPlan): string[] {
   lines.push(p.credits ? `${p.credits.toLocaleString()} credits` : "Pay-as-you-go credits");
   
   if (p.monthly_limit) lines.push(`${p.monthly_limit.toLocaleString()} assignments / month`);
-  else if (p.daily_limit) lines.push(`${p.daily_limit} assignments / day`);
   if (p.max_upload_mb) lines.push(`${p.max_upload_mb} MB uploads · ${p.max_upload_pages || "∞"} pages`);
   const featureLabels: Record<string, string> = {
     humanized_writing: "Humanized writing engine",
