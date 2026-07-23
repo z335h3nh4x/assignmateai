@@ -28,6 +28,9 @@ import { generateAssignment, getDashboardStats, analyzeUpload } from "@/lib/assi
 import {
   TEMPLATES, CITATION_STYLES, type TemplateId, type CitationStyleId, type SourceItem,
 } from "@/lib/templates";
+import { UsagePanel } from "@/components/usage-panel";
+import { useMyEntitlements } from "@/lib/use-plan-features";
+
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — AssignAI" }] }),
