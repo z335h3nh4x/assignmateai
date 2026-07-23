@@ -43,19 +43,32 @@ export const generateAssignment = createServerFn({ method: "POST" })
     const { fetchAllUrlTexts } = await import("./assignments.server");
     const { composeReasoning } = await import("./reasoning");
     const { humanizeChunk } = await import("./reasoning/humanize");
-    const { loadUserPlan, FeatureLockedError } = await import("./plan-features.server");
+    const {
+      assertFeature, assertUploadLimits, reserveAssignmentSlot, refundAssignmentSlot,
+    } = await import("./entitlements.server");
     const { supabase, userId } = context;
 
-    // Plan-based feature enforcement.
-    const plan = await loadUserPlan(userId);
-    const need = (k: string) => {
-      if (!plan.features[k]) throw new FeatureLockedError(k, plan.planName);
-    };
+    // ---- Centralized entitlement enforcement (feature access) ----
     const hasImageAttachments = (data.attachments ?? []).some((a) => a.mimeType.startsWith("image/"));
-    if (data.outputStyle === "humanized") need("humanized_writing");
-    if (hasImageAttachments) need("ocr");
-    if (data.citationStyle && data.citationStyle !== "none") need("citation_generator");
-    if (data.template && data.template !== "essay") need("premium_templates");
+    if (data.outputStyle === "humanized") await assertFeature(userId, "humanized_writing");
+    if (hasImageAttachments) await assertFeature(userId, "ocr");
+    if (data.citationStyle && data.citationStyle !== "none") await assertFeature(userId, "citation_generator");
+    if (data.template && data.template !== "essay") await assertFeature(userId, "premium_templates");
+
+    // ---- Upload size / page limits ----
+    const uploadItems = [
+      ...(data.attachments ?? []).map((a) => ({ name: a.name, mimeType: a.mimeType, dataUrl: a.dataUrl })),
+      ...data.sources.filter((s): s is Extract<typeof data.sources[number], { kind: "pdf" }> => s.kind === "pdf")
+        .map((s) => ({ name: s.name, mimeType: "application/pdf", dataUrl: s.dataUrl })),
+    ];
+    if (uploadItems.length > 0) await assertUploadLimits(userId, uploadItems);
+
+    // ---- Atomic quota reservation (daily / monthly / credits) ----
+    // Credit cost is a coarse pre-estimate; a hard cap prevents runaway usage.
+    const estimatedCredits = Math.max(50, Math.min(20000, Math.round(data.wordCount * 1.2)));
+    await reserveAssignmentSlot(userId, estimatedCredits);
+    let slotReserved = true;
+
 
 
     const styleMap: Record<string, string> = {
@@ -358,6 +371,7 @@ ${q.text}`;
           .eq("user_id", userId);
       }
 
+      slotReserved = false; // committed — usage stays consumed
       return { id: created.id, result: finalResult, status: "completed" as const, missing: [] as string[] };
     } catch (err) {
       // If we already marked the row failed above (partial-recovery path), keep
@@ -366,9 +380,15 @@ ${q.text}`;
       if (row?.status !== "failed") {
         await supabase.from("assignments").update({ status: "failed" }).eq("id", created.id);
       }
+      // Refund the reserved quota slot so the user isn't charged for a failure.
+      if (slotReserved) {
+        try { await refundAssignmentSlot(userId, estimatedCredits); } catch (_) { /* best-effort */ }
+        slotReserved = false;
+      }
       throw err;
     }
   });
+
 
 // ---------- Autosave ----------
 export const saveAssignmentDraft = createServerFn({ method: "POST" })
@@ -423,7 +443,7 @@ export const chatWithAssignment = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { chatAboutAssignment } = await import("./assignments.server");
-    const { assertFeature } = await import("./plan-features.server");
+    const { assertFeature } = await import("./entitlements.server");
     const { supabase, userId } = context;
     await assertFeature(userId, "ai_chat");
 
@@ -480,7 +500,7 @@ export const analyzeAssignment = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
     const { analyseAssignmentText } = await import("./assignments.server");
-    const { assertFeature } = await import("./plan-features.server");
+    const { assertFeature } = await import("./entitlements.server");
     const { supabase, userId } = context;
     await assertFeature(userId, "grammar_checker");
 
@@ -559,11 +579,14 @@ export const analyzeUpload = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => AnalyzeInput.parse(data))
   .handler(async ({ data, context }) => {
     const { callLovableAI } = await import("./ai-gateway.server");
-    const { assertFeature } = await import("./plan-features.server");
+    const { assertFeature, assertUploadLimits } = await import("./entitlements.server");
     // Analysing an uploaded image / PDF uses OCR/multimodal — gate it.
     if (data.attachments.some((a) => a.mimeType.startsWith("image/") || a.mimeType === "application/pdf")) {
       await assertFeature(context.userId, "ocr");
     }
+    // Enforce plan upload limits even for the analyse step.
+    await assertUploadLimits(context.userId, data.attachments);
+
 
     const userContent: Exclude<Parameters<typeof callLovableAI>[0]["messages"][number]["content"], string> = [
       {

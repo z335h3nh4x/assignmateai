@@ -28,6 +28,9 @@ import { generateAssignment, getDashboardStats, analyzeUpload } from "@/lib/assi
 import {
   TEMPLATES, CITATION_STYLES, type TemplateId, type CitationStyleId, type SourceItem,
 } from "@/lib/templates";
+import { UsagePanel } from "@/components/usage-panel";
+import { useMyEntitlements } from "@/lib/use-plan-features";
+
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — AssignAI" }] }),
@@ -291,8 +294,14 @@ function Dashboard() {
     attachments.some((a) => a.mimeType.startsWith("image/") || a.mimeType === "application/pdf")
     || pastedAssignmentText.trim().length >= 20;
 
+  const entitlements = useMyEntitlements();
+  const dailyOut = entitlements?.remaining.daily === 0;
+  const monthlyOut = entitlements?.remaining.monthly === 0;
+  const creditsOut = entitlements?.remaining.credits === 0;
+  const quotaBlocked = dailyOut || monthlyOut || creditsOut;
+
   const canGenerate =
-    !mutation.isPending && (
+    !mutation.isPending && !quotaBlocked && (
       (detection && selectedQ.size > 0) ||
       attachments.length > 0 ||
       pastedAssignmentText.trim().length >= 20 ||
@@ -308,6 +317,9 @@ function Dashboard() {
         </h1>
         <p className="text-muted-foreground mt-1">Upload your assignment — AssignAI reads it, detects the questions and writes the solution.</p>
       </div>
+
+      <UsagePanel />
+
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
