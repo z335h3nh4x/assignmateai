@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
@@ -37,7 +37,7 @@ export function PlanFeaturesProvider({ children }: { children: ReactNode }) {
   const [isAuthed, setIsAuthed] = useState<boolean | null>(null);
 
   // Only query when signed in — avoids 401 spam on public routes.
-  useMemo(() => {
+  useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setIsAuthed(!!data.session));
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setIsAuthed(!!s));
     return () => sub.subscription.unsubscribe();
