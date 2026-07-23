@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
@@ -74,6 +74,7 @@ function readFileAsText(file: File): Promise<string> {
 
 function Dashboard() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const generateFn = useServerFn(generateAssignment);
   const statsFn = useServerFn(getDashboardStats);
   const analyzeFn = useServerFn(analyzeUpload);
@@ -199,6 +200,8 @@ function Dashboard() {
     },
     onSuccess: (res) => {
       toast.success("Assignment ready!");
+      queryClient.invalidateQueries({ queryKey: ["my-entitlements"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       navigate({ to: "/assignment/$id", params: { id: res.id } });
     },
     onError: (e) => {
