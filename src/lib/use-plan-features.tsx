@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
 import { Lock, Sparkles } from "lucide-react";
 
-import { getMyPlanFeatures, type MyPlanFeatures } from "./plan-features.functions";
+import { getMyEntitlements, type MyEntitlements } from "./entitlements.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,51 +27,66 @@ export const FEATURE_LABELS: Record<string, string> = {
   future_features: "Future Features",
 };
 
-type UpgradeCtx = {
-  open: (feature: string) => void;
-};
+type UpgradeCtx = { open: (feature: string) => void };
 const UpgradeCtxObj = createContext<UpgradeCtx | null>(null);
 
 export function PlanFeaturesProvider({ children }: { children: ReactNode }) {
   const [feature, setFeature] = useState<string | null>(null);
   const [isAuthed, setIsAuthed] = useState<boolean | null>(null);
 
-  // Only query when signed in — avoids 401 spam on public routes.
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setIsAuthed(!!data.session));
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setIsAuthed(!!s));
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  const fn = useServerFn(getMyPlanFeatures);
-  const q = useQuery<MyPlanFeatures>({
-    queryKey: ["my-plan-features"],
+  const fn = useServerFn(getMyEntitlements);
+  const q = useQuery<MyEntitlements>({
+    queryKey: ["my-entitlements"],
     queryFn: () => fn(),
     enabled: !!isAuthed,
-    staleTime: 30_000,
+    staleTime: 15_000,
   });
 
   const ctx = useMemo<UpgradeCtx>(() => ({ open: (f) => setFeature(f) }), []);
 
+  const legacyShape = q.data
+    ? {
+        planId: q.data.plan.id,
+        planSlug: q.data.plan.slug,
+        planName: q.data.plan.name,
+        features: q.data.plan.features ?? {},
+      }
+    : null;
+
   return (
-    <PlanDataCtx.Provider value={q.data ?? null}>
-      <UpgradeCtxObj.Provider value={ctx}>
-        {children}
-        <UpgradeDialog
-          feature={feature}
-          planName={q.data?.planName ?? "Free"}
-          onClose={() => setFeature(null)}
-        />
-      </UpgradeCtxObj.Provider>
-    </PlanDataCtx.Provider>
+    <EntitlementsCtx.Provider value={q.data ?? null}>
+      <PlanDataCtx.Provider value={legacyShape}>
+        <UpgradeCtxObj.Provider value={ctx}>
+          {children}
+          <UpgradeDialog
+            feature={feature}
+            planName={q.data?.plan.name ?? "Free"}
+            onClose={() => setFeature(null)}
+          />
+        </UpgradeCtxObj.Provider>
+      </PlanDataCtx.Provider>
+    </EntitlementsCtx.Provider>
   );
 }
 
-const PlanDataCtx = createContext<MyPlanFeatures | null>(null);
+type LegacyPlan = { planId: string | null; planSlug: string; planName: string; features: Record<string, boolean> };
+const PlanDataCtx = createContext<LegacyPlan | null>(null);
+const EntitlementsCtx = createContext<MyEntitlements | null>(null);
 
-export function useMyPlan(): MyPlanFeatures | null {
+export function useMyPlan(): LegacyPlan | null {
   return useContext(PlanDataCtx);
 }
+
+export function useMyEntitlements(): MyEntitlements | null {
+  return useContext(EntitlementsCtx);
+}
+
 
 export function useFeature(key: string) {
   const plan = useContext(PlanDataCtx);
