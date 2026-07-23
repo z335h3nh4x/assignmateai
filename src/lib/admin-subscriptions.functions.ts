@@ -83,7 +83,7 @@ export const listAdminPlans = createServerFn({ method: "GET" })
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const [plansRes, subsRes] = await Promise.all([
-      supabaseAdmin.from("plans" as never).select("*").order("sort_order", { ascending: true }),
+      supabaseAdmin.from("plans").select("*").order("sort_order", { ascending: true }),
       supabaseAdmin.from("subscriptions").select("plan_id, plan, status"),
     ]);
     const counts = new Map<string, number>();
@@ -106,12 +106,12 @@ export const upsertPlan = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const payload = { ...data };
     if (payload.id) {
-      const { error } = await supabaseAdmin.from("plans" as never).update(payload).eq("id", payload.id);
+      const { error } = await supabaseAdmin.from("plans").update(payload).eq("id", payload.id);
       if (error) throw new Error(error.message);
       return { ok: true, id: payload.id };
     }
     const { data: inserted, error } = await supabaseAdmin
-      .from("plans" as never)
+      .from("plans")
       .insert(payload)
       .select("id")
       .single();
@@ -125,7 +125,7 @@ export const duplicatePlan = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: src, error } = await supabaseAdmin.from("plans" as never).select("*").eq("id", data.id).single();
+    const { data: src, error } = await supabaseAdmin.from("plans").select("*").eq("id", data.id).single();
     if (error || !src) throw new Error(error?.message ?? "Not found");
     const copy: any = { ...src };
     delete copy.id;
@@ -134,7 +134,7 @@ export const duplicatePlan = createServerFn({ method: "POST" })
     copy.slug = `${copy.slug}-copy-${Math.random().toString(36).slice(2, 6)}`;
     copy.name = `${copy.name} (copy)`;
     copy.is_recommended = false;
-    const { error: iErr } = await supabaseAdmin.from("plans" as never).insert(copy);
+    const { error: iErr } = await supabaseAdmin.from("plans").insert(copy);
     if (iErr) throw new Error(iErr.message);
     return { ok: true };
   });
@@ -146,10 +146,10 @@ export const setPlanFlag = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     if (data.field === "is_recommended" && data.value) {
-      await supabaseAdmin.from("plans" as never).update({ is_recommended: false }).neq("id", data.id);
+      await supabaseAdmin.from("plans").update({ is_recommended: false }).neq("id", data.id);
     }
     const { error } = await supabaseAdmin
-      .from("plans" as never)
+      .from("plans")
       .update({ [data.field]: data.value })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
@@ -162,7 +162,7 @@ export const deletePlan = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin.from("plans" as never).delete().eq("id", data.id);
+    const { error } = await supabaseAdmin.from("plans").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -175,7 +175,7 @@ export const reorderPlans = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     for (const row of data.order) {
       const { error } = await supabaseAdmin
-        .from("plans" as never)
+        .from("plans")
         .update({ sort_order: row.sort_order })
         .eq("id", row.id);
       if (error) throw new Error(error.message);
@@ -194,7 +194,7 @@ export const listSubscribers = createServerFn({ method: "GET" })
       supabaseAdmin.from("profiles").select("id, email, display_name, avatar_url"),
       supabaseAdmin.from("subscriptions").select("*"),
       supabaseAdmin.from("tokens").select("user_id, balance, used"),
-      supabaseAdmin.from("plans" as never).select("id, slug, name"),
+      supabaseAdmin.from("plans").select("id, slug, name"),
     ]);
     const planById = new Map<string, { slug: string; name: string }>();
     const planBySlug = new Map<string, { id: string; name: string }>();
@@ -238,7 +238,7 @@ export const changeSubscriberPlan = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: plan, error: pErr } = await supabaseAdmin
-      .from("plans" as never)
+      .from("plans")
       .select("slug, credits")
       .eq("id", data.planId)
       .single();
@@ -325,7 +325,7 @@ export const getSubscriptionOverview = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const [subsRes, plansRes, profilesRes] = await Promise.all([
       supabaseAdmin.from("subscriptions").select("plan, plan_id, status, billing_interval, cancelled_at, created_at"),
-      supabaseAdmin.from("plans" as never).select("id, slug, monthly_price_cents, yearly_price_cents"),
+      supabaseAdmin.from("plans").select("id, slug, monthly_price_cents, yearly_price_cents"),
       supabaseAdmin.from("profiles").select("id", { count: "exact", head: true }),
     ]);
     const planPrice = new Map<string, { m: number; y: number; slug: string }>();
@@ -371,7 +371,7 @@ export const getSubscriptionAnalytics = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const [subsRes, plansRes] = await Promise.all([
       supabaseAdmin.from("subscriptions").select("plan, plan_id, status, billing_interval, created_at, cancelled_at"),
-      supabaseAdmin.from("plans" as never).select("id, slug, name, monthly_price_cents, yearly_price_cents"),
+      supabaseAdmin.from("plans").select("id, slug, name, monthly_price_cents, yearly_price_cents"),
     ]);
     const planById = new Map<string, any>();
     for (const p of (plansRes.data ?? []) as any[]) planById.set(p.id, p);

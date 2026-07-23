@@ -40,7 +40,7 @@ function serverClient() {
 export const listPublicPlans = createServerFn({ method: "GET" }).handler(async (): Promise<PublicPlan[]> => {
   const sb = serverClient();
   const { data, error } = await sb
-    .from("plans" as never)
+    .from("plans")
     .select(
       "id, slug, name, description, currency, monthly_price_cents, yearly_price_cents, credits, daily_limit, monthly_limit, max_words, max_upload_mb, max_upload_pages, features, is_recommended, sort_order",
     )
