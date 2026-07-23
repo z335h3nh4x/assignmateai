@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { MessageSquare, ClipboardCheck, Award, Loader2, Send, Sparkles } from "lucide-react";
+import { MessageSquare, ClipboardCheck, Award, Loader2, Send, Sparkles, Lock } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { analyzeAssignment, chatWithAssignment } from "@/lib/assignments.functions";
+import { useFeature } from "@/lib/use-plan-features";
 
 type QualityScores = {
   structure: number;
@@ -32,6 +33,8 @@ export function AssignmentAssistant({ assignmentId }: { assignmentId: string }) 
   const qc = useQueryClient();
   const chatFn = useServerFn(chatWithAssignment);
   const analyseFn = useServerFn(analyzeAssignment);
+  const chatFeature = useFeature("ai_chat");
+  const grammarFeature = useFeature("grammar_checker");
 
   const messages = useQuery({
     queryKey: ["assignment-messages", assignmentId],
@@ -91,12 +94,25 @@ export function AssignmentAssistant({ assignmentId }: { assignmentId: string }) 
     <Card className="glass border-white/10 p-4">
       <Tabs defaultValue="chat" className="w-full">
         <TabsList className="bg-white/5 border border-white/10">
-          <TabsTrigger value="chat"><MessageSquare className="h-4 w-4 mr-1.5" />Chat</TabsTrigger>
-          <TabsTrigger value="grammar"><ClipboardCheck className="h-4 w-4 mr-1.5" />Grammar</TabsTrigger>
+          <TabsTrigger value="chat">
+            <MessageSquare className="h-4 w-4 mr-1.5" />Chat
+            {!chatFeature.allowed && !chatFeature.loading && <Lock className="h-3 w-3 ml-1.5 opacity-70" />}
+          </TabsTrigger>
+          <TabsTrigger value="grammar">
+            <ClipboardCheck className="h-4 w-4 mr-1.5" />Grammar
+            {!grammarFeature.allowed && !grammarFeature.loading && <Lock className="h-3 w-3 ml-1.5 opacity-70" />}
+          </TabsTrigger>
           <TabsTrigger value="quality"><Award className="h-4 w-4 mr-1.5" />Quality</TabsTrigger>
         </TabsList>
 
         <TabsContent value="chat" className="mt-4 space-y-3">
+          {!chatFeature.allowed && !chatFeature.loading && (
+            <LockedNotice
+              label="AI Assignment Chat"
+              planName={chatFeature.planName}
+              onUpgrade={chatFeature.requestUpgrade}
+            />
+          )}
           <div ref={listRef} className="max-h-80 overflow-y-auto space-y-3 pr-1">
             {(messages.data ?? []).length === 0 && (
               <p className="text-sm text-muted-foreground">
@@ -123,29 +139,37 @@ export function AssignmentAssistant({ assignmentId }: { assignmentId: string }) 
 
           <div className="flex gap-2">
             <Textarea rows={2} value={input} onChange={(e) => setInput(e.target.value)}
-              placeholder="e.g. Expand the introduction, or explain paragraph 3 more simply"
-              className="bg-white/5 border-white/10 resize-none"
+              placeholder={chatFeature.allowed ? "e.g. Expand the introduction, or explain paragraph 3 more simply" : "Upgrade to unlock AI Chat"}
+              disabled={!chatFeature.allowed}
+              className="bg-white/5 border-white/10 resize-none disabled:opacity-60"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
-                  if (input.trim()) send.mutate(input.trim());
+                  chatFeature.guard(() => { if (input.trim()) send.mutate(input.trim()); });
                 }
               }} />
-            <Button onClick={() => input.trim() && send.mutate(input.trim())}
-              disabled={!input.trim() || send.isPending}
+            <Button onClick={() => chatFeature.guard(() => input.trim() && send.mutate(input.trim()))}
+              disabled={chatFeature.allowed ? (!input.trim() || send.isPending) : false}
               className="gradient-bg text-white border-0">
-              <Send className="h-4 w-4" />
+              {chatFeature.allowed ? <Send className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
             </Button>
           </div>
         </TabsContent>
 
         <TabsContent value="grammar" className="mt-4 space-y-3">
+          {!grammarFeature.allowed && !grammarFeature.loading && (
+            <LockedNotice
+              label="Grammar Checker"
+              planName={grammarFeature.planName}
+              onUpgrade={grammarFeature.requestUpgrade}
+            />
+          )}
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
               {grammar ? "Suggestions from the last analysis. Nothing is changed automatically." : "Run an analysis to see grammar, spelling and tone suggestions."}
             </p>
-            <Button size="sm" onClick={() => analyse.mutate()} disabled={analyse.isPending} className="gradient-bg text-white border-0">
-              {analyse.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Sparkles className="h-4 w-4 mr-1.5" />}
+            <Button size="sm" onClick={() => grammarFeature.guard(() => analyse.mutate())} disabled={grammarFeature.allowed && analyse.isPending} className="gradient-bg text-white border-0">
+              {!grammarFeature.allowed ? <Lock className="h-4 w-4 mr-1.5" /> : analyse.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Sparkles className="h-4 w-4 mr-1.5" />}
               {grammar ? "Re-analyze" : "Analyze"}
             </Button>
           </div>
@@ -226,6 +250,20 @@ function SeverityBadge({ s }: { s: "low" | "medium" | "high" }) {
     : s === "medium" ? "text-amber-400 border-amber-400/40"
     : "text-emerald-400 border-emerald-400/40";
   return <Badge variant="outline" className={`text-[10px] uppercase ${cls}`}>{s}</Badge>;
+}
+
+function LockedNotice({ label, planName, onUpgrade }: { label: string; planName: string; onUpgrade: () => void }) {
+  return (
+    <div className="rounded-lg border border-white/10 bg-white/5 p-3 flex items-center gap-3">
+      <Lock className="h-4 w-4 text-primary shrink-0" />
+      <p className="text-xs text-muted-foreground flex-1">
+        <span className="text-foreground font-medium">{label}</span> isn't included in your {planName} plan.
+      </p>
+      <Button size="sm" variant="outline" className="border-primary/40 text-primary" onClick={onUpgrade}>
+        Upgrade
+      </Button>
+    </div>
+  );
 }
 
 // Autosave editor: swaps the read-only view for a Textarea and saves on debounce.

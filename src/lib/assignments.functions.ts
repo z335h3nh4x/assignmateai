@@ -43,7 +43,19 @@ export const generateAssignment = createServerFn({ method: "POST" })
     const { fetchAllUrlTexts } = await import("./assignments.server");
     const { composeReasoning } = await import("./reasoning");
     const { humanizeChunk } = await import("./reasoning/humanize");
+    const { loadUserPlan, FeatureLockedError } = await import("./plan-features.server");
     const { supabase, userId } = context;
+
+    // Plan-based feature enforcement.
+    const plan = await loadUserPlan(userId);
+    const need = (k: string) => {
+      if (!plan.features[k]) throw new FeatureLockedError(k, plan.planName);
+    };
+    const hasImageAttachments = (data.attachments ?? []).some((a) => a.mimeType.startsWith("image/"));
+    if (data.outputStyle === "humanized") need("humanized_writing");
+    if (hasImageAttachments) need("ocr");
+    if (data.citationStyle && data.citationStyle !== "none") need("citation_generator");
+    if (data.template && data.template !== "essay") need("premium_templates");
 
 
     const styleMap: Record<string, string> = {
@@ -389,7 +401,9 @@ export const chatWithAssignment = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { chatAboutAssignment } = await import("./assignments.server");
+    const { assertFeature } = await import("./plan-features.server");
     const { supabase, userId } = context;
+    await assertFeature(userId, "ai_chat");
 
     const { data: assignment, error: aErr } = await supabase
       .from("assignments")
@@ -444,7 +458,9 @@ export const analyzeAssignment = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
     const { analyseAssignmentText } = await import("./assignments.server");
+    const { assertFeature } = await import("./plan-features.server");
     const { supabase, userId } = context;
+    await assertFeature(userId, "grammar_checker");
 
     const { data: row, error } = await supabase
       .from("assignments")
@@ -519,8 +535,13 @@ const AnalyzeInput = z.object({
 export const analyzeUpload = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => AnalyzeInput.parse(data))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const { callLovableAI } = await import("./ai-gateway.server");
+    const { assertFeature } = await import("./plan-features.server");
+    // Analysing an uploaded image / PDF uses OCR/multimodal — gate it.
+    if (data.attachments.some((a) => a.mimeType.startsWith("image/") || a.mimeType === "application/pdf")) {
+      await assertFeature(context.userId, "ocr");
+    }
 
     const userContent: Exclude<Parameters<typeof callLovableAI>[0]["messages"][number]["content"], string> = [
       {

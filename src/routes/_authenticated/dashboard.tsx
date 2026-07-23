@@ -8,6 +8,8 @@ import {
   ClipboardList, BarChart3, Download, Award, Sparkles, ScanSearch, CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Lock } from "lucide-react";
+import { useFeature } from "@/lib/use-plan-features";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -90,6 +92,11 @@ function Dashboard() {
   const [selectedQ, setSelectedQ] = useState<Set<number>>(new Set());
   const fileRef = useRef<HTMLInputElement>(null);
   const sourceFileRef = useRef<HTMLInputElement>(null);
+
+  const ocrFeature = useFeature("ocr");
+  const humanizedFeature = useFeature("humanized_writing");
+  const citationFeature = useFeature("citation_generator");
+  const templatesFeature = useFeature("premium_templates");
 
   const stats = useQuery({
     queryKey: ["dashboard-stats"],
@@ -369,11 +376,13 @@ function Dashboard() {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => analyseMutation.mutate()}
-                disabled={analyseMutation.isPending}
+                onClick={() => ocrFeature.guard(() => analyseMutation.mutate())}
+                disabled={ocrFeature.allowed && analyseMutation.isPending}
                 className="border-white/15"
               >
-                {analyseMutation.isPending ? (
+                {!ocrFeature.allowed ? (
+                  <><Lock className="h-4 w-4 mr-1.5" /> Scan & detect (OCR — upgrade)</>
+                ) : analyseMutation.isPending ? (
                   <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Reading assignment...</>
                 ) : detection ? (
                   <><ScanSearch className="h-4 w-4 mr-1.5" /> Re-scan uploaded files</>
@@ -473,13 +482,18 @@ function Dashboard() {
           </div>
           <div>
             <Label>Output style</Label>
-            <Select value={style} onValueChange={(v) => setStyle(v as typeof style)}>
+            <Select value={style} onValueChange={(v) => {
+              if (v === "humanized" && !humanizedFeature.allowed) { humanizedFeature.requestUpgrade(); return; }
+              setStyle(v as typeof style);
+            }}>
               <SelectTrigger className="mt-1.5 bg-white/5 border-white/10"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="simple">Simple</SelectItem>
                 <SelectItem value="detailed">Detailed</SelectItem>
                 <SelectItem value="academic">Academic</SelectItem>
-                <SelectItem value="humanized">Humanized</SelectItem>
+                <SelectItem value="humanized" disabled={!humanizedFeature.allowed}>
+                  Humanized {!humanizedFeature.allowed && "🔒"}
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -533,29 +547,46 @@ function Dashboard() {
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <Label>Template</Label>
-                  <Select value={template} onValueChange={(v) => setTemplate(v as TemplateId)}>
+                  <Select value={template} onValueChange={(v) => {
+                    if (v !== "essay" && !templatesFeature.allowed) { templatesFeature.requestUpgrade(); return; }
+                    setTemplate(v as TemplateId);
+                  }}>
                     <SelectTrigger className="mt-1.5 bg-white/5 border-white/10"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {(Object.keys(TEMPLATES) as TemplateId[]).map((k) => (
-                        <SelectItem key={k} value={k}>{TEMPLATES[k].label}</SelectItem>
-                      ))}
+                      {(Object.keys(TEMPLATES) as TemplateId[]).map((k) => {
+                        const locked = k !== "essay" && !templatesFeature.allowed;
+                        return (
+                          <SelectItem key={k} value={k} disabled={locked}>
+                            {TEMPLATES[k].label}{locked ? " 🔒" : ""}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground mt-1">{TEMPLATES[template].description}</p>
                 </div>
                 <div>
                   <Label>Citation style</Label>
-                  <Select value={citation} onValueChange={(v) => setCitation(v as CitationStyleId)}>
+                  <Select value={citation} onValueChange={(v) => {
+                    if (v !== "none" && !citationFeature.allowed) { citationFeature.requestUpgrade(); return; }
+                    setCitation(v as CitationStyleId);
+                  }}>
                     <SelectTrigger className="mt-1.5 bg-white/5 border-white/10"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {(Object.keys(CITATION_STYLES) as CitationStyleId[]).map((k) => (
-                        <SelectItem key={k} value={k}>{CITATION_STYLES[k].label}</SelectItem>
-                      ))}
+                      {(Object.keys(CITATION_STYLES) as CitationStyleId[]).map((k) => {
+                        const locked = k !== "none" && !citationFeature.allowed;
+                        return (
+                          <SelectItem key={k} value={k} disabled={locked}>
+                            {CITATION_STYLES[k].label}{locked ? " 🔒" : ""}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground mt-1">{CITATION_STYLES[citation].description}</p>
                 </div>
               </div>
+
 
               {/* Sources */}
               <div className="space-y-3 rounded-xl border border-white/10 bg-black/20 p-4">
