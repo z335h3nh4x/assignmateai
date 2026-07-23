@@ -43,19 +43,32 @@ export const generateAssignment = createServerFn({ method: "POST" })
     const { fetchAllUrlTexts } = await import("./assignments.server");
     const { composeReasoning } = await import("./reasoning");
     const { humanizeChunk } = await import("./reasoning/humanize");
-    const { loadUserPlan, FeatureLockedError } = await import("./plan-features.server");
+    const {
+      assertFeature, assertUploadLimits, reserveAssignmentSlot, refundAssignmentSlot,
+    } = await import("./entitlements.server");
     const { supabase, userId } = context;
 
-    // Plan-based feature enforcement.
-    const plan = await loadUserPlan(userId);
-    const need = (k: string) => {
-      if (!plan.features[k]) throw new FeatureLockedError(k, plan.planName);
-    };
+    // ---- Centralized entitlement enforcement (feature access) ----
     const hasImageAttachments = (data.attachments ?? []).some((a) => a.mimeType.startsWith("image/"));
-    if (data.outputStyle === "humanized") need("humanized_writing");
-    if (hasImageAttachments) need("ocr");
-    if (data.citationStyle && data.citationStyle !== "none") need("citation_generator");
-    if (data.template && data.template !== "essay") need("premium_templates");
+    if (data.outputStyle === "humanized") await assertFeature(userId, "humanized_writing");
+    if (hasImageAttachments) await assertFeature(userId, "ocr");
+    if (data.citationStyle && data.citationStyle !== "none") await assertFeature(userId, "citation_generator");
+    if (data.template && data.template !== "essay") await assertFeature(userId, "premium_templates");
+
+    // ---- Upload size / page limits ----
+    const uploadItems = [
+      ...(data.attachments ?? []).map((a) => ({ name: a.name, mimeType: a.mimeType, dataUrl: a.dataUrl })),
+      ...data.sources.filter((s): s is Extract<typeof data.sources[number], { kind: "pdf" }> => s.kind === "pdf")
+        .map((s) => ({ name: s.name, mimeType: "application/pdf", dataUrl: s.dataUrl })),
+    ];
+    if (uploadItems.length > 0) await assertUploadLimits(userId, uploadItems);
+
+    // ---- Atomic quota reservation (daily / monthly / credits) ----
+    // Credit cost is a coarse pre-estimate; a hard cap prevents runaway usage.
+    const estimatedCredits = Math.max(50, Math.min(20000, Math.round(data.wordCount * 1.2)));
+    await reserveAssignmentSlot(userId, estimatedCredits);
+    let slotReserved = true;
+
 
 
     const styleMap: Record<string, string> = {
