@@ -148,6 +148,75 @@ export type Database = {
         }
         Relationships: []
       }
+      plans: {
+        Row: {
+          created_at: string
+          credits: number
+          currency: string
+          daily_limit: number
+          description: string | null
+          features: Json
+          id: string
+          is_active: boolean
+          is_archived: boolean
+          is_recommended: boolean
+          max_upload_mb: number
+          max_upload_pages: number
+          max_words: number
+          monthly_limit: number
+          monthly_price_cents: number
+          name: string
+          slug: string
+          sort_order: number
+          updated_at: string
+          yearly_price_cents: number
+        }
+        Insert: {
+          created_at?: string
+          credits?: number
+          currency?: string
+          daily_limit?: number
+          description?: string | null
+          features?: Json
+          id?: string
+          is_active?: boolean
+          is_archived?: boolean
+          is_recommended?: boolean
+          max_upload_mb?: number
+          max_upload_pages?: number
+          max_words?: number
+          monthly_limit?: number
+          monthly_price_cents?: number
+          name: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+          yearly_price_cents?: number
+        }
+        Update: {
+          created_at?: string
+          credits?: number
+          currency?: string
+          daily_limit?: number
+          description?: string | null
+          features?: Json
+          id?: string
+          is_active?: boolean
+          is_archived?: boolean
+          is_recommended?: boolean
+          max_upload_mb?: number
+          max_upload_pages?: number
+          max_words?: number
+          monthly_limit?: number
+          monthly_price_cents?: number
+          name?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+          yearly_price_cents?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -183,30 +252,59 @@ export type Database = {
       }
       subscriptions: {
         Row: {
+          billing_interval: string | null
+          cancelled_at: string | null
           created_at: string
           current_period_end: string | null
+          lifetime_spending_cents: number
+          payment_method: string | null
           plan: string
+          plan_id: string | null
+          renewal_at: string | null
+          started_at: string
           status: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          billing_interval?: string | null
+          cancelled_at?: string | null
           created_at?: string
           current_period_end?: string | null
+          lifetime_spending_cents?: number
+          payment_method?: string | null
           plan?: string
+          plan_id?: string | null
+          renewal_at?: string | null
+          started_at?: string
           status?: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          billing_interval?: string | null
+          cancelled_at?: string | null
           created_at?: string
           current_period_end?: string | null
+          lifetime_spending_cents?: number
+          payment_method?: string | null
           plan?: string
+          plan_id?: string | null
+          renewal_at?: string | null
+          started_at?: string
           status?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tokens: {
         Row: {
