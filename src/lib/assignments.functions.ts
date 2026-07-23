@@ -42,6 +42,7 @@ export const generateAssignment = createServerFn({ method: "POST" })
     const { templatePrompt, citationPrompt, summariseSourcesForPrompt } = await import("./templates");
     const { fetchAllUrlTexts } = await import("./assignments.server");
     const { composeReasoning } = await import("./reasoning");
+    const { humanizeChunk } = await import("./reasoning/humanize");
     const { supabase, userId } = context;
 
 
@@ -245,7 +246,12 @@ ${q.text}`;
 
       if (initialStatuses.length === 0) {
         // No detected questions -> single-shot path (legacy behaviour).
-        finalResult = await generateSingleShot();
+        const raw = await generateSingleShot();
+        finalResult = await humanizeChunk(raw, {
+          subjectDomain: data.subjectDomain,
+          wordCount: data.wordCount,
+          educationLevel: data.educationLevel,
+        });
       } else {
         const statuses = initialStatuses.map((s) => ({ ...s }));
         const perQuestionWords = Math.max(150, Math.floor(data.wordCount / statuses.length));
@@ -278,10 +284,20 @@ ${q.text}`;
         missingIds = statuses.filter((s) => s.status !== "completed").map((s) => s.id);
         finalStatus = missingIds.length === 0 ? "completed" : "partial";
 
-        const completedBlocks = statuses
-          .filter((s) => s.status === "completed" && s.answer)
-          .map((s) => s.answer!.trim());
-        finalResult = completedBlocks.join("\n\n---\n\n");
+        // Human Writing Engine — polish each completed answer individually so
+        // headings and question boundaries stay intact.
+        const humanized: string[] = [];
+        for (const s of statuses) {
+          if (s.status === "completed" && s.answer) {
+            const polished = await humanizeChunk(s.answer, {
+              subjectDomain: data.subjectDomain,
+              wordCount: perQuestionWords,
+              educationLevel: data.educationLevel,
+            });
+            humanized.push(polished.trim());
+          }
+        }
+        finalResult = humanized.join("\n\n---\n\n");
 
         if (missingIds.length > 0) {
           const notice = `\n\n---\n\n> ⚠️ **Unable to generate answers for ${missingIds.join(", ")} after ${MAX_ATTEMPTS} attempts.** Please regenerate or try again.`;
