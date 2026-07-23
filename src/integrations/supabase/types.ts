@@ -327,6 +327,36 @@ export type Database = {
         }
         Relationships: []
       }
+      usage_counters: {
+        Row: {
+          credits_used: number
+          day_key: string
+          day_used: number
+          month_key: string
+          month_used: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          credits_used?: number
+          day_key?: string
+          day_used?: number
+          month_key?: string
+          month_used?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          credits_used?: number
+          day_key?: string
+          day_used?: number
+          month_key?: string
+          month_used?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -353,12 +383,52 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _resolve_user_plan: {
+        Args: { _user_id: string }
+        Returns: {
+          created_at: string
+          credits: number
+          currency: string
+          daily_limit: number
+          description: string | null
+          features: Json
+          id: string
+          is_active: boolean
+          is_archived: boolean
+          is_recommended: boolean
+          max_upload_mb: number
+          max_upload_pages: number
+          max_words: number
+          monthly_limit: number
+          monthly_price_cents: number
+          name: string
+          slug: string
+          sort_order: number
+          updated_at: string
+          yearly_price_cents: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "plans"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      get_entitlements: { Args: { _user_id: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      refund_assignment_slot: {
+        Args: { _credits?: number; _user_id: string }
+        Returns: undefined
+      }
+      reserve_assignment_slot: {
+        Args: { _credits?: number; _user_id: string }
+        Returns: Json
       }
     }
     Enums: {
