@@ -74,6 +74,7 @@ function readFileAsText(file: File): Promise<string> {
 
 function Dashboard() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const generateFn = useServerFn(generateAssignment);
   const statsFn = useServerFn(getDashboardStats);
   const analyzeFn = useServerFn(analyzeUpload);
