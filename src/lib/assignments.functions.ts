@@ -63,7 +63,7 @@ export const generateAssignment = createServerFn({ method: "POST" })
     ];
     if (uploadItems.length > 0) await assertUploadLimits(userId, uploadItems);
 
-    // ---- Atomic quota reservation (daily / monthly / credits) ----
+    // ---- Atomic quota reservation (monthly / credits) ----
     // Credit cost is a coarse pre-estimate; a hard cap prevents runaway usage.
     const estimatedCredits = Math.max(50, Math.min(20000, Math.round(data.wordCount * 1.2)));
     await reserveAssignmentSlot(userId, estimatedCredits);
