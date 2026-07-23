@@ -21,7 +21,7 @@ export type Entitlements = {
   resets: { monthly: string };
 };
 
-export type QuotaReason = "daily_limit" | "monthly_limit" | "credits" | "upload_size" | "upload_pages";
+export type QuotaReason = "monthly_limit" | "credits" | "upload_size" | "upload_pages";
 
 export class EntitlementError extends Error {
   code: "FEATURE_LOCKED" | "QUOTA_EXCEEDED" | "UPLOAD_LIMIT";
