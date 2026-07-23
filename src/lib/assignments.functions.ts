@@ -371,6 +371,7 @@ ${q.text}`;
           .eq("user_id", userId);
       }
 
+      slotReserved = false; // committed — usage stays consumed
       return { id: created.id, result: finalResult, status: "completed" as const, missing: [] as string[] };
     } catch (err) {
       // If we already marked the row failed above (partial-recovery path), keep
@@ -379,9 +380,15 @@ ${q.text}`;
       if (row?.status !== "failed") {
         await supabase.from("assignments").update({ status: "failed" }).eq("id", created.id);
       }
+      // Refund the reserved quota slot so the user isn't charged for a failure.
+      if (slotReserved) {
+        try { await refundAssignmentSlot(userId, estimatedCredits); } catch (_) { /* best-effort */ }
+        slotReserved = false;
+      }
       throw err;
     }
   });
+
 
 // ---------- Autosave ----------
 export const saveAssignmentDraft = createServerFn({ method: "POST" })
