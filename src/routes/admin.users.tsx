@@ -310,12 +310,22 @@ function AdminUsers() {
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           {u.role === "admin" ? (
-                            <DropdownMenuItem onClick={() => run("Admin role removed", roleFn({ data: { userId: u.id, makeAdmin: false } }))}>
+                            <DropdownMenuItem
+                              disabled={u.id === meId || adminCount <= 1}
+                              title={
+                                u.id === meId
+                                  ? "You cannot remove your own admin role."
+                                  : adminCount <= 1
+                                    ? "At least one admin must remain."
+                                    : undefined
+                              }
+                              onClick={() => setDemoting(u)}
+                            >
                               <ShieldOff className="h-4 w-4 mr-2" /> Remove admin
                             </DropdownMenuItem>
                           ) : (
-                            <DropdownMenuItem onClick={() => run("Promoted to admin", roleFn({ data: { userId: u.id, makeAdmin: true } }))}>
-                              <Shield className="h-4 w-4 mr-2" /> Make admin
+                            <DropdownMenuItem onClick={() => setPromoting(u)}>
+                              <Shield className="h-4 w-4 mr-2" /> Promote to admin
                             </DropdownMenuItem>
                           )}
                           {u.banned_at ? (
@@ -323,7 +333,11 @@ function AdminUsers() {
                               <CircleCheck className="h-4 w-4 mr-2" /> Unban user
                             </DropdownMenuItem>
                           ) : (
-                            <DropdownMenuItem onClick={() => run("User banned", banFn({ data: { userId: u.id, banned: true } }))}>
+                            <DropdownMenuItem
+                              disabled={u.id === meId}
+                              title={u.id === meId ? "You cannot ban yourself." : undefined}
+                              onClick={() => run("User banned", banFn({ data: { userId: u.id, banned: true } }))}
+                            >
                               <Ban className="h-4 w-4 mr-2" /> Ban user
                             </DropdownMenuItem>
                           )}
@@ -331,9 +345,15 @@ function AdminUsers() {
                             <RefreshCcw className="h-4 w-4 mr-2" /> Reset credits
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleting(u)}>
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            disabled={u.id === meId}
+                            title={u.id === meId ? "You cannot delete your own account." : undefined}
+                            onClick={() => setDeleting(u)}
+                          >
                             <Trash2 className="h-4 w-4 mr-2" /> Delete user
                           </DropdownMenuItem>
+
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
