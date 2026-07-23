@@ -25,9 +25,15 @@ export type AdminUserRow = {
   last_active: string | null;
 };
 
+export type AdminUsersResponse = {
+  users: AdminUserRow[];
+  meId: string;
+  adminCount: number;
+};
+
 export const listAdminUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<AdminUserRow[]> => {
+  .handler(async ({ context }): Promise<AdminUsersResponse> => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -43,12 +49,13 @@ export const listAdminUsers = createServerFn({ method: "GET" })
     ]);
 
     const roleMap = new Map<string, "admin" | "moderator" | "user">();
+    let adminCount = 0;
     for (const r of rolesRes.data ?? []) {
       const prev = roleMap.get(r.user_id);
-      // Prefer admin > moderator > user
       if (r.role === "admin" || (r.role === "moderator" && prev !== "admin")) {
         roleMap.set(r.user_id, r.role);
       } else if (!prev) roleMap.set(r.user_id, r.role);
+      if (r.role === "admin") adminCount += 1;
     }
     const subMap = new Map<string, { plan: string; status: string }>();
     for (const s of subsRes.data ?? []) subMap.set(s.user_id, { plan: s.plan, status: s.status });
@@ -62,7 +69,7 @@ export const listAdminUsers = createServerFn({ method: "GET" })
       countMap.set(a.user_id, cur);
     }
 
-    return (profilesRes.data ?? []).map((p) => ({
+    const users = (profilesRes.data ?? []).map((p) => ({
       id: p.id,
       email: p.email,
       display_name: p.display_name,
@@ -77,7 +84,10 @@ export const listAdminUsers = createServerFn({ method: "GET" })
       assignments_count: countMap.get(p.id)?.count ?? 0,
       last_active: countMap.get(p.id)?.last ?? null,
     }));
+
+    return { users, meId: context.userId, adminCount };
   });
+
 
 export const updateUserProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -106,6 +116,12 @@ export const setUserAdminRole = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
     } else {
       if (data.userId === context.userId) throw new Error("You cannot remove your own admin role.");
+      const { count, error: countErr } = await supabaseAdmin
+        .from("user_roles")
+        .select("user_id", { count: "exact", head: true })
+        .eq("role", "admin");
+      if (countErr) throw new Error(countErr.message);
+      if ((count ?? 0) <= 1) throw new Error("At least one admin must remain.");
       const { error } = await supabaseAdmin
         .from("user_roles")
         .delete()
@@ -113,6 +129,7 @@ export const setUserAdminRole = createServerFn({ method: "POST" })
         .eq("role", "admin");
       if (error) throw new Error(error.message);
     }
+
     return { ok: true };
   });
 

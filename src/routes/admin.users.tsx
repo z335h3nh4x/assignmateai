@@ -68,11 +68,15 @@ function AdminUsers() {
   const creditsFn = useServerFn(resetUserCredits);
   const deleteFn = useServerFn(deleteUser);
 
-  const { data: users, isLoading, isFetching } = useQuery({
+  const { data, isLoading, isFetching } = useQuery({
     queryKey: ["admin", "users"],
     queryFn: () => fetchUsers(),
     refetchInterval: 60_000,
   });
+
+  const users = data?.users;
+  const meId = data?.meId ?? "";
+  const adminCount = data?.adminCount ?? 0;
 
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<"newest" | "oldest" | "active">("newest");
@@ -86,6 +90,8 @@ function AdminUsers() {
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [deleting, setDeleting] = useState<AdminUserRow | null>(null);
+  const [promoting, setPromoting] = useState<AdminUserRow | null>(null);
+  const [demoting, setDemoting] = useState<AdminUserRow | null>(null);
 
   const plans = useMemo(() => {
     const set = new Set<string>();
@@ -94,7 +100,7 @@ function AdminUsers() {
   }, [users]);
 
   const filtered = useMemo(() => {
-    let list = users ?? [];
+    let list: AdminUserRow[] = users ?? [];
     const q = search.trim().toLowerCase();
     if (q) {
       list = list.filter(
@@ -120,6 +126,7 @@ function AdminUsers() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const pageRows = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
 
   function invalidate() {
     qc.invalidateQueries({ queryKey: ["admin", "users"] });
@@ -165,6 +172,7 @@ function AdminUsers() {
         <div className="text-sm text-muted-foreground flex items-center gap-2">
           {isFetching && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
           {filtered.length} of {users?.length ?? 0} users
+
         </div>
       </div>
 
@@ -302,12 +310,22 @@ function AdminUsers() {
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           {u.role === "admin" ? (
-                            <DropdownMenuItem onClick={() => run("Admin role removed", roleFn({ data: { userId: u.id, makeAdmin: false } }))}>
+                            <DropdownMenuItem
+                              disabled={u.id === meId || adminCount <= 1}
+                              title={
+                                u.id === meId
+                                  ? "You cannot remove your own admin role."
+                                  : adminCount <= 1
+                                    ? "At least one admin must remain."
+                                    : undefined
+                              }
+                              onClick={() => setDemoting(u)}
+                            >
                               <ShieldOff className="h-4 w-4 mr-2" /> Remove admin
                             </DropdownMenuItem>
                           ) : (
-                            <DropdownMenuItem onClick={() => run("Promoted to admin", roleFn({ data: { userId: u.id, makeAdmin: true } }))}>
-                              <Shield className="h-4 w-4 mr-2" /> Make admin
+                            <DropdownMenuItem onClick={() => setPromoting(u)}>
+                              <Shield className="h-4 w-4 mr-2" /> Promote to admin
                             </DropdownMenuItem>
                           )}
                           {u.banned_at ? (
@@ -315,7 +333,11 @@ function AdminUsers() {
                               <CircleCheck className="h-4 w-4 mr-2" /> Unban user
                             </DropdownMenuItem>
                           ) : (
-                            <DropdownMenuItem onClick={() => run("User banned", banFn({ data: { userId: u.id, banned: true } }))}>
+                            <DropdownMenuItem
+                              disabled={u.id === meId}
+                              title={u.id === meId ? "You cannot ban yourself." : undefined}
+                              onClick={() => run("User banned", banFn({ data: { userId: u.id, banned: true } }))}
+                            >
                               <Ban className="h-4 w-4 mr-2" /> Ban user
                             </DropdownMenuItem>
                           )}
@@ -323,9 +345,15 @@ function AdminUsers() {
                             <RefreshCcw className="h-4 w-4 mr-2" /> Reset credits
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleting(u)}>
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            disabled={u.id === meId}
+                            title={u.id === meId ? "You cannot delete your own account." : undefined}
+                            onClick={() => setDeleting(u)}
+                          >
                             <Trash2 className="h-4 w-4 mr-2" /> Delete user
                           </DropdownMenuItem>
+
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -439,7 +467,60 @@ function AdminUsers() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Promote to admin confirmation */}
+      <AlertDialog open={!!promoting} onOpenChange={(o) => !o && setPromoting(null)}>
+        <AlertDialogContent className="glass border-white/10">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Promote to admin?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {promoting?.display_name || promoting?.email || "This user"} will gain full admin access, including this dashboard and all destructive actions.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="gradient-bg text-white"
+              onClick={async () => {
+                if (!promoting) return;
+                const target = promoting;
+                setPromoting(null);
+                await run("Promoted to admin", roleFn({ data: { userId: target.id, makeAdmin: true } }));
+              }}
+            >
+              Promote
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Remove admin confirmation */}
+      <AlertDialog open={!!demoting} onOpenChange={(o) => !o && setDemoting(null)}>
+        <AlertDialogContent className="glass border-white/10">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove admin role?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {demoting?.display_name || demoting?.email || "This user"} will lose access to the admin dashboard and revert to a regular user.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                if (!demoting) return;
+                const target = demoting;
+                setDemoting(null);
+                await run("Admin role removed", roleFn({ data: { userId: target.id, makeAdmin: false } }));
+              }}
+            >
+              Remove admin
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
+
   );
 }
 
