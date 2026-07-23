@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 import {
   Sparkles, Upload, FileText, GraduationCap, PenLine,
   ShieldCheck, Zap, BookOpen, ChevronRight,
@@ -7,6 +8,8 @@ import {
 import {
   Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from "@/components/ui/accordion";
+import { listPublicPlans, type PublicPlan } from "@/lib/plans.functions";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
