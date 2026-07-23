@@ -139,29 +139,37 @@ export function AssignmentAssistant({ assignmentId }: { assignmentId: string }) 
 
           <div className="flex gap-2">
             <Textarea rows={2} value={input} onChange={(e) => setInput(e.target.value)}
-              placeholder="e.g. Expand the introduction, or explain paragraph 3 more simply"
-              className="bg-white/5 border-white/10 resize-none"
+              placeholder={chatFeature.allowed ? "e.g. Expand the introduction, or explain paragraph 3 more simply" : "Upgrade to unlock AI Chat"}
+              disabled={!chatFeature.allowed}
+              className="bg-white/5 border-white/10 resize-none disabled:opacity-60"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
-                  if (input.trim()) send.mutate(input.trim());
+                  chatFeature.guard(() => { if (input.trim()) send.mutate(input.trim()); });
                 }
               }} />
-            <Button onClick={() => input.trim() && send.mutate(input.trim())}
-              disabled={!input.trim() || send.isPending}
+            <Button onClick={() => chatFeature.guard(() => input.trim() && send.mutate(input.trim()))}
+              disabled={chatFeature.allowed ? (!input.trim() || send.isPending) : false}
               className="gradient-bg text-white border-0">
-              <Send className="h-4 w-4" />
+              {chatFeature.allowed ? <Send className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
             </Button>
           </div>
         </TabsContent>
 
         <TabsContent value="grammar" className="mt-4 space-y-3">
+          {!grammarFeature.allowed && !grammarFeature.loading && (
+            <LockedNotice
+              label="Grammar Checker"
+              planName={grammarFeature.planName}
+              onUpgrade={grammarFeature.requestUpgrade}
+            />
+          )}
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
               {grammar ? "Suggestions from the last analysis. Nothing is changed automatically." : "Run an analysis to see grammar, spelling and tone suggestions."}
             </p>
-            <Button size="sm" onClick={() => analyse.mutate()} disabled={analyse.isPending} className="gradient-bg text-white border-0">
-              {analyse.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Sparkles className="h-4 w-4 mr-1.5" />}
+            <Button size="sm" onClick={() => grammarFeature.guard(() => analyse.mutate())} disabled={grammarFeature.allowed && analyse.isPending} className="gradient-bg text-white border-0">
+              {!grammarFeature.allowed ? <Lock className="h-4 w-4 mr-1.5" /> : analyse.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Sparkles className="h-4 w-4 mr-1.5" />}
               {grammar ? "Re-analyze" : "Analyze"}
             </Button>
           </div>
