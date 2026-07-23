@@ -104,12 +104,13 @@ export const upsertPlan = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const payload = { ...data };
+    const { subscriber_count: _sc, created_at: _ca, updated_at: _ua, ...payload } = data as any;
     if (payload.id) {
       const { error } = await supabaseAdmin.from("plans").update(payload).eq("id", payload.id);
       if (error) throw new Error(error.message);
-      return { ok: true, id: payload.id };
+      return { ok: true, id: payload.id as string };
     }
+    delete payload.id;
     const { data: inserted, error } = await supabaseAdmin
       .from("plans")
       .insert(payload)
@@ -118,6 +119,7 @@ export const upsertPlan = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true, id: (inserted as any).id as string };
   });
+
 
 export const duplicatePlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
