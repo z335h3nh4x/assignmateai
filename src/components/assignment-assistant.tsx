@@ -252,6 +252,20 @@ function SeverityBadge({ s }: { s: "low" | "medium" | "high" }) {
   return <Badge variant="outline" className={`text-[10px] uppercase ${cls}`}>{s}</Badge>;
 }
 
+function LockedNotice({ label, planName, onUpgrade }: { label: string; planName: string; onUpgrade: () => void }) {
+  return (
+    <div className="rounded-lg border border-white/10 bg-white/5 p-3 flex items-center gap-3">
+      <Lock className="h-4 w-4 text-primary shrink-0" />
+      <p className="text-xs text-muted-foreground flex-1">
+        <span className="text-foreground font-medium">{label}</span> isn't included in your {planName} plan.
+      </p>
+      <Button size="sm" variant="outline" className="border-primary/40 text-primary" onClick={onUpgrade}>
+        Upgrade
+      </Button>
+    </div>
+  );
+}
+
 // Autosave editor: swaps the read-only view for a Textarea and saves on debounce.
 export function AutosaveEditor(props: {
   value: string;
