@@ -196,10 +196,10 @@ export const listSubscribers = createServerFn({ method: "GET" })
       supabaseAdmin.from("tokens").select("user_id, balance, used"),
       supabaseAdmin.from("plans").select("id, slug, name"),
     ]);
-    const planById = new Map<string, { slug: string; name: string }>();
-    const planBySlug = new Map<string, { id: string; name: string }>();
+    const planById = new Map<string, { id: string; slug: string; name: string }>();
+    const planBySlug = new Map<string, { id: string; slug: string; name: string }>();
     for (const p of (plansRes.data ?? []) as any[]) {
-      planById.set(p.id, { slug: p.slug, name: p.name });
+      planById.set(p.id, { id: p.id, slug: p.slug, name: p.name });
       planBySlug.set(p.slug, { id: p.id, name: p.name });
     }
     const subMap = new Map<string, any>();
