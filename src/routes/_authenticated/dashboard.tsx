@@ -200,6 +200,8 @@ function Dashboard() {
     },
     onSuccess: (res) => {
       toast.success("Assignment ready!");
+      queryClient.invalidateQueries({ queryKey: ["my-entitlements"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       navigate({ to: "/assignment/$id", params: { id: res.id } });
     },
     onError: (e) => {
