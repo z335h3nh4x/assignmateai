@@ -295,10 +295,9 @@ function Dashboard() {
     || pastedAssignmentText.trim().length >= 20;
 
   const entitlements = useMyEntitlements();
-  const dailyOut = entitlements?.remaining.daily === 0;
   const monthlyOut = entitlements?.remaining.monthly === 0;
   const creditsOut = entitlements?.remaining.credits === 0;
-  const quotaBlocked = dailyOut || monthlyOut || creditsOut;
+  const quotaBlocked = monthlyOut || creditsOut;
 
   const canGenerate =
     !mutation.isPending && !quotaBlocked && (
