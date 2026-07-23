@@ -467,7 +467,60 @@ function AdminUsers() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Promote to admin confirmation */}
+      <AlertDialog open={!!promoting} onOpenChange={(o) => !o && setPromoting(null)}>
+        <AlertDialogContent className="glass border-white/10">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Promote to admin?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {promoting?.display_name || promoting?.email || "This user"} will gain full admin access, including this dashboard and all destructive actions.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="gradient-bg text-white"
+              onClick={async () => {
+                if (!promoting) return;
+                const target = promoting;
+                setPromoting(null);
+                await run("Promoted to admin", roleFn({ data: { userId: target.id, makeAdmin: true } }));
+              }}
+            >
+              Promote
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Remove admin confirmation */}
+      <AlertDialog open={!!demoting} onOpenChange={(o) => !o && setDemoting(null)}>
+        <AlertDialogContent className="glass border-white/10">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove admin role?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {demoting?.display_name || demoting?.email || "This user"} will lose access to the admin dashboard and revert to a regular user.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                if (!demoting) return;
+                const target = demoting;
+                setDemoting(null);
+                await run("Admin role removed", roleFn({ data: { userId: target.id, makeAdmin: false } }));
+              }}
+            >
+              Remove admin
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
+
   );
 }
 
