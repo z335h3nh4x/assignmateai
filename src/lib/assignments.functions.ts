@@ -579,11 +579,14 @@ export const analyzeUpload = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => AnalyzeInput.parse(data))
   .handler(async ({ data, context }) => {
     const { callLovableAI } = await import("./ai-gateway.server");
-    const { assertFeature } = await import("./plan-features.server");
+    const { assertFeature, assertUploadLimits } = await import("./entitlements.server");
     // Analysing an uploaded image / PDF uses OCR/multimodal — gate it.
     if (data.attachments.some((a) => a.mimeType.startsWith("image/") || a.mimeType === "application/pdf")) {
       await assertFeature(context.userId, "ocr");
     }
+    // Enforce plan upload limits even for the analyse step.
+    await assertUploadLimits(context.userId, data.attachments);
+
 
     const userContent: Exclude<Parameters<typeof callLovableAI>[0]["messages"][number]["content"], string> = [
       {
