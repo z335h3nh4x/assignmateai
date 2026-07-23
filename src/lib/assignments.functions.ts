@@ -253,8 +253,8 @@ ${q.text}`;
 
     try {
       let finalResult = "";
-      let finalStatus: "completed" | "partial" = "completed";
       let missingIds: string[] = [];
+      const statuses = initialStatuses.map((s) => ({ ...s }));
 
       if (initialStatuses.length === 0) {
         // No detected questions -> single-shot path (legacy behaviour).
@@ -265,14 +265,23 @@ ${q.text}`;
           educationLevel: data.educationLevel,
         });
       } else {
-        const statuses = initialStatuses.map((s) => ({ ...s }));
         const perQuestionWords = Math.max(150, Math.floor(data.wordCount / statuses.length));
-        const MAX_ATTEMPTS = 3; // 1 initial + 2 retries
+        // 1 initial attempt + 3 retries with exponential backoff.
+        const MAX_ATTEMPTS = 4;
+        const BACKOFF_MS = [0, 750, 2000, 5000];
+        const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
         for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
           const targets = statuses.filter((s) => s.status !== "completed");
           if (targets.length === 0) break;
+
+          const delay = BACKOFF_MS[attempt - 1] ?? 5000;
+          if (delay > 0) {
+            console.log(`[generateAssignment] backoff ${delay}ms before retry attempt ${attempt}`);
+            await sleep(delay);
+          }
           console.log(`[generateAssignment] attempt ${attempt}: generating`, targets.map((t) => t.id));
+
           for (const q of targets) {
             q.attempts += 1;
             try {
@@ -294,10 +303,11 @@ ${q.text}`;
         }
 
         missingIds = statuses.filter((s) => s.status !== "completed").map((s) => s.id);
-        finalStatus = missingIds.length === 0 ? "completed" : "partial";
 
         // Human Writing Engine — polish each completed answer individually so
-        // headings and question boundaries stay intact.
+        // headings and question boundaries stay intact. Successful answers are
+        // preserved even if some questions ultimately failed, so the user can
+        // recover them.
         const humanized: string[] = [];
         for (const s of statuses) {
           if (s.status === "completed" && s.answer) {
@@ -311,26 +321,33 @@ ${q.text}`;
         }
         finalResult = humanized.join("\n\n---\n\n");
 
-        if (missingIds.length > 0) {
-          const notice = `\n\n---\n\n> ⚠️ **Unable to generate answers for ${missingIds.join(", ")} after ${MAX_ATTEMPTS} attempts.** Please regenerate or try again.`;
-          finalResult = (finalResult || "").trim() + notice;
-        }
-
         console.log("[generateAssignment] validation:", {
           detected: statuses.length,
           completed: statuses.length - missingIds.length,
           missing: missingIds,
-          finalStatus,
         });
 
         await persistStatuses(statuses);
+
+        // Never silently return a partial assignment. Preserve successful
+        // answers on the row so the user can see what worked, mark the
+        // assignment failed, and surface a clear error.
+        if (missingIds.length > 0) {
+          await supabase
+            .from("assignments")
+            .update({ result: finalResult || null, status: "failed" })
+            .eq("id", created.id);
+          throw new Error(
+            `Could not generate ${missingIds.length} of ${statuses.length} question(s) (${missingIds.join(", ")}) after ${MAX_ATTEMPTS} attempts. The successful answers were saved to this assignment — please retry to complete the remaining question(s).`,
+          );
+        }
       }
 
       const tokens = Math.ceil(finalResult.length / 4);
 
       await supabase
         .from("assignments")
-        .update({ result: finalResult, status: finalStatus, tokens_used: tokens })
+        .update({ result: finalResult, status: "completed", tokens_used: tokens })
         .eq("id", created.id);
 
       const { data: tokRow } = await supabase.from("tokens").select("used, balance").eq("user_id", userId).maybeSingle();
@@ -341,9 +358,14 @@ ${q.text}`;
           .eq("user_id", userId);
       }
 
-      return { id: created.id, result: finalResult, status: finalStatus, missing: missingIds };
+      return { id: created.id, result: finalResult, status: "completed" as const, missing: [] as string[] };
     } catch (err) {
-      await supabase.from("assignments").update({ status: "failed" }).eq("id", created.id);
+      // If we already marked the row failed above (partial-recovery path), keep
+      // the preserved result. Otherwise wipe status to failed here.
+      const { data: row } = await supabase.from("assignments").select("status").eq("id", created.id).maybeSingle();
+      if (row?.status !== "failed") {
+        await supabase.from("assignments").update({ status: "failed" }).eq("id", created.id);
+      }
       throw err;
     }
   });
