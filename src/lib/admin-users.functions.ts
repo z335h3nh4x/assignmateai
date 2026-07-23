@@ -116,6 +116,12 @@ export const setUserAdminRole = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
     } else {
       if (data.userId === context.userId) throw new Error("You cannot remove your own admin role.");
+      const { count, error: countErr } = await supabaseAdmin
+        .from("user_roles")
+        .select("user_id", { count: "exact", head: true })
+        .eq("role", "admin");
+      if (countErr) throw new Error(countErr.message);
+      if ((count ?? 0) <= 1) throw new Error("At least one admin must remain.");
       const { error } = await supabaseAdmin
         .from("user_roles")
         .delete()
@@ -123,6 +129,7 @@ export const setUserAdminRole = createServerFn({ method: "POST" })
         .eq("role", "admin");
       if (error) throw new Error(error.message);
     }
+
     return { ok: true };
   });
 
