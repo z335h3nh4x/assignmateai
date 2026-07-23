@@ -160,13 +160,49 @@ function Features() {
   );
 }
 
-const PLANS = [
-  { name: "Free", price: "$0", tag: "Try it out", features: ["5 assignments / month", "Up to 1,000 words", "PDF & DOCX export"], cta: "Start free", featured: false },
-  { name: "Pro", price: "$12", tag: "Most popular", features: ["Unlimited assignments", "Up to 4,000 words", "All writing styles", "Priority speed"], cta: "Go Pro", featured: true },
-  { name: "Campus", price: "$29", tag: "Power users", features: ["Everything in Pro", "Team seats", "Advanced references", "Early features"], cta: "Contact us", featured: false },
-];
+function formatPrice(cents: number, currency: string) {
+  if (!cents) return "Free";
+  const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "";
+  const amount = cents % 100 === 0 ? String(cents / 100) : (cents / 100).toFixed(2);
+  return `${symbol}${amount}`;
+}
+
+function planFeatureLines(p: PublicPlan): string[] {
+  const lines: string[] = [];
+  lines.push(p.credits ? `${p.credits.toLocaleString()} credits` : "Pay-as-you-go credits");
+  if (p.max_words) lines.push(`Up to ${p.max_words.toLocaleString()} words / assignment`);
+  if (p.monthly_limit) lines.push(`${p.monthly_limit.toLocaleString()} assignments / month`);
+  else if (p.daily_limit) lines.push(`${p.daily_limit} assignments / day`);
+  if (p.max_upload_mb) lines.push(`${p.max_upload_mb} MB uploads · ${p.max_upload_pages || "∞"} pages`);
+  const featureLabels: Record<string, string> = {
+    humanized_writing: "Humanized writing engine",
+    ocr: "OCR for images & scans",
+    ai_chat: "AI assignment chat",
+    pdf_export: "Academic PDF export",
+    docx_export: "DOCX export",
+    notebook_export: "Notebook-style PDF export",
+    grammar_check: "Grammar & quality score",
+    priority_speed: "Priority generation speed",
+    references: "Auto references & citations",
+    all_styles: "All writing styles",
+    team_seats: "Team seats",
+    early_features: "Early access to new features",
+    priority_support: "Priority support",
+  };
+  for (const [key, on] of Object.entries(p.features || {})) {
+    if (on && featureLabels[key]) lines.push(featureLabels[key]);
+  }
+  return lines;
+}
 
 function Pricing() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["public-plans"],
+    queryFn: () => listPublicPlans(),
+    staleTime: 60_000,
+  });
+  const plans = (data ?? []).filter((p) => p.sort_order >= 0);
+
   return (
     <section id="pricing" className="py-24 px-4">
       <div className="mx-auto max-w-6xl">
@@ -176,48 +212,62 @@ function Pricing() {
           </h2>
           <p className="mt-4 text-muted-foreground">Cancel anytime. No credit card required to start.</p>
         </div>
+        {isLoading && (
+          <div className="text-center text-sm text-muted-foreground">Loading plans…</div>
+        )}
+        {!isLoading && plans.length === 0 && (
+          <div className="text-center text-sm text-muted-foreground">Plans coming soon.</div>
+        )}
         <div className="grid md:grid-cols-3 gap-5">
-          {PLANS.map((p, i) => (
-            <div
-              key={p.name}
-              className={`glass rounded-2xl p-8 relative ${p.featured ? "ring-1 ring-primary glow" : ""}`}
-            >
-              {p.featured && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-xs px-3 py-1 rounded-full gradient-bg text-white font-medium">
-                  {p.tag}
-                </span>
-              )}
-              <p className="text-sm text-muted-foreground">{p.name}</p>
-              <div className="mt-2 flex items-baseline gap-1">
-                <span className="text-5xl font-bold font-display">{p.price}</span>
-                <span className="text-sm text-muted-foreground">/mo</span>
-              </div>
-              <ul className="mt-6 space-y-3 text-sm">
-                {p.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2">
-                    <div className="h-5 w-5 rounded-full gradient-bg grid place-items-center mt-0.5 flex-shrink-0">
-                      <ChevronRight className="h-3 w-3 text-white" />
-                    </div>
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                to="/auth"
-               
-                className={`mt-8 block text-center rounded-xl px-4 py-3 font-medium transition ${
-                  p.featured ? "gradient-bg text-white glow" : "glass hover:bg-white/10"
-                }`}
+          {plans.map((p) => {
+            const features = planFeatureLines(p);
+            const price = formatPrice(p.monthly_price_cents, p.currency);
+            const isFree = p.monthly_price_cents === 0;
+            return (
+              <div
+                key={p.id}
+                className={`glass rounded-2xl p-8 relative ${p.is_recommended ? "ring-1 ring-primary glow" : ""}`}
               >
-                {p.cta}
-              </Link>
-            </div>
-          ))}
+                {p.is_recommended && (
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-xs px-3 py-1 rounded-full gradient-bg text-white font-medium">
+                    Most popular
+                  </span>
+                )}
+                <p className="text-sm text-muted-foreground">{p.name}</p>
+                <div className="mt-2 flex items-baseline gap-1">
+                  <span className="text-5xl font-bold font-display">{price}</span>
+                  {!isFree && <span className="text-sm text-muted-foreground">/mo</span>}
+                </div>
+                {p.description && (
+                  <p className="mt-2 text-sm text-muted-foreground">{p.description}</p>
+                )}
+                <ul className="mt-6 space-y-3 text-sm">
+                  {features.map((f) => (
+                    <li key={f} className="flex items-start gap-2">
+                      <div className="h-5 w-5 rounded-full gradient-bg grid place-items-center mt-0.5 flex-shrink-0">
+                        <ChevronRight className="h-3 w-3 text-white" />
+                      </div>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  to="/auth"
+                  className={`mt-8 block text-center rounded-xl px-4 py-3 font-medium transition ${
+                    p.is_recommended ? "gradient-bg text-white glow" : "glass hover:bg-white/10"
+                  }`}
+                >
+                  {isFree ? "Start free" : `Get ${p.name}`}
+                </Link>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>
   );
 }
+
 
 const FAQS = [
   { q: "Is AssignAI detected as AI?", a: "We use a dedicated humanized style that produces natural, varied prose — most detectors flag it as human-written. Always review before submitting." },
