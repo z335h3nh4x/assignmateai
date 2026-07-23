@@ -153,7 +153,6 @@ export type Database = {
           created_at: string
           credits: number
           currency: string
-          daily_limit: number
           description: string | null
           features: Json
           id: string
@@ -175,7 +174,6 @@ export type Database = {
           created_at?: string
           credits?: number
           currency?: string
-          daily_limit?: number
           description?: string | null
           features?: Json
           id?: string
@@ -197,7 +195,6 @@ export type Database = {
           created_at?: string
           credits?: number
           currency?: string
-          daily_limit?: number
           description?: string | null
           features?: Json
           id?: string
@@ -330,8 +327,6 @@ export type Database = {
       usage_counters: {
         Row: {
           credits_used: number
-          day_key: string
-          day_used: number
           month_key: string
           month_used: number
           updated_at: string
@@ -339,8 +334,6 @@ export type Database = {
         }
         Insert: {
           credits_used?: number
-          day_key?: string
-          day_used?: number
           month_key?: string
           month_used?: number
           updated_at?: string
@@ -348,8 +341,6 @@ export type Database = {
         }
         Update: {
           credits_used?: number
-          day_key?: string
-          day_used?: number
           month_key?: string
           month_used?: number
           updated_at?: string
@@ -389,7 +380,6 @@ export type Database = {
           created_at: string
           credits: number
           currency: string
-          daily_limit: number
           description: string | null
           features: Json
           id: string
