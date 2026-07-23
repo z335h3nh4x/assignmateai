@@ -172,6 +172,7 @@ function AdminUsers() {
         <div className="text-sm text-muted-foreground flex items-center gap-2">
           {isFetching && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
           {filtered.length} of {users?.length ?? 0} users
+
         </div>
       </div>
 
