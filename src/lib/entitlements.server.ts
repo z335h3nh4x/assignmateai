@@ -11,15 +11,14 @@ export type Entitlements = {
     slug: string;
     name: string;
     features: Record<string, boolean>;
-    daily_limit: number;
     monthly_limit: number;
     credits: number;
     max_upload_mb: number;
     max_upload_pages: number;
   };
-  usage: { day_used: number; month_used: number; credits_used: number };
-  remaining: { daily: number | null; monthly: number | null; credits: number | null };
-  resets: { daily: string; monthly: string };
+  usage: { month_used: number; credits_used: number };
+  remaining: { monthly: number | null; credits: number | null };
+  resets: { monthly: string };
 };
 
 export type QuotaReason = "daily_limit" | "monthly_limit" | "credits" | "upload_size" | "upload_pages";
