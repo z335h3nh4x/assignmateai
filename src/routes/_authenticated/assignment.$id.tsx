@@ -263,6 +263,11 @@ function AssignmentView() {
     showPageNumbers: true,
   });
 
+  const pdfFeature = useFeature("pdf_export");
+  const notebookFeature = useFeature("notebook_pdf");
+  const docxFeature = useFeature("docx_export");
+
+
   const { data: row, isLoading } = useQuery({
     queryKey: ["assignment", id],
     queryFn: async () => {
@@ -514,9 +519,21 @@ function AssignmentView() {
 
           <Card className="glass border-white/10 p-3 flex flex-wrap gap-2">
             <Button size="sm" variant="ghost" onClick={copy}><Copy className="h-4 w-4 mr-1.5" />Copy</Button>
-            <Button size="sm" variant="ghost" disabled={!canExport} onClick={() => guardExport(() => setPdfOpen(true))}><Download className="h-4 w-4 mr-1.5" />Academic PDF</Button>
-            <Button size="sm" variant="ghost" disabled={!canExport} onClick={() => guardExport(() => setNotebookOpen(true))}><BookOpen className="h-4 w-4 mr-1.5" />Notebook PDF</Button>
-            <Button size="sm" variant="ghost" disabled={!canExport} onClick={() => guardExport(downloadDocx)}><FileText className="h-4 w-4 mr-1.5" />DOCX</Button>
+            <Button size="sm" variant="ghost" disabled={pdfFeature.allowed && !canExport}
+              onClick={() => pdfFeature.guard(() => guardExport(() => setPdfOpen(true)))}>
+              {pdfFeature.allowed ? <Download className="h-4 w-4 mr-1.5" /> : <Lock className="h-4 w-4 mr-1.5" />}
+              Academic PDF
+            </Button>
+            <Button size="sm" variant="ghost" disabled={notebookFeature.allowed && !canExport}
+              onClick={() => notebookFeature.guard(() => guardExport(() => setNotebookOpen(true)))}>
+              {notebookFeature.allowed ? <BookOpen className="h-4 w-4 mr-1.5" /> : <Lock className="h-4 w-4 mr-1.5" />}
+              Notebook PDF
+            </Button>
+            <Button size="sm" variant="ghost" disabled={docxFeature.allowed && !canExport}
+              onClick={() => docxFeature.guard(() => guardExport(downloadDocx))}>
+              {docxFeature.allowed ? <FileText className="h-4 w-4 mr-1.5" /> : <Lock className="h-4 w-4 mr-1.5" />}
+              DOCX
+            </Button>
 
             <Button size="sm" variant="ghost" onClick={() => setEditing((e) => !e)}>
               {editing ? <><Eye className="h-4 w-4 mr-1.5" />View</> : <><Pencil className="h-4 w-4 mr-1.5" />Edit</>}
