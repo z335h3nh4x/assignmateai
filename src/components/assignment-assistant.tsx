@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { MessageSquare, ClipboardCheck, Award, Loader2, Send, Sparkles } from "lucide-react";
+import { MessageSquare, ClipboardCheck, Award, Loader2, Send, Sparkles, Lock } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { analyzeAssignment, chatWithAssignment } from "@/lib/assignments.functions";
+import { useFeature } from "@/lib/use-plan-features";
 
 type QualityScores = {
   structure: number;
@@ -32,6 +33,8 @@ export function AssignmentAssistant({ assignmentId }: { assignmentId: string }) 
   const qc = useQueryClient();
   const chatFn = useServerFn(chatWithAssignment);
   const analyseFn = useServerFn(analyzeAssignment);
+  const chatFeature = useFeature("ai_chat");
+  const grammarFeature = useFeature("grammar_checker");
 
   const messages = useQuery({
     queryKey: ["assignment-messages", assignmentId],
@@ -91,12 +94,25 @@ export function AssignmentAssistant({ assignmentId }: { assignmentId: string }) 
     <Card className="glass border-white/10 p-4">
       <Tabs defaultValue="chat" className="w-full">
         <TabsList className="bg-white/5 border border-white/10">
-          <TabsTrigger value="chat"><MessageSquare className="h-4 w-4 mr-1.5" />Chat</TabsTrigger>
-          <TabsTrigger value="grammar"><ClipboardCheck className="h-4 w-4 mr-1.5" />Grammar</TabsTrigger>
+          <TabsTrigger value="chat">
+            <MessageSquare className="h-4 w-4 mr-1.5" />Chat
+            {!chatFeature.allowed && !chatFeature.loading && <Lock className="h-3 w-3 ml-1.5 opacity-70" />}
+          </TabsTrigger>
+          <TabsTrigger value="grammar">
+            <ClipboardCheck className="h-4 w-4 mr-1.5" />Grammar
+            {!grammarFeature.allowed && !grammarFeature.loading && <Lock className="h-3 w-3 ml-1.5 opacity-70" />}
+          </TabsTrigger>
           <TabsTrigger value="quality"><Award className="h-4 w-4 mr-1.5" />Quality</TabsTrigger>
         </TabsList>
 
         <TabsContent value="chat" className="mt-4 space-y-3">
+          {!chatFeature.allowed && !chatFeature.loading && (
+            <LockedNotice
+              label="AI Assignment Chat"
+              planName={chatFeature.planName}
+              onUpgrade={chatFeature.requestUpgrade}
+            />
+          )}
           <div ref={listRef} className="max-h-80 overflow-y-auto space-y-3 pr-1">
             {(messages.data ?? []).length === 0 && (
               <p className="text-sm text-muted-foreground">
