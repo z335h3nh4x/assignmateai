@@ -70,7 +70,7 @@ const EMPTY_PLAN: PlanInput = {
   credits: 0,
   daily_limit: 0,
   monthly_limit: 0,
-  max_words: 0,
+  
   max_upload_mb: 0,
   max_upload_pages: 0,
   features: Object.fromEntries(FEATURE_KEYS.map((f) => [f.key, false])),
@@ -299,7 +299,6 @@ function PlansTab({ plans, loading, refresh }: { plans: AdminPlan[]; loading: bo
 
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <Metric label="Credits" value={p.credits.toLocaleString()} />
-                <Metric label="Max words" value={p.max_words.toLocaleString()} />
                 <Metric label="Daily limit" value={String(p.daily_limit)} />
                 <Metric label="Monthly limit" value={String(p.monthly_limit)} />
                 <Metric label="Upload MB" value={String(p.max_upload_mb)} />
@@ -415,7 +414,7 @@ function PlanEditor({
             <Input type="number" value={draft.yearly_price_cents} onChange={(e) => setField("yearly_price_cents", Number(e.target.value))} />
           </Field>
           <Field label="Credits"><Input type="number" value={draft.credits} onChange={(e) => setField("credits", Number(e.target.value))} /></Field>
-          <Field label="Max words"><Input type="number" value={draft.max_words} onChange={(e) => setField("max_words", Number(e.target.value))} /></Field>
+          
           <Field label="Daily assignment limit"><Input type="number" value={draft.daily_limit} onChange={(e) => setField("daily_limit", Number(e.target.value))} /></Field>
           <Field label="Monthly assignment limit"><Input type="number" value={draft.monthly_limit} onChange={(e) => setField("monthly_limit", Number(e.target.value))} /></Field>
           <Field label="Max upload size (MB)"><Input type="number" value={draft.max_upload_mb} onChange={(e) => setField("max_upload_mb", Number(e.target.value))} /></Field>
