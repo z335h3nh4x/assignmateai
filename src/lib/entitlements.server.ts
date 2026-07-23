@@ -138,13 +138,11 @@ type ReserveOk = {
   allowed: true;
   plan_name: string;
   plan_slug: string;
-  day_used: number;
-  day_limit: number;
   month_used: number;
   month_limit: number;
   credits_used: number;
   credits_limit: number;
-  resets: { daily: string; monthly: string };
+  resets: { monthly: string };
 };
 type ReserveDeny = {
   allowed: false;
