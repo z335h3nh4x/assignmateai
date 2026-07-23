@@ -42,6 +42,7 @@ export const generateAssignment = createServerFn({ method: "POST" })
     const { templatePrompt, citationPrompt, summariseSourcesForPrompt } = await import("./templates");
     const { fetchAllUrlTexts } = await import("./assignments.server");
     const { composeReasoning } = await import("./reasoning");
+    const { humanizeChunk } = await import("./reasoning/humanize");
     const { supabase, userId } = context;
 
 
