@@ -68,11 +68,15 @@ function AdminUsers() {
   const creditsFn = useServerFn(resetUserCredits);
   const deleteFn = useServerFn(deleteUser);
 
-  const { data: users, isLoading, isFetching } = useQuery({
+  const { data, isLoading, isFetching } = useQuery({
     queryKey: ["admin", "users"],
     queryFn: () => fetchUsers(),
     refetchInterval: 60_000,
   });
+
+  const users = data?.users;
+  const meId = data?.meId ?? "";
+  const adminCount = data?.adminCount ?? 0;
 
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<"newest" | "oldest" | "active">("newest");
@@ -86,6 +90,8 @@ function AdminUsers() {
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [deleting, setDeleting] = useState<AdminUserRow | null>(null);
+  const [promoting, setPromoting] = useState<AdminUserRow | null>(null);
+  const [demoting, setDemoting] = useState<AdminUserRow | null>(null);
 
   const plans = useMemo(() => {
     const set = new Set<string>();
@@ -94,7 +100,7 @@ function AdminUsers() {
   }, [users]);
 
   const filtered = useMemo(() => {
-    let list = users ?? [];
+    let list: AdminUserRow[] = users ?? [];
     const q = search.trim().toLowerCase();
     if (q) {
       list = list.filter(
@@ -120,6 +126,7 @@ function AdminUsers() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const pageRows = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
 
   function invalidate() {
     qc.invalidateQueries({ queryKey: ["admin", "users"] });
