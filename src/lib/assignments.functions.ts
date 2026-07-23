@@ -443,7 +443,7 @@ export const chatWithAssignment = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { chatAboutAssignment } = await import("./assignments.server");
-    const { assertFeature } = await import("./plan-features.server");
+    const { assertFeature } = await import("./entitlements.server");
     const { supabase, userId } = context;
     await assertFeature(userId, "ai_chat");
 
@@ -500,7 +500,7 @@ export const analyzeAssignment = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
     const { analyseAssignmentText } = await import("./assignments.server");
-    const { assertFeature } = await import("./plan-features.server");
+    const { assertFeature } = await import("./entitlements.server");
     const { supabase, userId } = context;
     await assertFeature(userId, "grammar_checker");
 
