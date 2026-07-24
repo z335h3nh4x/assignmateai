@@ -108,6 +108,9 @@ function AdminSettingsPage() {
           <TabsTrigger value="announcements" className="gap-1.5">
             <Megaphone className="h-3.5 w-3.5" /> Announcements
           </TabsTrigger>
+          <TabsTrigger value="monetization" className="gap-1.5">
+            <MegaphoneIcon className="h-3.5 w-3.5" /> Monetization
+          </TabsTrigger>
           <TabsTrigger value="audit" className="gap-1.5">
             <History className="h-3.5 w-3.5" /> Audit Logs
           </TabsTrigger>
