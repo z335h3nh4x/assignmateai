@@ -1058,14 +1058,15 @@ function SettingsPanelShell({
 
 const GENERAL_FIELDS: FieldDef[] = [
   { key: "platform_name", label: "Platform name", type: "text", default: "Assignmate", placeholder: "Assignmate" },
-  { key: "tagline", label: "Tagline", type: "text", default: "AI-powered assignment workspace for students.", placeholder: "One-line description" },
+  { key: "tagline", label: "Platform tagline", type: "text", default: "AI-powered assignment workspace for students.", placeholder: "One-line description" },
   { key: "support_email", label: "Support email", type: "email", placeholder: "support@assignmate.app" },
   { key: "contact_email", label: "Contact email", type: "email", placeholder: "hello@assignmate.app" },
-  { key: "footer_text", label: "Footer text", type: "text", placeholder: "© 2026 Assignmate. All rights reserved." },
-  { key: "default_locale", label: "Default locale", type: "text", default: "en-US", placeholder: "en-US" },
-  { key: "timezone", label: "Default timezone", type: "text", default: "UTC", placeholder: "UTC" },
+  { key: "website_url", label: "Website URL", type: "url", placeholder: "https://assignmate.app" },
+  { key: "copyright_text", label: "Copyright text", type: "text", default: "© 2026 Assignmate. All rights reserved.", placeholder: "© 2026 Assignmate. All rights reserved." },
+  { key: "footer_text", label: "Footer tagline", type: "text", placeholder: "Built for students who ship." },
   { key: "maintenance_mode", label: "Maintenance mode", type: "switch", description: "When on, non-admins see a maintenance notice on the app.", default: false },
 ];
+
 
 function GeneralSettingsPanel() {
   const s = useSettingsDraft("general", GENERAL_FIELDS);
