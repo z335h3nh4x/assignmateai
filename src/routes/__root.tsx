@@ -178,6 +178,12 @@ function MaintenanceGate({ children }: { children: ReactNode }) {
 }
 
 
+function setMeta(selector: string, attr: "content" | "href", value: string, create: () => HTMLElement) {
+  let el = document.head.querySelector<HTMLElement>(selector);
+  if (!el) { el = create(); document.head.appendChild(el); }
+  el.setAttribute(attr, value);
+}
+
 function SiteHeadSync() {
   const site = useSiteSettings();
 
@@ -186,16 +192,87 @@ function SiteHeadSync() {
     const name = site.general.platform_name || "Assignmate";
     const tagline = site.general.tagline || "AI-powered assignment workspace for students.";
     document.title = `${name} — ${tagline}`;
+
+    // Favicon
     if (site.branding.favicon_url) {
       let link = document.querySelector<HTMLLinkElement>('link[rel~="icon"]');
-      if (!link) {
-        link = document.createElement("link");
-        link.rel = "icon";
-        document.head.appendChild(link);
-      }
+      if (!link) { link = document.createElement("link"); link.rel = "icon"; document.head.appendChild(link); }
       link.href = site.branding.favicon_url;
+    }
+
+    // Open Graph / Twitter image
+    if (site.branding.og_image_url) {
+      setMeta('meta[property="og:image"]', "content", site.branding.og_image_url, () => {
+        const m = document.createElement("meta"); m.setAttribute("property", "og:image"); return m;
+      });
+      setMeta('meta[name="twitter:image"]', "content", site.branding.og_image_url, () => {
+        const m = document.createElement("meta"); m.setAttribute("name", "twitter:image"); return m;
+      });
+    }
+
+    // Description / OG title from tagline+name
+    setMeta('meta[name="description"]', "content", tagline, () => {
+      const m = document.createElement("meta"); m.setAttribute("name", "description"); return m;
+    });
+    setMeta('meta[property="og:title"]', "content", `${name} — ${tagline}`, () => {
+      const m = document.createElement("meta"); m.setAttribute("property", "og:title"); return m;
+    });
+    setMeta('meta[property="og:description"]', "content", tagline, () => {
+      const m = document.createElement("meta"); m.setAttribute("property", "og:description"); return m;
+    });
+
+    // Brand colors — override CSS variables that Tailwind theme maps to.
+    const root = document.documentElement;
+    const primary = site.branding.primary_color?.trim();
+    const accent = site.branding.accent_color?.trim();
+    if (primary) {
+      root.style.setProperty("--primary", primary);
+      root.style.setProperty("--ring", primary);
+      root.style.setProperty("--brand-purple", primary);
+      root.style.setProperty(
+        "--gradient-primary",
+        `linear-gradient(135deg, ${primary}, ${accent || primary})`,
+      );
+    } else {
+      root.style.removeProperty("--primary");
+      root.style.removeProperty("--ring");
+      root.style.removeProperty("--brand-purple");
+      root.style.removeProperty("--gradient-primary");
+    }
+    if (accent) {
+      root.style.setProperty("--accent", accent);
+      root.style.setProperty("--brand-blue", accent);
+    } else {
+      root.style.removeProperty("--accent");
+      root.style.removeProperty("--brand-blue");
+    }
+
+    // Brand font — inject a Google Fonts stylesheet and override --font-sans/--font-display.
+    const font = site.branding.brand_font?.trim();
+    const FONT_LINK_ID = "brand-font-link";
+    let fontLink = document.getElementById(FONT_LINK_ID) as HTMLLinkElement | null;
+    if (font && font.toLowerCase() !== "inter") {
+      const family = font.replace(/\s+/g, "+");
+      const href = `https://fonts.googleapis.com/css2?family=${family}:wght@400;500;600;700&display=swap`;
+      if (!fontLink) {
+        fontLink = document.createElement("link");
+        fontLink.id = FONT_LINK_ID;
+        fontLink.rel = "stylesheet";
+        document.head.appendChild(fontLink);
+      }
+      if (fontLink.href !== href) fontLink.href = href;
+      const stack = `"${font}", "Inter", ui-sans-serif, system-ui, sans-serif`;
+      root.style.setProperty("--font-sans", stack);
+      root.style.setProperty("--font-display", stack);
+      document.body.style.fontFamily = stack;
+    } else {
+      fontLink?.remove();
+      root.style.removeProperty("--font-sans");
+      root.style.removeProperty("--font-display");
+      document.body.style.fontFamily = "";
     }
   }, [site]);
   return null;
 }
+
 
