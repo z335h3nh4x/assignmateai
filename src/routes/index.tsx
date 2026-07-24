@@ -4,13 +4,23 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Sparkles, Upload, GraduationCap, PenLine,
   ShieldCheck, Zap, BookOpen, ChevronRight, Quote,
+  Rocket, Star, Wand2, Brain, FileText, MessageSquare,
+  CheckCircle2, Layers, Bot, Cpu, Globe, Lock, Heart,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import {
   Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from "@/components/ui/accordion";
 import { listPublicPlans, type PublicPlan } from "@/lib/plans.functions";
 import { getSiteSettings, type SiteSettings } from "@/lib/site-settings.functions";
 import { BrandLogo } from "@/components/brand-logo";
+
+const FEATURE_ICON_MAP: Record<string, LucideIcon> = {
+  Sparkles, Upload, GraduationCap, PenLine, BookOpen, ShieldCheck, Zap,
+  Rocket, Star, Wand2, Brain, FileText, MessageSquare, CheckCircle2,
+  Layers, Bot, Cpu, Globe, Lock, Heart,
+};
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
