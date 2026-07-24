@@ -893,9 +893,22 @@ function useSettingsDraft(prefix: string, fields: FieldDef[]) {
   async function save() {
     setSaving(true);
     try {
-      const entries = fields
-        .filter((f) => JSON.stringify(draft[f.key]) !== JSON.stringify(initial[f.key]))
-        .map((f) => ({ key: `${prefix}.${f.key}`, value: draft[f.key] }));
+      const changed = fields.filter(
+        (f) => JSON.stringify(draft[f.key]) !== JSON.stringify(initial[f.key]),
+      );
+      for (const f of changed) {
+        if (f.type !== "url") continue;
+        const raw = typeof draft[f.key] === "string" ? draft[f.key].trim() : "";
+        if (!raw) continue;
+        if (!isValidLinkUrl(raw)) {
+          toast.error(`${f.label}: enter a valid URL, path (/path), anchor (#id), or mailto: link`);
+          return;
+        }
+      }
+      const entries = changed.map((f) => ({
+        key: `${prefix}.${f.key}`,
+        value: typeof draft[f.key] === "string" ? draft[f.key].trim() : draft[f.key],
+      }));
       if (entries.length === 0) {
         toast.info("Nothing to save");
         return;
@@ -910,6 +923,18 @@ function useSettingsDraft(prefix: string, fields: FieldDef[]) {
       setSaving(false);
     }
   }
+
+function isValidLinkUrl(v: string): boolean {
+  const s = v.trim();
+  if (!s) return false;
+  if (s.startsWith("/") || s.startsWith("#") || s.startsWith("mailto:") || s.startsWith("tel:")) return true;
+  try {
+    const u = new URL(s);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
   function reset() {
     setDraft(initial);
   }
