@@ -903,6 +903,7 @@ function useSettingsDraft(prefix: string, fields: FieldDef[]) {
       await upsertPlatformSettings({ data: { entries } });
       toast.success(`Saved ${entries.length} setting${entries.length === 1 ? "" : "s"}`);
       qc.invalidateQueries({ queryKey: ["admin", "platform-settings"] });
+      qc.invalidateQueries({ queryKey: ["site-settings"] });
     } catch (e: any) {
       toast.error(e?.message ?? "Save failed");
     } finally {
