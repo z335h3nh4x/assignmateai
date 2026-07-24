@@ -193,12 +193,28 @@ function SiteHeadSync() {
     const tagline = site.general.tagline || "AI-powered assignment workspace for students.";
     document.title = `${name} — ${tagline}`;
 
-    // Favicon
-    if (site.branding.favicon_url) {
-      let link = document.querySelector<HTMLLinkElement>('link[rel~="icon"]');
-      if (!link) { link = document.createElement("link"); link.rel = "icon"; document.head.appendChild(link); }
-      link.href = site.branding.favicon_url;
-    }
+    // Favicon — cache-busted so browsers pick up new uploads immediately.
+    // Falls back to /favicon.ico when nothing (or an empty value) is set.
+    const rawFavicon = site.branding.favicon_url?.trim();
+    const favicon = rawFavicon || "/favicon.ico";
+    const bust = `${favicon}${favicon.includes("?") ? "&" : "?"}v=${encodeURIComponent(favicon).length}`;
+    document.head
+      .querySelectorAll('link[rel="icon"], link[rel="shortcut icon"], link[rel="apple-touch-icon"]')
+      .forEach((n) => n.parentNode?.removeChild(n));
+    const link = document.createElement("link");
+    link.rel = "icon";
+    link.href = bust;
+    // Type hint helps some browsers pick the right decoder.
+    const ext = (rawFavicon || favicon).split("?")[0].split(".").pop()?.toLowerCase();
+    if (ext === "svg") link.type = "image/svg+xml";
+    else if (ext === "png") link.type = "image/png";
+    else if (ext === "webp") link.type = "image/webp";
+    else if (ext === "ico") link.type = "image/x-icon";
+    document.head.appendChild(link);
+    const apple = document.createElement("link");
+    apple.rel = "apple-touch-icon";
+    apple.href = bust;
+    document.head.appendChild(apple);
 
     // Open Graph / Twitter image
     if (site.branding.og_image_url) {
