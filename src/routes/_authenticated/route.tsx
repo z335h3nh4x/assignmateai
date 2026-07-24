@@ -1,10 +1,10 @@
 import { createFileRoute, Outlet, redirect, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Sparkles, LayoutDashboard, Clock, Settings, LogOut, Menu, X } from "lucide-react";
+import { LayoutDashboard, Clock, Settings, LogOut, Menu, X } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { useSiteSettings, platformName } from "@/hooks/use-site-settings";
+import { BrandLogo } from "@/components/brand-logo";
 
 
 export const Route = createFileRoute("/_authenticated")({
