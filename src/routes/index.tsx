@@ -372,18 +372,21 @@ function Testimonials({ site }: { site?: SiteSettings }) {
   );
 }
 
-const DEFAULT_FAQS = [
-  { question: "Is Assignmate detected as AI?", answer: "We use a dedicated humanized style that produces natural, varied prose — most detectors flag it as human-written. Always review before submitting." },
-  { question: "What files can I upload?", answer: "PDF, DOCX, TXT and images (JPG, PNG). You can also paste text directly." },
-  { question: "Do you include references?", answer: "Yes. Any output style except 'Simple' produces formatted headings, bullets and inline references." },
-  { question: "Can I edit the result?", answer: "Absolutely — copy it, download as PDF/DOCX, or regenerate with different settings." },
-  { question: "Is my data private?", answer: "Your assignments are stored securely under your account only. We never train on your data." },
-];
+function defaultFaqs(name: string) {
+  return [
+    { question: `Is ${name} detected as AI?`, answer: "We use a dedicated humanized style that produces natural, varied prose — most detectors flag it as human-written. Always review before submitting." },
+    { question: "What files can I upload?", answer: "PDF, DOCX, TXT and images (JPG, PNG). You can also paste text directly." },
+    { question: "Do you include references?", answer: "Yes. Any output style except 'Simple' produces formatted headings, bullets and inline references." },
+    { question: "Can I edit the result?", answer: "Absolutely — copy it, download as PDF/DOCX, or regenerate with different settings." },
+    { question: "Is my data private?", answer: "Your assignments are stored securely under your account only. We never train on your data." },
+  ];
+}
 
 function FAQ({ site }: { site?: SiteSettings }) {
   const custom = (site?.landing.faq || []).filter((f) => (f.question || "").trim() || (f.answer || "").trim());
-  const items = custom.length > 0 ? custom : DEFAULT_FAQS;
+  const items = custom.length > 0 ? custom : defaultFaqs(site?.general.platform_name || "Assignmate");
   const heading = site?.landing.faq_heading || "Frequently asked";
+
   return (
     <section id="faq" className="py-24 px-4">
       <div className="mx-auto max-w-3xl">
