@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/accordion";
 import { listPublicPlans, type PublicPlan } from "@/lib/plans.functions";
 import { getSiteSettings, type SiteSettings } from "@/lib/site-settings.functions";
+import { BrandLogo } from "@/components/brand-logo";
 
 export const Route = createFileRoute("/")({
   head: () => ({
