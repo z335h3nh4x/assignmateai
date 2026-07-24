@@ -84,9 +84,7 @@ function AuthPage() {
         className="glass rounded-3xl p-8 w-full max-w-md"
       >
         <div className="flex justify-center mb-6">
-          <div className="h-12 w-12 rounded-xl gradient-bg grid place-items-center glow">
-            <Sparkles className="h-6 w-6 text-white" />
-          </div>
+          <BrandLogo size="h-12" imgMaxWidth="max-w-[180px]" showName={false} />
         </div>
         <h1 className="text-2xl font-display font-bold text-center">
           {mode === "login" ? `Welcome back to ${name}` : `Create your ${name} account`}
