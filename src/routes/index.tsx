@@ -176,19 +176,27 @@ const DEFAULT_FEATURES = [
   { icon: Zap, title: "Lightning fast", body: "Full assignments generated in seconds, streamed to your screen." },
 ];
 
-const FEATURE_ICONS = [Upload, GraduationCap, PenLine, BookOpen, ShieldCheck, Zap];
+const FEATURE_ICON_FALLBACKS = [Upload, GraduationCap, PenLine, BookOpen, ShieldCheck, Zap];
 
 function Features({ site }: { site?: SiteSettings }) {
-  const customFeatures = site?.landing.features?.filter(
-    (f) => (f.title || "").trim() || (f.body || "").trim(),
-  );
-  const items = customFeatures && customFeatures.length > 0
-    ? customFeatures.map((f, i) => ({
-        icon: FEATURE_ICONS[i % FEATURE_ICONS.length],
-        title: f.title || "",
-        body: f.body || "",
-      }))
-    : DEFAULT_FEATURES;
+  const raw = site?.landing.features;
+  // Admin explicitly manages the list → respect it (may be empty → hide section).
+  // Nothing configured yet (undefined) → show sensible defaults.
+  let items: { icon: LucideIcon; title: string; body: string }[];
+  if (Array.isArray(raw)) {
+    const visible = raw.filter(
+      (f) => !f.hidden && ((f.title || "").trim() || (f.body || "").trim()),
+    );
+    if (visible.length === 0) return null;
+    items = visible.map((f, i) => ({
+      icon: (f.icon && FEATURE_ICON_MAP[f.icon]) || FEATURE_ICON_FALLBACKS[i % FEATURE_ICON_FALLBACKS.length],
+      title: f.title || "",
+      body: f.body || "",
+    }));
+  } else {
+    items = DEFAULT_FEATURES;
+  }
+
   const heading = site?.landing.features_heading;
   const subheading =
     site?.landing.features_subheading ||
