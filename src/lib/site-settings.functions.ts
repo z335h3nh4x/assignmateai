@@ -16,6 +16,25 @@ export type ListItem = {
   hidden?: boolean | null;
 };
 
+export type PromoPlacement = "dashboard" | "workspace" | "sidebar" | "bottom";
+export type PromoAudience = "free" | "everyone" | "off";
+
+export type MonetizationSettings = {
+  enabled: boolean;
+  audience: PromoAudience;
+  placements: PromoPlacement[];
+  badge: string;
+  title: string;
+  description: string;
+  button_text: string;
+  button_url: string;
+  image_url: string;
+  bg_color: string;
+  text_color: string;
+  accent_color: string;
+  open_new_tab: boolean;
+};
+
 
 export type SiteSettings = {
   general: {
@@ -58,6 +77,7 @@ export type SiteSettings = {
     faq: ListItem[];
     testimonials: ListItem[];
   };
+  monetization: MonetizationSettings;
 };
 
 const DEFAULTS: SiteSettings = {
@@ -101,6 +121,21 @@ const DEFAULTS: SiteSettings = {
     faq: [],
     testimonials: [],
   },
+  monetization: {
+    enabled: false,
+    audience: "free",
+    placements: ["dashboard"],
+    badge: "",
+    title: "",
+    description: "",
+    button_text: "Learn more",
+    button_url: "",
+    image_url: "",
+    bg_color: "#0f172a",
+    text_color: "#f8fafc",
+    accent_color: "#8b5cf6",
+    open_new_tab: true,
+  },
 };
 
 function serverClient() {
@@ -136,7 +171,7 @@ export const getSiteSettings = createServerFn({ method: "GET" }).handler(
     const { data, error } = await sb
       .from("platform_settings")
       .select("key, value")
-      .or("key.like.general.%,key.like.branding.%,key.like.landing.%");
+      .or("key.like.general.%,key.like.branding.%,key.like.landing.%,key.like.monetization.%");
     if (error || !data) return merged;
     for (const row of data as Array<{ key: string; value: unknown }>) {
       apply(merged, row.key, row.value);
