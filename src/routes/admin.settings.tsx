@@ -18,6 +18,7 @@ import {
   LayoutTemplate,
   X,
   ExternalLink,
+  Megaphone as MegaphoneIcon,
 } from "lucide-react";
 
 
