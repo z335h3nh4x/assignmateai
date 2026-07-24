@@ -10,6 +10,7 @@ import {
 import { toast } from "sonner";
 import { Lock } from "lucide-react";
 import { useFeature } from "@/lib/use-plan-features";
+import { PromoCard } from "@/components/promo-card";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
