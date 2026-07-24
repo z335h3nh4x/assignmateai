@@ -14,7 +14,7 @@ async function assertAdmin(context: { supabase: any; userId: string }) {
 
 export type PlatformSetting = {
   key: string;
-  value: unknown;
+  value: any;
   updated_at: string;
   updated_by: string | null;
 };
@@ -244,7 +244,7 @@ export type AuditLogRow = {
   target_user_email: string | null;
   ip: string | null;
   user_agent: string | null;
-  metadata: Record<string, unknown>;
+  metadata: Record<string, any>;
   created_at: string;
 };
 
@@ -311,7 +311,7 @@ export const listAuditLogs = createServerFn({ method: "POST" })
         target_user_email: target?.email ?? null,
         ip: (r.ip as string) ?? null,
         user_agent: (r.user_agent as string) ?? null,
-        metadata: ((r.metadata as Record<string, unknown>) ?? {}) as Record<string, unknown>,
+        metadata: ((r.metadata as Record<string, any>) ?? {}) as Record<string, any>,
         created_at: r.created_at as string,
       };
     });
