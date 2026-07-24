@@ -62,7 +62,8 @@ function AuthedLayout() {
               );
             })}
           </nav>
-          <div className="mt-auto">
+          <div className="mt-auto space-y-2">
+            <PromoCard placement="sidebar" />
             <Button variant="ghost" onClick={signOut} className="w-full justify-start text-muted-foreground hover:text-foreground">
               <LogOut className="h-4 w-4 mr-2" /> Sign out
             </Button>
@@ -81,6 +82,9 @@ function AuthedLayout() {
 
       <main className="flex-1 min-w-0 p-4 lg:p-8">
         <Outlet />
+        <div className="mt-8">
+          <PromoCard placement="bottom" />
+        </div>
       </main>
     </div>
   );
