@@ -317,7 +317,7 @@ function Dashboard() {
         <h1 className="font-display text-3xl md:text-4xl font-bold tracking-tight">
           New assignment
         </h1>
-        <p className="text-muted-foreground mt-1">Upload your assignment — Assignmate reads it, detects the questions and writes the solution.</p>
+        <p className="text-muted-foreground mt-1">Upload your assignment reads it, detects the questions and writes the solution.</p>
       </div>
 
       <UsagePanel />
@@ -362,7 +362,7 @@ function Dashboard() {
           >
             <Upload className="h-8 w-8 mx-auto text-primary mb-2" />
             <p className="text-sm font-medium">Drop your assignment — PDF, DOCX, TXT or images (JPG/PNG)</p>
-            <p className="text-xs text-muted-foreground mt-1">or click to browse (max 6 files, 15MB each). Assignmate will OCR handwriting and detect every question.</p>
+            <p className="text-xs text-muted-foreground mt-1">or click to browse (max 6 files, 15MB each). We will OCR handwriting and detect every question.</p>
             <input ref={fileRef} type="file" multiple accept={ACCEPT} className="hidden"
               onChange={(e) => handleFiles(e.target.files)} />
           </div>
@@ -475,7 +475,7 @@ function Dashboard() {
                 </div>
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground">No individual questions were detected — Assignmate will solve the whole document.</p>
+              <p className="text-xs text-muted-foreground">No individual questions were detected — the whole document will be solved.</p>
             )}
           </div>
         )}

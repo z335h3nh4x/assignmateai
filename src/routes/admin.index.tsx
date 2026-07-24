@@ -53,7 +53,7 @@ function AdminHome() {
     <div className="max-w-6xl mx-auto space-y-8">
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-3xl md:text-4xl font-display font-bold">Admin overview</h1>
-        <p className="text-muted-foreground mt-1">High-level metrics across the Assignmate platform.</p>
+        <p className="text-muted-foreground mt-1">High-level metrics across the platform.</p>
       </motion.div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

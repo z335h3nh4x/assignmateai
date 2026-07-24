@@ -10,12 +10,19 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 
+import { useSiteSettings, platformName } from "@/hooks/use-site-settings";
+
 export const Route = createFileRoute("/auth")({
-  head: () => ({ meta: [{ title: "Sign in — Assignmate" }] }),
+  head: () => ({ meta: [{ title: "Sign in" }] }),
   component: AuthPage,
 });
 
 function AuthPage() {
+  const site = useSiteSettings();
+  const name = platformName(site);
+  const tagline = site?.general.tagline?.trim() || "AI-powered assignment workspace for students.";
+
+
   const navigate = useNavigate();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
@@ -82,11 +89,12 @@ function AuthPage() {
           </div>
         </div>
         <h1 className="text-2xl font-display font-bold text-center">
-          {mode === "login" ? "Welcome back" : "Create your account"}
+          {mode === "login" ? `Welcome back to ${name}` : `Create your ${name} account`}
         </h1>
         <p className="text-sm text-muted-foreground text-center mt-1">
-          {mode === "login" ? "Sign in to continue" : "Start solving assignments in seconds"}
+          {tagline}
         </p>
+
 
         <Button
           type="button"

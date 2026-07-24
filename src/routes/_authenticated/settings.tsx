@@ -10,16 +10,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { useSiteSettings, supportEmail as siteSupportEmail } from "@/hooks/use-site-settings";
+
 
 export const Route = createFileRoute("/_authenticated/settings")({
-  head: () => ({ meta: [{ title: "Settings — Assignmate" }] }),
+  head: () => ({ meta: [{ title: "Settings" }] }),
   component: SettingsPage,
 });
+
 
 function SettingsPage() {
   const [displayName, setDisplayName] = useState("");
   const [darkMode, setDarkMode] = useState(true);
   const [saving, setSaving] = useState(false);
+  const site = useSiteSettings();
+  const supportEmail = siteSupportEmail(site);
+
 
   const { data: profile } = useQuery({
     queryKey: ["profile"],
@@ -145,7 +151,16 @@ function SettingsPage() {
             <Sparkles className="h-4 w-4 mr-2" /> Upgrade
           </Button>
         </div>
+        {supportEmail && (
+          <div className="mt-4 pt-4 border-t border-white/10 text-sm text-muted-foreground">
+            Need help with your plan?{" "}
+            <a href={`mailto:${supportEmail}`} className="text-primary hover:underline">
+              Contact support
+            </a>
+          </div>
+        )}
       </Card>
+
     </div>
   );
 }

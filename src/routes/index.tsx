@@ -372,18 +372,21 @@ function Testimonials({ site }: { site?: SiteSettings }) {
   );
 }
 
-const DEFAULT_FAQS = [
-  { question: "Is Assignmate detected as AI?", answer: "We use a dedicated humanized style that produces natural, varied prose — most detectors flag it as human-written. Always review before submitting." },
-  { question: "What files can I upload?", answer: "PDF, DOCX, TXT and images (JPG, PNG). You can also paste text directly." },
-  { question: "Do you include references?", answer: "Yes. Any output style except 'Simple' produces formatted headings, bullets and inline references." },
-  { question: "Can I edit the result?", answer: "Absolutely — copy it, download as PDF/DOCX, or regenerate with different settings." },
-  { question: "Is my data private?", answer: "Your assignments are stored securely under your account only. We never train on your data." },
-];
+function defaultFaqs(name: string) {
+  return [
+    { question: `Is ${name} detected as AI?`, answer: "We use a dedicated humanized style that produces natural, varied prose — most detectors flag it as human-written. Always review before submitting." },
+    { question: "What files can I upload?", answer: "PDF, DOCX, TXT and images (JPG, PNG). You can also paste text directly." },
+    { question: "Do you include references?", answer: "Yes. Any output style except 'Simple' produces formatted headings, bullets and inline references." },
+    { question: "Can I edit the result?", answer: "Absolutely — copy it, download as PDF/DOCX, or regenerate with different settings." },
+    { question: "Is my data private?", answer: "Your assignments are stored securely under your account only. We never train on your data." },
+  ];
+}
 
 function FAQ({ site }: { site?: SiteSettings }) {
   const custom = (site?.landing.faq || []).filter((f) => (f.question || "").trim() || (f.answer || "").trim());
-  const items = custom.length > 0 ? custom : DEFAULT_FAQS;
+  const items = custom.length > 0 ? custom : defaultFaqs(site?.general.platform_name || "Assignmate");
   const heading = site?.landing.faq_heading || "Frequently asked";
+
   return (
     <section id="faq" className="py-24 px-4">
       <div className="mx-auto max-w-3xl">
@@ -407,27 +410,53 @@ function FAQ({ site }: { site?: SiteSettings }) {
 
 function Footer({ site }: { site?: SiteSettings }) {
   const name = site?.general.platform_name || "Assignmate";
-  const copyright = site?.general.copyright_text || `© 2026 ${name}`;
+  const copyright = site?.general.copyright_text || `© 2026 ${name}. All rights reserved.`;
   const tagline = site?.general.footer_text || "Built for students who ship.";
+  const support = site?.general.support_email?.trim();
+  const contact = site?.general.contact_email?.trim();
+  const website = site?.general.website_url?.trim();
   const logo = site?.branding.logo_url;
   return (
     <footer className="py-12 px-4 border-t border-white/5">
-      <div className="mx-auto max-w-7xl flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          {logo ? (
-            <img src={logo} alt={name} className="h-6 w-auto max-w-[120px] object-contain" />
-          ) : (
-            <div className="h-6 w-6 rounded-md gradient-bg grid place-items-center">
-              <Sparkles className="h-3 w-3 text-white" />
-            </div>
-          )}
-          <span className="text-sm text-muted-foreground">{copyright}</span>
+      <div className="mx-auto max-w-7xl flex flex-col gap-6">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            {logo ? (
+              <img src={logo} alt={name} className="h-6 w-auto max-w-[120px] object-contain" />
+            ) : (
+              <div className="h-6 w-6 rounded-md gradient-bg grid place-items-center">
+                <Sparkles className="h-3 w-3 text-white" />
+              </div>
+            )}
+            <span className="text-sm text-muted-foreground">{name}</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
+            {support && (
+              <a href={`mailto:${support}`} className="hover:text-foreground transition">
+                Need help? Contact us
+              </a>
+            )}
+            {contact && (
+              <a href={`mailto:${contact}`} className="hover:text-foreground transition">
+                Business inquiries
+              </a>
+            )}
+            {website && (
+              <a href={website} target="_blank" rel="noreferrer" className="hover:text-foreground transition">
+                Visit our website
+              </a>
+            )}
+          </div>
         </div>
-        <div className="text-xs text-muted-foreground">{tagline}</div>
+        <div className="flex flex-col items-center md:items-start gap-1 border-t border-white/5 pt-6">
+          <span className="text-sm text-muted-foreground">{copyright}</span>
+          <span className="text-xs text-muted-foreground">{tagline}</span>
+        </div>
       </div>
     </footer>
   );
 }
+
 
 function Landing() {
   const { data: site } = useSite();
