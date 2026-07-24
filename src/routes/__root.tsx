@@ -132,12 +132,50 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <PlanFeaturesProvider>
         <SiteHeadSync />
-        <Outlet />
+        <MaintenanceGate>
+          <Outlet />
+        </MaintenanceGate>
         <Toaster position="top-right" />
       </PlanFeaturesProvider>
     </QueryClientProvider>
   );
 }
+
+function MaintenanceGate({ children }: { children: ReactNode }) {
+  const site = useSiteSettings();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isAdmin = pathname.startsWith("/admin") || pathname.startsWith("/auth");
+  if (!site?.general.maintenance_mode || isAdmin) return <>{children}</>;
+  const name = platformName(site);
+  const email = supportEmail(site);
+  const website = websiteUrl(site);
+  return (
+    <div className="flex min-h-screen items-center justify-center px-4">
+      <div className="glass rounded-2xl p-10 max-w-lg text-center">
+        <div className="h-12 w-12 mx-auto rounded-xl gradient-bg grid place-items-center glow mb-4">
+          <span className="text-white text-xl">⚙️</span>
+        </div>
+        <h1 className="text-2xl font-display font-bold">{name} is under maintenance</h1>
+        <p className="mt-3 text-sm text-muted-foreground">
+          We're making improvements and will be back shortly. Thanks for your patience.
+        </p>
+        <div className="mt-6 flex flex-wrap gap-2 justify-center">
+          {email && (
+            <a href={`mailto:${email}`} className="rounded-lg gradient-bg text-white px-5 py-2.5 text-sm font-medium glow">
+              Contact support
+            </a>
+          )}
+          {website && (
+            <a href={website} target="_blank" rel="noreferrer" className="rounded-lg glass px-5 py-2.5 text-sm font-medium">
+              Visit our website
+            </a>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 function SiteHeadSync() {
   const { data: site } = useQuery({
