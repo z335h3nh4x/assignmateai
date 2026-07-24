@@ -17,6 +17,7 @@ import {
   Palette,
   LayoutTemplate,
   X,
+  ExternalLink,
 } from "lucide-react";
 
 
