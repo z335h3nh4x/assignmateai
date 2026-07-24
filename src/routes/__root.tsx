@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { PlanFeaturesProvider } from "@/lib/use-plan-features";
 import { useSiteSettings, platformName, supportEmail, websiteUrl } from "@/hooks/use-site-settings";
+import { BrandLogo } from "@/components/brand-logo";
 
 
 
@@ -152,8 +153,8 @@ function MaintenanceGate({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="glass rounded-2xl p-10 max-w-lg text-center">
-        <div className="h-12 w-12 mx-auto rounded-xl gradient-bg grid place-items-center glow mb-4">
-          <span className="text-white text-xl">⚙️</span>
+        <div className="flex justify-center mb-4">
+          <BrandLogo size="h-12" imgMaxWidth="max-w-[180px]" showName={false} />
         </div>
         <h1 className="text-2xl font-display font-bold">{name} is under maintenance</h1>
         <p className="mt-3 text-sm text-muted-foreground">
