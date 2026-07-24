@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Moon, Sun, User, CreditCard, Sparkles } from "lucide-react";
+import { Moon, Sun, User } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useSiteSettings, supportEmail as siteSupportEmail } from "@/hooks/use-site-settings";
+import { UsagePanel } from "@/components/usage-panel";
 
 
 export const Route = createFileRoute("/_authenticated/settings")({
