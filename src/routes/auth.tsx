@@ -10,12 +10,20 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 
+import { useSiteSettings, platformName } from "@/hooks/use-site-settings";
+
 export const Route = createFileRoute("/auth")({
-  head: () => ({ meta: [{ title: "Sign in — Assignmate" }] }),
+  head: () => ({ meta: [{ title: "Sign in" }] }),
   component: AuthPage,
 });
 
 function AuthPage() {
+  const site = useSiteSettings();
+  const name = platformName(site);
+  const tagline = site?.general.tagline?.trim() || (
+    site && useState ? "" : ""
+  ) || "AI-powered assignment workspace for students.";
+
   const navigate = useNavigate();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
