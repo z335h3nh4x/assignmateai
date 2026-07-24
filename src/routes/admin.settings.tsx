@@ -17,6 +17,7 @@ import {
   Palette,
   LayoutTemplate,
   X,
+  ExternalLink,
 } from "lucide-react";
 
 
@@ -1032,6 +1033,7 @@ function SettingsPanelShell({
   onSave,
   onReset,
   isLoading,
+  rightActions,
 }: {
   title: string;
   description: string;
@@ -1041,6 +1043,7 @@ function SettingsPanelShell({
   onSave: () => void;
   onReset: () => void;
   isLoading: boolean;
+  rightActions?: React.ReactNode;
 }) {
   return (
     <Card className="glass border-white/10 p-6 space-y-5">
@@ -1062,6 +1065,7 @@ function SettingsPanelShell({
             {saving ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1.5" />}
             Save changes
           </Button>
+          {rightActions}
         </div>
       </div>
       {isLoading ? (
@@ -1438,6 +1442,8 @@ function LandingSettingsPanel() {
     }
   }
 
+  const previewUrl = typeof window !== "undefined" ? `${window.location.origin}/?preview=${Date.now()}` : "/";
+
   return (
     <div className="space-y-6">
       <SettingsPanelShell
@@ -1448,6 +1454,17 @@ function LandingSettingsPanel() {
         onSave={s.save}
         onReset={s.reset}
         isLoading={s.isLoading}
+        rightActions={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.open(previewUrl, "_blank", "noopener,noreferrer")}
+            className="gap-1.5"
+          >
+            Preview landing page
+            <ExternalLink className="h-3.5 w-3.5" />
+          </Button>
+        }
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {LANDING_FIELDS.map((f) => (
