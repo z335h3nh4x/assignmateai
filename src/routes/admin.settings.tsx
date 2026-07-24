@@ -1727,3 +1727,350 @@ function ListEditor({
 }
 
 
+/* ============================ Monetization ============================ */
+
+type PromoPlacement = "dashboard" | "workspace" | "sidebar" | "bottom";
+type PromoAudience = "free" | "everyone" | "off";
+
+type MonetizationDraft = {
+  enabled: boolean;
+  audience: PromoAudience;
+  placements: PromoPlacement[];
+  badge: string;
+  title: string;
+  description: string;
+  button_text: string;
+  button_url: string;
+  image_url: string;
+  bg_color: string;
+  text_color: string;
+  accent_color: string;
+  open_new_tab: boolean;
+};
+
+const MON_DEFAULT: MonetizationDraft = {
+  enabled: false,
+  audience: "free",
+  placements: ["dashboard"],
+  badge: "",
+  title: "",
+  description: "",
+  button_text: "Learn more",
+  button_url: "",
+  image_url: "",
+  bg_color: "#0f172a",
+  text_color: "#f8fafc",
+  accent_color: "#8b5cf6",
+  open_new_tab: true,
+};
+
+const PLACEMENT_OPTIONS: { value: PromoPlacement; label: string; hint: string }[] = [
+  { value: "dashboard", label: "Dashboard", hint: "Above the new-assignment form" },
+  { value: "workspace", label: "Assignment workspace", hint: "Inside a generated assignment view" },
+  { value: "sidebar", label: "Sidebar", hint: "Compact card in the left nav" },
+  { value: "bottom", label: "Bottom of page", hint: "Below all app pages" },
+];
+
+function MonetizationSettingsPanel() {
+  const qc = useQueryClient();
+  const { data: settingsMap, isLoading } = useSettingsMap();
+  const [draft, setDraft] = useState<MonetizationDraft>(MON_DEFAULT);
+  const [initial, setInitial] = useState<MonetizationDraft>(MON_DEFAULT);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!settingsMap) return;
+    const g = (k: string, fallback: any) => {
+      const v = settingsMap[`monetization.${k}`];
+      return v === undefined || v === null ? fallback : v;
+    };
+    const next: MonetizationDraft = {
+      enabled: !!g("enabled", MON_DEFAULT.enabled),
+      audience: (g("audience", MON_DEFAULT.audience) as PromoAudience) ?? "free",
+      placements: Array.isArray(settingsMap["monetization.placements"])
+        ? (settingsMap["monetization.placements"] as PromoPlacement[])
+        : MON_DEFAULT.placements,
+      badge: String(g("badge", "")),
+      title: String(g("title", "")),
+      description: String(g("description", "")),
+      button_text: String(g("button_text", MON_DEFAULT.button_text)),
+      button_url: String(g("button_url", "")),
+      image_url: String(g("image_url", "")),
+      bg_color: String(g("bg_color", MON_DEFAULT.bg_color)),
+      text_color: String(g("text_color", MON_DEFAULT.text_color)),
+      accent_color: String(g("accent_color", MON_DEFAULT.accent_color)),
+      open_new_tab: !!g("open_new_tab", MON_DEFAULT.open_new_tab),
+    };
+    setDraft(next);
+    setInitial(next);
+  }, [settingsMap]);
+
+  const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(initial), [draft, initial]);
+  useUnsavedChanges(dirty);
+
+  function set<K extends keyof MonetizationDraft>(key: K, value: MonetizationDraft[K]) {
+    setDraft((d) => ({ ...d, [key]: value }));
+  }
+  function togglePlacement(p: PromoPlacement) {
+    setDraft((d) => ({
+      ...d,
+      placements: d.placements.includes(p)
+        ? d.placements.filter((x) => x !== p)
+        : [...d.placements, p],
+    }));
+  }
+
+  async function save() {
+    if (draft.enabled) {
+      if (!draft.title.trim()) {
+        toast.error("Give the promotion a title before enabling it.");
+        return;
+      }
+      if (draft.button_text.trim() && !draft.button_url.trim()) {
+        toast.error("Button URL is required when button text is set.");
+        return;
+      }
+      if (draft.button_url.trim() && !isValidLinkUrl(draft.button_url.trim())) {
+        toast.error("Button URL must be a URL, /path, #anchor, or mailto: link.");
+        return;
+      }
+      if (draft.placements.length === 0) {
+        toast.error("Pick at least one placement.");
+        return;
+      }
+    }
+    setSaving(true);
+    try {
+      const entries: { key: string; value: any }[] = [
+        { key: "monetization.enabled", value: draft.enabled },
+        { key: "monetization.audience", value: draft.audience },
+        { key: "monetization.placements", value: draft.placements },
+        { key: "monetization.badge", value: draft.badge.trim() },
+        { key: "monetization.title", value: draft.title.trim() },
+        { key: "monetization.description", value: draft.description.trim() },
+        { key: "monetization.button_text", value: draft.button_text.trim() },
+        { key: "monetization.button_url", value: draft.button_url.trim() },
+        { key: "monetization.image_url", value: draft.image_url.trim() },
+        { key: "monetization.bg_color", value: draft.bg_color },
+        { key: "monetization.text_color", value: draft.text_color },
+        { key: "monetization.accent_color", value: draft.accent_color },
+        { key: "monetization.open_new_tab", value: draft.open_new_tab },
+      ];
+      await upsertPlatformSettings({ data: { entries } });
+      toast.success("Promotion saved");
+      qc.invalidateQueries({ queryKey: ["admin", "platform-settings"] });
+      qc.invalidateQueries({ queryKey: ["site-settings"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const bg = draft.bg_color || "#0f172a";
+  const fg = draft.text_color || "#f8fafc";
+  const accent = draft.accent_color || "#8b5cf6";
+
+  return (
+    <SettingsPanelShell
+      title="Monetization — internal promotions"
+      description="Promote your own offers with a clean, dismissible card. No third-party ads, no popups, no full-screen takeovers. Changes go live instantly after saving."
+      saving={saving}
+      dirty={dirty}
+      onSave={save}
+      onReset={() => setDraft(initial)}
+      isLoading={isLoading}
+    >
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-4">
+          <FieldRow
+            field={{
+              key: "enabled",
+              label: "Enable promotion",
+              type: "switch",
+              description: "Master switch — turn the card on across the app.",
+            }}
+            value={draft.enabled}
+            onChange={(v) => set("enabled", !!v)}
+          />
+
+          <div>
+            <Label>Audience</Label>
+            <Select value={draft.audience} onValueChange={(v) => set("audience", v as PromoAudience)}>
+              <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="free">Free plan users only (default)</SelectItem>
+                <SelectItem value="everyone">Everyone (free & paid)</SelectItem>
+                <SelectItem value="off">Disabled — show to no one</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1">
+              Paid plan users never see the card unless you pick "Everyone".
+            </p>
+          </div>
+
+          <div>
+            <Label>Placements</Label>
+            <div className="mt-1.5 grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {PLACEMENT_OPTIONS.map((p) => {
+                const on = draft.placements.includes(p.value);
+                return (
+                  <label
+                    key={p.value}
+                    className={`flex items-start gap-2 rounded-lg border p-2.5 cursor-pointer transition ${on ? "border-primary bg-primary/5" : "border-white/10 bg-white/5 hover:bg-white/10"}`}
+                  >
+                    <Checkbox checked={on} onCheckedChange={() => togglePlacement(p.value)} />
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium">{p.label}</div>
+                      <div className="text-[11px] text-muted-foreground">{p.hint}</div>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <Label>Badge (optional)</Label>
+              <Input
+                value={draft.badge}
+                onChange={(e) => set("badge", e.target.value)}
+                placeholder="NEW, LIMITED OFFER, SAVE 50%"
+                className="mt-1.5"
+              />
+            </div>
+            <FieldRow
+              field={{ key: "open_new_tab", label: "Open link in new tab", type: "switch" }}
+              value={draft.open_new_tab}
+              onChange={(v) => set("open_new_tab", !!v)}
+            />
+          </div>
+
+          <div>
+            <Label>Title</Label>
+            <Input
+              value={draft.title}
+              onChange={(e) => set("title", e.target.value)}
+              placeholder="Upgrade to Pro — unlimited assignments"
+              className="mt-1.5"
+            />
+          </div>
+          <div>
+            <Label>Description</Label>
+            <Textarea
+              value={draft.description}
+              onChange={(e) => set("description", e.target.value)}
+              rows={3}
+              placeholder="Unlock humanized writing, OCR, and unlimited exports."
+              className="mt-1.5"
+            />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <Label>Button text</Label>
+              <Input
+                value={draft.button_text}
+                onChange={(e) => set("button_text", e.target.value)}
+                placeholder="Upgrade"
+                className="mt-1.5"
+              />
+            </div>
+            <div>
+              <Label>Button URL</Label>
+              <Input
+                value={draft.button_url}
+                onChange={(e) => set("button_url", e.target.value)}
+                placeholder="/#pricing or https://…"
+                className="mt-1.5"
+              />
+            </div>
+          </div>
+
+          <BrandUploader
+            label="Image / icon (optional)"
+            hint="Shown on the left of the card. PNG / JPG / SVG."
+            accept="image/png,image/jpeg,image/svg+xml,image/webp"
+            background="#0b0b12"
+            height="h-24"
+            value={draft.image_url}
+            onChange={(v) => set("image_url", v)}
+          />
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <FieldRow
+              field={{ key: "bg_color", label: "Background", type: "color" }}
+              value={draft.bg_color}
+              onChange={(v) => set("bg_color", v)}
+            />
+            <FieldRow
+              field={{ key: "text_color", label: "Text", type: "color" }}
+              value={draft.text_color}
+              onChange={(v) => set("text_color", v)}
+            />
+            <FieldRow
+              field={{ key: "accent_color", label: "Accent", type: "color" }}
+              value={draft.accent_color}
+              onChange={(v) => set("accent_color", v)}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <Label className="text-xs uppercase tracking-wide text-muted-foreground">Live preview</Label>
+          <div
+            className="relative overflow-hidden rounded-2xl border p-4 md:p-5 flex items-start gap-4"
+            style={{ background: bg, color: fg, borderColor: `${accent}55` }}
+          >
+            <button
+              aria-label="Dismiss"
+              className="absolute top-2 right-2 opacity-60 p-1"
+              style={{ color: fg }}
+              type="button"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            {draft.image_url && (
+              <img
+                src={draft.image_url}
+                alt=""
+                className="hidden sm:block h-16 w-16 rounded-xl object-cover shrink-0"
+              />
+            )}
+            <div className="min-w-0 flex-1">
+              {draft.badge && (
+                <span
+                  className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded"
+                  style={{ background: accent, color: "#fff" }}
+                >
+                  {draft.badge}
+                </span>
+              )}
+              <div className="mt-1.5 text-base md:text-lg font-semibold leading-tight">
+                {draft.title || "Your promotion title"}
+              </div>
+              <p className="mt-1 text-sm opacity-80 leading-snug">
+                {draft.description || "Short description shown to users."}
+              </p>
+            </div>
+            {(draft.button_text.trim() || draft.button_url.trim()) && (
+              <span
+                className="shrink-0 self-center inline-flex text-sm font-medium px-3.5 py-2 rounded-lg"
+                style={{ background: accent, color: "#fff" }}
+              >
+                {draft.button_text.trim() || "Button"}
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Users can dismiss the card. Dismissals are remembered for 24 hours per browser.
+            No popups. No autoplay. No full-screen ads.
+          </p>
+        </div>
+      </div>
+    </SettingsPanelShell>
+  );
+}
+
+
+
