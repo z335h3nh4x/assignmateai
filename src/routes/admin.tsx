@@ -1,11 +1,13 @@
 import { createFileRoute, Outlet, redirect, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
-  Sparkles, LayoutDashboard, Users, FileStack, BarChart3, CreditCard, Settings, LogOut, Menu, X, ArrowLeft,
+  LayoutDashboard, Users, FileStack, BarChart3, CreditCard, Settings, LogOut, Menu, X, ArrowLeft,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { useSiteSettings, platformName } from "@/hooks/use-site-settings";
+import { BrandLogo } from "@/components/brand-logo";
+import { platformName } from "@/hooks/use-site-settings";
+import { useSiteSettings } from "@/hooks/use-site-settings";
 
 
 export const Route = createFileRoute("/admin")({
@@ -42,7 +44,6 @@ function AdminLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const site = useSiteSettings();
   const name = platformName(site);
-  const logo = site?.branding.logo_url;
 
   useEffect(() => setOpen(false), [pathname]);
 
@@ -68,13 +69,7 @@ function AdminLayout() {
       >
         <div className="glass rounded-2xl h-full p-4 flex flex-col">
           <Link to="/admin" className="flex items-center gap-2 px-2 py-2">
-            {logo ? (
-              <img src={logo} alt={name} className="h-8 w-auto max-w-[140px] object-contain" />
-            ) : (
-              <div className="h-8 w-8 rounded-lg gradient-bg grid place-items-center">
-                <Sparkles className="h-4 w-4 text-white" />
-              </div>
-            )}
+            <BrandLogo showName={false} />
             <div className="flex flex-col leading-tight">
               <span className="font-display font-semibold">{name}</span>
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Admin</span>

@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/accordion";
 import { listPublicPlans, type PublicPlan } from "@/lib/plans.functions";
 import { getSiteSettings, type SiteSettings } from "@/lib/site-settings.functions";
+import { BrandLogo } from "@/components/brand-logo";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -32,23 +33,12 @@ function useSite() {
 }
 
 function Nav({ site }: { site?: SiteSettings }) {
-  const name = site?.general.platform_name || "Assignmate";
-  const logo = site?.branding.logo_url;
   return (
     <header className="fixed top-0 inset-x-0 z-40">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-4">
         <div className="glass rounded-2xl px-5 py-3 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            {logo ? (
-              <img src={logo} alt={name} className="h-8 w-auto max-w-[140px] object-contain" />
-            ) : (
-              <>
-                <div className="h-8 w-8 rounded-lg gradient-bg grid place-items-center">
-                  <Sparkles className="h-4 w-4 text-white" />
-                </div>
-                <span className="font-display font-semibold tracking-tight">{name}</span>
-              </>
-            )}
+            <BrandLogo />
           </Link>
           <nav className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
             <a href="#features" className="hover:text-foreground transition">Features</a>
@@ -415,19 +405,12 @@ function Footer({ site }: { site?: SiteSettings }) {
   const support = site?.general.support_email?.trim();
   const contact = site?.general.contact_email?.trim();
   const website = site?.general.website_url?.trim();
-  const logo = site?.branding.logo_url;
   return (
     <footer className="py-12 px-4 border-t border-white/5">
       <div className="mx-auto max-w-7xl flex flex-col gap-6">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            {logo ? (
-              <img src={logo} alt={name} className="h-6 w-auto max-w-[120px] object-contain" />
-            ) : (
-              <div className="h-6 w-6 rounded-md gradient-bg grid place-items-center">
-                <Sparkles className="h-3 w-3 text-white" />
-              </div>
-            )}
+            <BrandLogo size="h-6" imgMaxWidth="max-w-[120px]" showName={false} />
             <span className="text-sm text-muted-foreground">{name}</span>
           </div>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
