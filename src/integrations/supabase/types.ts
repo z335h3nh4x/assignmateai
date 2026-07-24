@@ -495,6 +495,7 @@ export type Database = {
       usage_counters: {
         Row: {
           credits_used: number
+          cycle_started_at: string | null
           month_key: string
           month_used: number
           updated_at: string
@@ -502,6 +503,7 @@ export type Database = {
         }
         Insert: {
           credits_used?: number
+          cycle_started_at?: string | null
           month_key?: string
           month_used?: number
           updated_at?: string
@@ -509,6 +511,7 @@ export type Database = {
         }
         Update: {
           credits_used?: number
+          cycle_started_at?: string | null
           month_key?: string
           month_used?: number
           updated_at?: string
