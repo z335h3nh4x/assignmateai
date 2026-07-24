@@ -43,21 +43,6 @@ function SettingsPage() {
     },
   });
 
-  const { data: sub } = useQuery({
-    queryKey: ["subscription"],
-    queryFn: async () => {
-      const { data } = await supabase.from("subscriptions").select("plan,status").maybeSingle();
-      return data;
-    },
-  });
-
-  const { data: tokens } = useQuery({
-    queryKey: ["tokens"],
-    queryFn: async () => {
-      const { data } = await supabase.from("tokens").select("balance,used").maybeSingle();
-      return data;
-    },
-  });
 
   useEffect(() => {
     if (profile?.display_name) setDisplayName(profile.display_name);
