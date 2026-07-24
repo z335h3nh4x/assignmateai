@@ -41,10 +41,17 @@ function AdminLayout() {
 
   useEffect(() => setOpen(false), [pathname]);
 
+  useEffect(() => {
+    import("@/lib/admin-settings.functions").then(({ recordAdminAccess }) => {
+      recordAdminAccess().catch(() => {});
+    });
+  }, []);
+
   async function signOut() {
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
   }
+
 
   return (
     <div className="min-h-screen flex">
