@@ -14,7 +14,11 @@ import {
   Download,
   Search,
   Settings as SettingsIcon,
+  Palette,
+  LayoutTemplate,
+  X,
 } from "lucide-react";
+
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -60,10 +64,14 @@ import {
   deleteAnnouncement,
   listAuditLogs,
   exportAuditLogsCsv,
+  listPlatformSettings,
+  upsertPlatformSettings,
   type FeatureFlag,
   type Announcement,
   type AuditLogRow,
+  type PlatformSetting,
 } from "@/lib/admin-settings.functions";
+
 
 export const Route = createFileRoute("/admin/settings")({
   head: () => ({ meta: [{ title: "Platform Settings — Admin" }] }),
@@ -76,14 +84,22 @@ function AdminSettingsPage() {
       <div>
         <h1 className="text-3xl font-display font-bold">Platform Settings</h1>
         <p className="text-muted-foreground mt-1">
-          Foundational configuration for Assignmate. Feature flags, announcements and admin
-          audit logs are live now — general branding, landing page content, AI settings and the
-          rest land in the next phases.
+          Configure the entire Assignmate platform — branding, landing page copy, feature flags,
+          announcements and admin audit logs — all in one place.
         </p>
       </div>
 
-      <Tabs defaultValue="flags" className="w-full">
+      <Tabs defaultValue="general" className="w-full">
         <TabsList className="glass border border-white/10 flex flex-wrap h-auto p-1">
+          <TabsTrigger value="general" className="gap-1.5">
+            <SettingsIcon className="h-3.5 w-3.5" /> General
+          </TabsTrigger>
+          <TabsTrigger value="branding" className="gap-1.5">
+            <Palette className="h-3.5 w-3.5" /> Branding
+          </TabsTrigger>
+          <TabsTrigger value="landing" className="gap-1.5">
+            <LayoutTemplate className="h-3.5 w-3.5" /> Landing Page
+          </TabsTrigger>
           <TabsTrigger value="flags" className="gap-1.5">
             <Flag className="h-3.5 w-3.5" /> Feature Flags
           </TabsTrigger>
@@ -93,11 +109,17 @@ function AdminSettingsPage() {
           <TabsTrigger value="audit" className="gap-1.5">
             <History className="h-3.5 w-3.5" /> Audit Logs
           </TabsTrigger>
-          <TabsTrigger value="soon" className="gap-1.5 text-muted-foreground">
-            <SettingsIcon className="h-3.5 w-3.5" /> Coming next
-          </TabsTrigger>
         </TabsList>
 
+        <TabsContent value="general" className="mt-6">
+          <GeneralSettingsPanel />
+        </TabsContent>
+        <TabsContent value="branding" className="mt-6">
+          <BrandingSettingsPanel />
+        </TabsContent>
+        <TabsContent value="landing" className="mt-6">
+          <LandingSettingsPanel />
+        </TabsContent>
         <TabsContent value="flags" className="mt-6">
           <FeatureFlagsPanel />
         </TabsContent>
@@ -107,13 +129,11 @@ function AdminSettingsPage() {
         <TabsContent value="audit" className="mt-6">
           <AuditLogsPanel />
         </TabsContent>
-        <TabsContent value="soon" className="mt-6">
-          <ComingNextPanel />
-        </TabsContent>
       </Tabs>
     </div>
   );
 }
+
 
 /* ============================ Feature Flags ============================ */
 
@@ -818,48 +838,517 @@ function AuditRow({ r }: { r: AuditLogRow }) {
   );
 }
 
-/* ============================ Placeholder Panel ============================ */
+/* ============================ Settings Framework ============================ */
 
-function ComingNextPanel() {
-  const groups: { title: string; items: string[] }[] = [
-    {
-      title: "Phase 2 — Content",
-      items: [
-        "General settings (platform name, logos, support email, footer)",
-        "Landing page editor (hero, features, pricing title, FAQ, testimonials)",
-        "Branding uploads with preview",
-      ],
+type FieldType = "text" | "textarea" | "email" | "url" | "color" | "number" | "switch";
+
+type FieldDef = {
+  key: string;
+  label: string;
+  type: FieldType;
+  placeholder?: string;
+  description?: string;
+  default?: any;
+  rows?: number;
+  min?: number;
+  max?: number;
+};
+
+function useSettingsMap() {
+  return useQuery({
+    queryKey: ["admin", "platform-settings"],
+    queryFn: () => listPlatformSettings(),
+    select: (rows: PlatformSetting[]) => {
+      const map: Record<string, any> = {};
+      for (const r of rows) map[r.key] = r.value;
+      return map;
     },
-    {
-      title: "Phase 3 — Behavior",
-      items: [
-        "Assignment global caps (upload MB / pages / files / word count) — min(global, plan)",
-        "AI settings (model, temperature, retries, timeout, humanizer strength)",
-        "Security settings (registration, email verification, social login, session, attempts)",
-      ],
-    },
-    {
-      title: "Phase 4 — Ops",
-      items: [
-        "System status, storage & version",
-        "Email templates (application emails only — auth emails stay managed)",
-        "Payment configuration (UPI, merchant, QR, currency, tax)",
-        "CSV exports for users, assignments and settings",
-      ],
-    },
-  ];
+  });
+}
+
+function useSettingsDraft(prefix: string, fields: FieldDef[]) {
+  const qc = useQueryClient();
+  const { data, isLoading } = useSettingsMap();
+  const [draft, setDraft] = useState<Record<string, any>>({});
+  const [initial, setInitial] = useState<Record<string, any>>({});
+
+  useEffect(() => {
+    if (!data) return;
+    const next: Record<string, any> = {};
+    for (const f of fields) {
+      const k = `${prefix}.${f.key}`;
+      next[f.key] = data[k] ?? f.default ?? (f.type === "switch" ? false : f.type === "number" ? 0 : "");
+    }
+    setDraft(next);
+    setInitial(next);
+  }, [data, prefix]);
+
+  const dirty = useMemo(
+    () => JSON.stringify(draft) !== JSON.stringify(initial),
+    [draft, initial],
+  );
+  useUnsavedChanges(dirty);
+
+  const [saving, setSaving] = useState(false);
+  async function save() {
+    setSaving(true);
+    try {
+      const entries = fields
+        .filter((f) => JSON.stringify(draft[f.key]) !== JSON.stringify(initial[f.key]))
+        .map((f) => ({ key: `${prefix}.${f.key}`, value: draft[f.key] }));
+      if (entries.length === 0) {
+        toast.info("Nothing to save");
+        return;
+      }
+      await upsertPlatformSettings({ data: { entries } });
+      toast.success(`Saved ${entries.length} setting${entries.length === 1 ? "" : "s"}`);
+      qc.invalidateQueries({ queryKey: ["admin", "platform-settings"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  }
+  function reset() {
+    setDraft(initial);
+  }
+  function setValue(key: string, value: any) {
+    setDraft((d) => ({ ...d, [key]: value }));
+  }
+  return { draft, setValue, isLoading, dirty, saving, save, reset };
+}
+
+function FieldRow({
+  field,
+  value,
+  onChange,
+}: {
+  field: FieldDef;
+  value: any;
+  onChange: (v: any) => void;
+}) {
+  if (field.type === "switch") {
+    return (
+      <div className="flex items-start justify-between gap-3 rounded-lg border border-white/10 bg-white/5 p-3">
+        <div className="min-w-0">
+          <Label className="text-sm">{field.label}</Label>
+          {field.description && (
+            <p className="text-xs text-muted-foreground mt-0.5">{field.description}</p>
+          )}
+        </div>
+        <Switch checked={!!value} onCheckedChange={onChange} />
+      </div>
+    );
+  }
+  if (field.type === "textarea") {
+    return (
+      <div>
+        <Label>{field.label}</Label>
+        <Textarea
+          value={value ?? ""}
+          onChange={(e) => onChange(e.target.value)}
+          rows={field.rows ?? 3}
+          placeholder={field.placeholder}
+          className="mt-1.5"
+        />
+        {field.description && (
+          <p className="text-xs text-muted-foreground mt-1">{field.description}</p>
+        )}
+      </div>
+    );
+  }
+  if (field.type === "color") {
+    return (
+      <div>
+        <Label>{field.label}</Label>
+        <div className="flex items-center gap-2 mt-1.5">
+          <input
+            type="color"
+            value={value || "#000000"}
+            onChange={(e) => onChange(e.target.value)}
+            className="h-9 w-12 rounded border border-white/10 bg-transparent"
+          />
+          <Input value={value ?? ""} onChange={(e) => onChange(e.target.value)} placeholder={field.placeholder} />
+        </div>
+        {field.description && (
+          <p className="text-xs text-muted-foreground mt-1">{field.description}</p>
+        )}
+      </div>
+    );
+  }
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {groups.map((g) => (
-        <Card key={g.title} className="glass border-white/10 p-5 space-y-3">
-          <h3 className="font-semibold">{g.title}</h3>
-          <ul className="text-sm text-muted-foreground space-y-1.5 list-disc list-inside">
-            {g.items.map((i) => (
-              <li key={i}>{i}</li>
-            ))}
-          </ul>
-        </Card>
-      ))}
+    <div>
+      <Label>{field.label}</Label>
+      <Input
+        type={field.type === "number" ? "number" : field.type === "email" ? "email" : field.type === "url" ? "url" : "text"}
+        value={value ?? ""}
+        min={field.min}
+        max={field.max}
+        onChange={(e) =>
+          onChange(field.type === "number" ? (e.target.value === "" ? "" : Number(e.target.value)) : e.target.value)
+        }
+        placeholder={field.placeholder}
+        className="mt-1.5"
+      />
+      {field.description && (
+        <p className="text-xs text-muted-foreground mt-1">{field.description}</p>
+      )}
     </div>
   );
 }
+
+function SettingsPanelShell({
+  title,
+  description,
+  children,
+  saving,
+  dirty,
+  onSave,
+  onReset,
+  isLoading,
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+  saving: boolean;
+  dirty: boolean;
+  onSave: () => void;
+  onReset: () => void;
+  isLoading: boolean;
+}) {
+  return (
+    <Card className="glass border-white/10 p-6 space-y-5">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h2 className="font-display text-xl font-semibold">{title}</h2>
+          <p className="text-sm text-muted-foreground mt-1 max-w-2xl">{description}</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={onReset} disabled={!dirty || saving}>
+            <RotateCcw className="h-3.5 w-3.5 mr-1.5" /> Reset
+          </Button>
+          <Button
+            size="sm"
+            onClick={onSave}
+            disabled={!dirty || saving}
+            className="gradient-bg text-white border-0"
+          >
+            {saving ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1.5" />}
+            Save changes
+          </Button>
+        </div>
+      </div>
+      {isLoading ? (
+        <div className="space-y-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-16 w-full" />
+          ))}
+        </div>
+      ) : (
+        children
+      )}
+      {dirty && (
+        <p className="text-xs text-amber-400">Unsaved changes — remember to save before leaving.</p>
+      )}
+    </Card>
+  );
+}
+
+/* ============================ General ============================ */
+
+const GENERAL_FIELDS: FieldDef[] = [
+  { key: "platform_name", label: "Platform name", type: "text", default: "Assignmate", placeholder: "Assignmate" },
+  { key: "tagline", label: "Tagline", type: "text", default: "AI-powered assignment workspace for students.", placeholder: "One-line description" },
+  { key: "support_email", label: "Support email", type: "email", placeholder: "support@assignmate.app" },
+  { key: "contact_email", label: "Contact email", type: "email", placeholder: "hello@assignmate.app" },
+  { key: "footer_text", label: "Footer text", type: "text", placeholder: "© 2026 Assignmate. All rights reserved." },
+  { key: "default_locale", label: "Default locale", type: "text", default: "en-US", placeholder: "en-US" },
+  { key: "timezone", label: "Default timezone", type: "text", default: "UTC", placeholder: "UTC" },
+  { key: "maintenance_mode", label: "Maintenance mode", type: "switch", description: "When on, non-admins see a maintenance notice on the app.", default: false },
+];
+
+function GeneralSettingsPanel() {
+  const s = useSettingsDraft("general", GENERAL_FIELDS);
+  return (
+    <SettingsPanelShell
+      title="General"
+      description="Platform identity, contact channels and global operating defaults."
+      saving={s.saving}
+      dirty={s.dirty}
+      onSave={s.save}
+      onReset={s.reset}
+      isLoading={s.isLoading}
+    >
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {GENERAL_FIELDS.map((f) => (
+          <FieldRow key={f.key} field={f} value={s.draft[f.key]} onChange={(v) => s.setValue(f.key, v)} />
+        ))}
+      </div>
+    </SettingsPanelShell>
+  );
+}
+
+/* ============================ Branding ============================ */
+
+const BRANDING_FIELDS: FieldDef[] = [
+  { key: "logo_url", label: "Logo URL (light)", type: "url", placeholder: "https://…/logo.svg" },
+  { key: "logo_dark_url", label: "Logo URL (dark)", type: "url", placeholder: "https://…/logo-dark.svg" },
+  { key: "favicon_url", label: "Favicon URL", type: "url", placeholder: "https://…/favicon.ico" },
+  { key: "og_image_url", label: "Social share image", type: "url", placeholder: "https://…/og.png", description: "1200×630 recommended." },
+  { key: "primary_color", label: "Primary color", type: "color", default: "#6366f1" },
+  { key: "accent_color", label: "Accent color", type: "color", default: "#8b5cf6" },
+  { key: "brand_font", label: "Brand font", type: "text", default: "Inter", placeholder: "Inter, Sora, …" },
+];
+
+function BrandingSettingsPanel() {
+  const s = useSettingsDraft("branding", BRANDING_FIELDS);
+  const logo = s.draft.logo_url as string | undefined;
+  const dark = s.draft.logo_dark_url as string | undefined;
+  return (
+    <SettingsPanelShell
+      title="Branding"
+      description="Logos, favicon, social preview image and brand palette."
+      saving={s.saving}
+      dirty={s.dirty}
+      onSave={s.save}
+      onReset={s.reset}
+      isLoading={s.isLoading}
+    >
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {BRANDING_FIELDS.map((f) => (
+          <FieldRow key={f.key} field={f} value={s.draft[f.key]} onChange={(v) => s.setValue(f.key, v)} />
+        ))}
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <LogoPreview label="Light preview" src={logo} background="#ffffff" />
+        <LogoPreview label="Dark preview" src={dark || logo} background="#0b0b12" />
+      </div>
+    </SettingsPanelShell>
+  );
+}
+
+function LogoPreview({ label, src, background }: { label: string; src?: string; background: string }) {
+  return (
+    <div className="rounded-lg border border-white/10 overflow-hidden">
+      <div className="text-[11px] uppercase tracking-wide text-muted-foreground px-3 py-1.5 bg-white/5">
+        {label}
+      </div>
+      <div className="h-24 flex items-center justify-center" style={{ background }}>
+        {src ? (
+          <img src={src} alt={label} className="max-h-16 max-w-[70%] object-contain" />
+        ) : (
+          <span className="text-xs text-muted-foreground/70">No image set</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ============================ Landing Page ============================ */
+
+const LANDING_FIELDS: FieldDef[] = [
+  { key: "hero_eyebrow", label: "Hero eyebrow", type: "text", placeholder: "New — AI assignment workspace" },
+  { key: "hero_title", label: "Hero title", type: "text", placeholder: "Turn any assignment into a polished submission" },
+  { key: "hero_subtitle", label: "Hero subtitle", type: "textarea", rows: 2, placeholder: "Upload, generate, humanize, export — in one click." },
+  { key: "hero_cta_text", label: "Primary CTA text", type: "text", default: "Get started", placeholder: "Get started" },
+  { key: "hero_cta_url", label: "Primary CTA URL", type: "url", default: "/auth", placeholder: "/auth" },
+  { key: "hero_secondary_cta_text", label: "Secondary CTA text", type: "text", placeholder: "See pricing" },
+  { key: "hero_secondary_cta_url", label: "Secondary CTA URL", type: "url", placeholder: "/#pricing" },
+  { key: "show_pricing", label: "Show pricing section", type: "switch", default: true },
+  { key: "show_testimonials", label: "Show testimonials section", type: "switch", default: false },
+  { key: "show_faq", label: "Show FAQ section", type: "switch", default: true },
+  { key: "pricing_heading", label: "Pricing heading", type: "text", default: "Simple, transparent pricing", placeholder: "Pricing heading" },
+  { key: "faq_heading", label: "FAQ heading", type: "text", default: "Frequently asked questions", placeholder: "FAQ heading" },
+];
+
+type ListItem = { question?: string; answer?: string; title?: string; body?: string };
+
+function LandingSettingsPanel() {
+  const s = useSettingsDraft("landing", LANDING_FIELDS);
+  const qc = useQueryClient();
+  const { data: settingsMap, isLoading } = useSettingsMap();
+  const [faq, setFaq] = useState<ListItem[]>([]);
+  const [features, setFeatures] = useState<ListItem[]>([]);
+  const [initialLists, setInitialLists] = useState<{ faq: ListItem[]; features: ListItem[] }>({ faq: [], features: [] });
+  const [listSaving, setListSaving] = useState(false);
+
+  useEffect(() => {
+    if (!settingsMap) return;
+    const f = Array.isArray(settingsMap["landing.faq"]) ? settingsMap["landing.faq"] : [];
+    const feats = Array.isArray(settingsMap["landing.features"]) ? settingsMap["landing.features"] : [];
+    setFaq(f);
+    setFeatures(feats);
+    setInitialLists({ faq: f, features: feats });
+  }, [settingsMap]);
+
+  const listsDirty =
+    JSON.stringify(faq) !== JSON.stringify(initialLists.faq) ||
+    JSON.stringify(features) !== JSON.stringify(initialLists.features);
+  useUnsavedChanges(listsDirty);
+
+  async function saveLists() {
+    setListSaving(true);
+    try {
+      await upsertPlatformSettings({
+        data: {
+          entries: [
+            { key: "landing.faq", value: faq.filter((i) => (i.question || "").trim() || (i.answer || "").trim()) },
+            { key: "landing.features", value: features.filter((i) => (i.title || "").trim() || (i.body || "").trim()) },
+          ],
+        },
+      });
+      toast.success("Landing content saved");
+      qc.invalidateQueries({ queryKey: ["admin", "platform-settings"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Save failed");
+    } finally {
+      setListSaving(false);
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <SettingsPanelShell
+        title="Landing page — hero & sections"
+        description="Hero copy, primary calls to action and visibility of home page sections."
+        saving={s.saving}
+        dirty={s.dirty}
+        onSave={s.save}
+        onReset={s.reset}
+        isLoading={s.isLoading}
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {LANDING_FIELDS.map((f) => (
+            <FieldRow key={f.key} field={f} value={s.draft[f.key]} onChange={(v) => s.setValue(f.key, v)} />
+          ))}
+        </div>
+      </SettingsPanelShell>
+
+      <Card className="glass border-white/10 p-6 space-y-4">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <h2 className="font-display text-xl font-semibold">Features & FAQ</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Editable lists rendered on the landing page. Empty rows are dropped on save.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            onClick={saveLists}
+            disabled={!listsDirty || listSaving}
+            className="gradient-bg text-white border-0"
+          >
+            {listSaving ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1.5" />}
+            Save lists
+          </Button>
+        </div>
+
+        {isLoading ? (
+          <Skeleton className="h-40 w-full" />
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ListEditor
+              heading="Features"
+              items={features}
+              onChange={setFeatures}
+              fields={[
+                { key: "title", label: "Title", placeholder: "Multi-format uploads" },
+                { key: "body", label: "Description", placeholder: "PDF, DOCX, images, or plain text — we handle all of it.", textarea: true },
+              ]}
+              addLabel="Add feature"
+            />
+            <ListEditor
+              heading="FAQ"
+              items={faq}
+              onChange={setFaq}
+              fields={[
+                { key: "question", label: "Question", placeholder: "Is my data private?" },
+                { key: "answer", label: "Answer", placeholder: "Yes — assignments and files stay in your account.", textarea: true },
+              ]}
+              addLabel="Add question"
+            />
+          </div>
+        )}
+        {listsDirty && (
+          <p className="text-xs text-amber-400">Unsaved list changes — remember to save.</p>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+function ListEditor({
+  heading,
+  items,
+  onChange,
+  fields,
+  addLabel,
+}: {
+  heading: string;
+  items: ListItem[];
+  onChange: (v: ListItem[]) => void;
+  fields: { key: keyof ListItem; label: string; placeholder?: string; textarea?: boolean }[];
+  addLabel: string;
+}) {
+  function update(i: number, key: keyof ListItem, value: string) {
+    onChange(items.map((it, idx) => (idx === i ? { ...it, [key]: value } : it)));
+  }
+  function remove(i: number) {
+    onChange(items.filter((_, idx) => idx !== i));
+  }
+  function add() {
+    onChange([...items, {}]);
+  }
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-sm">{heading}</h3>
+        <Button variant="outline" size="sm" onClick={add}>
+          <Plus className="h-3.5 w-3.5 mr-1.5" /> {addLabel}
+        </Button>
+      </div>
+      {items.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-white/10 p-6 text-center text-xs text-muted-foreground">
+          Nothing here yet.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {items.map((it, i) => (
+            <div key={i} className="rounded-lg border border-white/10 bg-white/5 p-3 space-y-2 relative">
+              <button
+                type="button"
+                onClick={() => remove(i)}
+                className="absolute top-2 right-2 h-6 w-6 rounded hover:bg-white/10 flex items-center justify-center text-muted-foreground hover:text-destructive"
+                aria-label="Remove"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+              {fields.map((f) => (
+                <div key={String(f.key)}>
+                  <Label className="text-xs">{f.label}</Label>
+                  {f.textarea ? (
+                    <Textarea
+                      value={(it[f.key] as string) ?? ""}
+                      onChange={(e) => update(i, f.key, e.target.value)}
+                      placeholder={f.placeholder}
+                      rows={2}
+                      className="mt-1"
+                    />
+                  ) : (
+                    <Input
+                      value={(it[f.key] as string) ?? ""}
+                      onChange={(e) => update(i, f.key, e.target.value)}
+                      placeholder={f.placeholder}
+                      className="mt-1"
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
