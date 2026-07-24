@@ -131,6 +131,9 @@ function AdminSettingsPage() {
         <TabsContent value="announcements" className="mt-6">
           <AnnouncementsPanel />
         </TabsContent>
+        <TabsContent value="monetization" className="mt-6">
+          <MonetizationSettingsPanel />
+        </TabsContent>
         <TabsContent value="audit" className="mt-6">
           <AuditLogsPanel />
         </TabsContent>
