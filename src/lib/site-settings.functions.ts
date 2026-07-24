@@ -77,6 +77,7 @@ export type SiteSettings = {
     faq: ListItem[];
     testimonials: ListItem[];
   };
+  monetization: MonetizationSettings;
 };
 
 const DEFAULTS: SiteSettings = {
