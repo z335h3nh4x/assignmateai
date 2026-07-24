@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { logAudit } from "./audit.server";
 
 async function assertAdmin(context: { supabase: any; userId: string }) {
   const { data, error } = await context.supabase.rpc("has_role", {
@@ -8,6 +9,7 @@ async function assertAdmin(context: { supabase: any; userId: string }) {
   });
   if (error || !data) throw new Error("Forbidden");
 }
+
 
 export type PlanFeatures = Record<string, boolean>;
 
