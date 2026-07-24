@@ -2,14 +2,14 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Sparkles, Upload, FileText, GraduationCap, PenLine,
-  ShieldCheck, Zap, BookOpen, ChevronRight,
+  Sparkles, Upload, GraduationCap, PenLine,
+  ShieldCheck, Zap, BookOpen, ChevronRight, Quote,
 } from "lucide-react";
 import {
   Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from "@/components/ui/accordion";
 import { listPublicPlans, type PublicPlan } from "@/lib/plans.functions";
-
+import { getSiteSettings, type SiteSettings } from "@/lib/site-settings.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -23,28 +23,48 @@ export const Route = createFileRoute("/")({
   component: Landing,
 });
 
-function Nav() {
+function useSite() {
+  return useQuery({
+    queryKey: ["site-settings"],
+    queryFn: () => getSiteSettings(),
+    staleTime: 30_000,
+  });
+}
+
+function Nav({ site }: { site?: SiteSettings }) {
+  const name = site?.general.platform_name || "Assignmate";
+  const logo = site?.branding.logo_url;
   return (
     <header className="fixed top-0 inset-x-0 z-40">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-4">
         <div className="glass rounded-2xl px-5 py-3 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg gradient-bg grid place-items-center">
-              <Sparkles className="h-4 w-4 text-white" />
-            </div>
-            <span className="font-display font-semibold tracking-tight">Assignmate</span>
+            {logo ? (
+              <img src={logo} alt={name} className="h-8 w-auto max-w-[140px] object-contain" />
+            ) : (
+              <>
+                <div className="h-8 w-8 rounded-lg gradient-bg grid place-items-center">
+                  <Sparkles className="h-4 w-4 text-white" />
+                </div>
+                <span className="font-display font-semibold tracking-tight">{name}</span>
+              </>
+            )}
           </Link>
           <nav className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
             <a href="#features" className="hover:text-foreground transition">Features</a>
-            <a href="#pricing" className="hover:text-foreground transition">Pricing</a>
-            <a href="#faq" className="hover:text-foreground transition">FAQ</a>
+            {site?.landing.show_pricing !== false && (
+              <a href="#pricing" className="hover:text-foreground transition">Pricing</a>
+            )}
+            {site?.landing.show_faq !== false && (
+              <a href="#faq" className="hover:text-foreground transition">FAQ</a>
+            )}
           </nav>
           <div className="flex items-center gap-2">
             <Link to="/auth" className="text-sm px-4 py-2 rounded-lg hover:bg-white/5 transition">
               Login
             </Link>
             <Link to="/auth" className="text-sm px-4 py-2 rounded-lg gradient-bg text-white font-medium glow">
-              Try Free
+              {site?.landing.hero_cta_text || "Try Free"}
             </Link>
           </div>
         </div>
@@ -53,7 +73,17 @@ function Nav() {
   );
 }
 
-function Hero() {
+function Hero({ site }: { site?: SiteSettings }) {
+  const eyebrow = site?.landing.hero_eyebrow || "Powered by advanced AI — trained for academics";
+  const title = site?.landing.hero_title;
+  const subtitle =
+    site?.landing.hero_subtitle ||
+    "Upload a PDF, image, DOCX or paste your prompt. Choose your level and style. Get a fully formatted, human-sounding assignment in seconds.";
+  const primaryText = site?.landing.hero_cta_text || "Try Free";
+  const primaryUrl = site?.landing.hero_cta_url || "/auth";
+  const secondaryText = site?.landing.hero_secondary_cta_text || "See how it works";
+  const secondaryUrl = site?.landing.hero_secondary_cta_url || "#features";
+
   return (
     <section className="relative pt-40 pb-24 px-4">
       <div className="mx-auto max-w-5xl text-center">
@@ -62,32 +92,37 @@ function Hero() {
           className="inline-flex items-center gap-2 glass rounded-full px-4 py-1.5 text-xs text-muted-foreground mb-8"
         >
           <Sparkles className="h-3.5 w-3.5 text-primary" />
-          Powered by advanced AI — trained for academics
+          {eyebrow}
         </motion.div>
         <motion.h1
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.1 }}
           className="font-display text-5xl sm:text-6xl md:text-7xl font-bold tracking-tighter"
         >
-          Solve any assignment with{" "}
-          <span className="gradient-text">Assignmate</span>
+          {title ? (
+            title
+          ) : (
+            <>
+              Solve any assignment with{" "}
+              <span className="gradient-text">{site?.general.platform_name || "Assignmate"}</span>
+            </>
+          )}
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }}
           className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto"
         >
-          Upload a PDF, image, DOCX or paste your prompt. Choose your level and style.
-          Get a fully formatted, human-sounding assignment in seconds.
+          {subtitle}
         </motion.p>
         <motion.div
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.3 }}
           className="mt-10 flex flex-wrap gap-3 justify-center"
         >
-          <Link to="/auth" className="inline-flex items-center gap-2 rounded-xl gradient-bg text-white font-medium px-6 py-3.5 glow hover:scale-[1.02] transition">
-            Try Free <ChevronRight className="h-4 w-4" />
-          </Link>
-          <a href="#features" className="inline-flex items-center gap-2 rounded-xl glass px-6 py-3.5 font-medium hover:bg-white/10 transition">
-            See how it works
-          </a>
+          <CTALink href={primaryUrl} className="inline-flex items-center gap-2 rounded-xl gradient-bg text-white font-medium px-6 py-3.5 glow hover:scale-[1.02] transition">
+            {primaryText} <ChevronRight className="h-4 w-4" />
+          </CTALink>
+          <CTALink href={secondaryUrl} className="inline-flex items-center gap-2 rounded-xl glass px-6 py-3.5 font-medium hover:bg-white/10 transition">
+            {secondaryText}
+          </CTALink>
         </motion.div>
 
         <motion.div
@@ -116,7 +151,23 @@ function Hero() {
   );
 }
 
-const FEATURES = [
+function CTALink({ href, className, children }: { href: string; className?: string; children: React.ReactNode }) {
+  const isInternal = href.startsWith("/") && !href.startsWith("//");
+  if (isInternal) {
+    return (
+      <Link to={href} className={className}>
+        {children}
+      </Link>
+    );
+  }
+  return (
+    <a href={href} className={className}>
+      {children}
+    </a>
+  );
+}
+
+const DEFAULT_FEATURES = [
   { icon: Upload, title: "Any input format", body: "Upload PDF, DOCX, TXT or images — or just paste the prompt." },
   { icon: GraduationCap, title: "Matched to your level", body: "School, college, university or masters — tone and depth adapt." },
   { icon: PenLine, title: "4 writing styles", body: "Simple, detailed, academic, or humanized. Pick your voice." },
@@ -125,20 +176,39 @@ const FEATURES = [
   { icon: Zap, title: "Lightning fast", body: "Full assignments generated in seconds, streamed to your screen." },
 ];
 
-function Features() {
+const FEATURE_ICONS = [Upload, GraduationCap, PenLine, BookOpen, ShieldCheck, Zap];
+
+function Features({ site }: { site?: SiteSettings }) {
+  const customFeatures = site?.landing.features?.filter(
+    (f) => (f.title || "").trim() || (f.body || "").trim(),
+  );
+  const items = customFeatures && customFeatures.length > 0
+    ? customFeatures.map((f, i) => ({
+        icon: FEATURE_ICONS[i % FEATURE_ICONS.length],
+        title: f.title || "",
+        body: f.body || "",
+      }))
+    : DEFAULT_FEATURES;
+  const heading = site?.landing.features_heading;
+  const subheading =
+    site?.landing.features_subheading ||
+    "Built for real student workflows — from problem sheet to polished submission.";
+
   return (
     <section id="features" className="py-24 px-4">
       <div className="mx-auto max-w-6xl">
         <div className="text-center max-w-2xl mx-auto mb-16">
           <h2 className="font-display text-4xl md:text-5xl font-bold tracking-tight">
-            Everything you need to <span className="gradient-text">ship the assignment</span>
+            {heading ? (
+              heading
+            ) : (
+              <>Everything you need to <span className="gradient-text">ship the assignment</span></>
+            )}
           </h2>
-          <p className="mt-4 text-muted-foreground">
-            Built for real student workflows — from problem sheet to polished submission.
-          </p>
+          <p className="mt-4 text-muted-foreground">{subheading}</p>
         </div>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {FEATURES.map((f, i) => (
+          {items.map((f, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, y: 20 }}
@@ -170,7 +240,6 @@ function formatPrice(cents: number, currency: string) {
 function planFeatureLines(p: PublicPlan): string[] {
   const lines: string[] = [];
   lines.push(p.credits ? `${p.credits.toLocaleString()} credits` : "Pay-as-you-go credits");
-  
   if (p.monthly_limit) lines.push(`${p.monthly_limit.toLocaleString()} assignments / month`);
   if (p.max_upload_mb) lines.push(`${p.max_upload_mb} MB uploads · ${p.max_upload_pages || "∞"} pages`);
   const featureLabels: Record<string, string> = {
@@ -194,22 +263,29 @@ function planFeatureLines(p: PublicPlan): string[] {
   return lines;
 }
 
-function Pricing() {
+function Pricing({ site }: { site?: SiteSettings }) {
   const { data, isLoading } = useQuery({
     queryKey: ["public-plans"],
     queryFn: () => listPublicPlans(),
     staleTime: 60_000,
   });
   const plans = (data ?? []).filter((p) => p.sort_order >= 0);
+  const heading = site?.landing.pricing_heading;
+  const subheading =
+    site?.landing.pricing_subheading || "Cancel anytime. No credit card required to start.";
 
   return (
     <section id="pricing" className="py-24 px-4">
       <div className="mx-auto max-w-6xl">
         <div className="text-center max-w-2xl mx-auto mb-16">
           <h2 className="font-display text-4xl md:text-5xl font-bold tracking-tight">
-            Simple, student-friendly <span className="gradient-text">pricing</span>
+            {heading ? (
+              heading
+            ) : (
+              <>Simple, student-friendly <span className="gradient-text">pricing</span></>
+            )}
           </h2>
-          <p className="mt-4 text-muted-foreground">Cancel anytime. No credit card required to start.</p>
+          <p className="mt-4 text-muted-foreground">{subheading}</p>
         </div>
         {isLoading && (
           <div className="text-center text-sm text-muted-foreground">Loading plans…</div>
@@ -267,30 +343,59 @@ function Pricing() {
   );
 }
 
+function Testimonials({ site }: { site?: SiteSettings }) {
+  const items = (site?.landing.testimonials || []).filter(
+    (t) => (t.name || "").trim() || (t.quote || "").trim(),
+  );
+  if (items.length === 0) return null;
+  const heading = site?.landing.testimonials_heading || "Loved by students";
+  return (
+    <section id="testimonials" className="py-24 px-4">
+      <div className="mx-auto max-w-6xl">
+        <div className="text-center max-w-2xl mx-auto mb-16">
+          <h2 className="font-display text-4xl md:text-5xl font-bold tracking-tight">{heading}</h2>
+        </div>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {items.map((t, i) => (
+            <div key={i} className="glass rounded-2xl p-6">
+              <Quote className="h-5 w-5 text-primary mb-3" />
+              <p className="text-sm text-foreground/90">{t.quote}</p>
+              <div className="mt-4">
+                <p className="text-sm font-semibold">{t.name}</p>
+                {t.role && <p className="text-xs text-muted-foreground">{t.role}</p>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
 
-const FAQS = [
-  { q: "Is Assignmate detected as AI?", a: "We use a dedicated humanized style that produces natural, varied prose — most detectors flag it as human-written. Always review before submitting." },
-  { q: "What files can I upload?", a: "PDF, DOCX, TXT and images (JPG, PNG). You can also paste text directly." },
-  { q: "Do you include references?", a: "Yes. Any output style except 'Simple' produces formatted headings, bullets and inline references." },
-  { q: "Can I edit the result?", a: "Absolutely — copy it, download as PDF/DOCX, or regenerate with different settings." },
-  { q: "Is my data private?", a: "Your assignments are stored securely under your account only. We never train on your data." },
+const DEFAULT_FAQS = [
+  { question: "Is Assignmate detected as AI?", answer: "We use a dedicated humanized style that produces natural, varied prose — most detectors flag it as human-written. Always review before submitting." },
+  { question: "What files can I upload?", answer: "PDF, DOCX, TXT and images (JPG, PNG). You can also paste text directly." },
+  { question: "Do you include references?", answer: "Yes. Any output style except 'Simple' produces formatted headings, bullets and inline references." },
+  { question: "Can I edit the result?", answer: "Absolutely — copy it, download as PDF/DOCX, or regenerate with different settings." },
+  { question: "Is my data private?", answer: "Your assignments are stored securely under your account only. We never train on your data." },
 ];
 
-function FAQ() {
+function FAQ({ site }: { site?: SiteSettings }) {
+  const custom = (site?.landing.faq || []).filter((f) => (f.question || "").trim() || (f.answer || "").trim());
+  const items = custom.length > 0 ? custom : DEFAULT_FAQS;
+  const heading = site?.landing.faq_heading || "Frequently asked";
   return (
     <section id="faq" className="py-24 px-4">
       <div className="mx-auto max-w-3xl">
         <div className="text-center mb-12">
-          <h2 className="font-display text-4xl md:text-5xl font-bold tracking-tight">
-            Frequently asked
-          </h2>
+          <h2 className="font-display text-4xl md:text-5xl font-bold tracking-tight">{heading}</h2>
         </div>
         <div className="glass rounded-2xl p-2">
           <Accordion type="single" collapsible className="w-full">
-            {FAQS.map((f, i) => (
+            {items.map((f, i) => (
               <AccordionItem key={i} value={`i-${i}`} className="px-5 border-white/10">
-                <AccordionTrigger className="text-left hover:no-underline">{f.q}</AccordionTrigger>
-                <AccordionContent className="text-muted-foreground">{f.a}</AccordionContent>
+                <AccordionTrigger className="text-left hover:no-underline">{f.question}</AccordionTrigger>
+                <AccordionContent className="text-muted-foreground">{f.answer}</AccordionContent>
               </AccordionItem>
             ))}
           </Accordion>
@@ -300,31 +405,41 @@ function FAQ() {
   );
 }
 
-function Footer() {
+function Footer({ site }: { site?: SiteSettings }) {
+  const name = site?.general.platform_name || "Assignmate";
+  const copyright = site?.general.copyright_text || `© 2026 ${name}`;
+  const tagline = site?.general.footer_text || "Built for students who ship.";
+  const logo = site?.branding.logo_url;
   return (
     <footer className="py-12 px-4 border-t border-white/5">
       <div className="mx-auto max-w-7xl flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <div className="h-6 w-6 rounded-md gradient-bg grid place-items-center">
-            <Sparkles className="h-3 w-3 text-white" />
-          </div>
-          <span className="text-sm text-muted-foreground">© 2026 Assignmate</span>
+          {logo ? (
+            <img src={logo} alt={name} className="h-6 w-auto max-w-[120px] object-contain" />
+          ) : (
+            <div className="h-6 w-6 rounded-md gradient-bg grid place-items-center">
+              <Sparkles className="h-3 w-3 text-white" />
+            </div>
+          )}
+          <span className="text-sm text-muted-foreground">{copyright}</span>
         </div>
-        <div className="text-xs text-muted-foreground">Built for students who ship.</div>
+        <div className="text-xs text-muted-foreground">{tagline}</div>
       </div>
     </footer>
   );
 }
 
 function Landing() {
+  const { data: site } = useSite();
   return (
     <div className="min-h-screen">
-      <Nav />
-      <Hero />
-      <Features />
-      <Pricing />
-      <FAQ />
-      <Footer />
+      <Nav site={site} />
+      <Hero site={site} />
+      <Features site={site} />
+      {site?.landing.show_pricing !== false && <Pricing site={site} />}
+      {site?.landing.show_testimonials && <Testimonials site={site} />}
+      {site?.landing.show_faq !== false && <FAQ site={site} />}
+      <Footer site={site} />
     </div>
   );
 }

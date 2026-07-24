@@ -1058,14 +1058,15 @@ function SettingsPanelShell({
 
 const GENERAL_FIELDS: FieldDef[] = [
   { key: "platform_name", label: "Platform name", type: "text", default: "Assignmate", placeholder: "Assignmate" },
-  { key: "tagline", label: "Tagline", type: "text", default: "AI-powered assignment workspace for students.", placeholder: "One-line description" },
+  { key: "tagline", label: "Platform tagline", type: "text", default: "AI-powered assignment workspace for students.", placeholder: "One-line description" },
   { key: "support_email", label: "Support email", type: "email", placeholder: "support@assignmate.app" },
   { key: "contact_email", label: "Contact email", type: "email", placeholder: "hello@assignmate.app" },
-  { key: "footer_text", label: "Footer text", type: "text", placeholder: "© 2026 Assignmate. All rights reserved." },
-  { key: "default_locale", label: "Default locale", type: "text", default: "en-US", placeholder: "en-US" },
-  { key: "timezone", label: "Default timezone", type: "text", default: "UTC", placeholder: "UTC" },
+  { key: "website_url", label: "Website URL", type: "url", placeholder: "https://assignmate.app" },
+  { key: "copyright_text", label: "Copyright text", type: "text", default: "© 2026 Assignmate. All rights reserved.", placeholder: "© 2026 Assignmate. All rights reserved." },
+  { key: "footer_text", label: "Footer tagline", type: "text", placeholder: "Built for students who ship." },
   { key: "maintenance_mode", label: "Maintenance mode", type: "switch", description: "When on, non-admins see a maintenance notice on the app.", default: false },
 ];
+
 
 function GeneralSettingsPanel() {
   const s = useSettingsDraft("general", GENERAL_FIELDS);
@@ -1090,24 +1091,37 @@ function GeneralSettingsPanel() {
 
 /* ============================ Branding ============================ */
 
-const BRANDING_FIELDS: FieldDef[] = [
-  { key: "logo_url", label: "Logo URL (light)", type: "url", placeholder: "https://…/logo.svg" },
-  { key: "logo_dark_url", label: "Logo URL (dark)", type: "url", placeholder: "https://…/logo-dark.svg" },
-  { key: "favicon_url", label: "Favicon URL", type: "url", placeholder: "https://…/favicon.ico" },
-  { key: "og_image_url", label: "Social share image", type: "url", placeholder: "https://…/og.png", description: "1200×630 recommended." },
+const BRAND_UPLOADS: {
+  key: "logo_url" | "logo_dark_url" | "favicon_url" | "og_image_url";
+  label: string;
+  hint: string;
+  accept: string;
+  background: string;
+  height: string;
+}[] = [
+  { key: "logo_url", label: "Logo (light background)", hint: "PNG / SVG. Used on the website header and emails.", accept: "image/png,image/jpeg,image/svg+xml,image/webp", background: "#ffffff", height: "h-24" },
+  { key: "logo_dark_url", label: "Logo (dark background)", hint: "Optional dark-theme variant.", accept: "image/png,image/jpeg,image/svg+xml,image/webp", background: "#0b0b12", height: "h-24" },
+  { key: "favicon_url", label: "Favicon", hint: "Square, 32×32 or larger. PNG / ICO / SVG.", accept: "image/png,image/x-icon,image/vnd.microsoft.icon,image/svg+xml", background: "#0b0b12", height: "h-24" },
+  { key: "og_image_url", label: "Social sharing image", hint: "1200×630 recommended for previews.", accept: "image/png,image/jpeg,image/webp", background: "#0b0b12", height: "h-40" },
+];
+
+const BRAND_META_FIELDS: FieldDef[] = [
   { key: "primary_color", label: "Primary color", type: "color", default: "#6366f1" },
   { key: "accent_color", label: "Accent color", type: "color", default: "#8b5cf6" },
   { key: "brand_font", label: "Brand font", type: "text", default: "Inter", placeholder: "Inter, Sora, …" },
 ];
 
+const ALL_BRANDING_FIELDS: FieldDef[] = [
+  ...BRAND_UPLOADS.map((u) => ({ key: u.key, label: u.label, type: "url" as FieldType })),
+  ...BRAND_META_FIELDS,
+];
+
 function BrandingSettingsPanel() {
-  const s = useSettingsDraft("branding", BRANDING_FIELDS);
-  const logo = s.draft.logo_url as string | undefined;
-  const dark = s.draft.logo_dark_url as string | undefined;
+  const s = useSettingsDraft("branding", ALL_BRANDING_FIELDS);
   return (
     <SettingsPanelShell
       title="Branding"
-      description="Logos, favicon, social preview image and brand palette."
+      description="Upload logos, favicon and social preview image, plus your brand palette. Changes appear on the public website instantly after saving."
       saving={s.saving}
       dirty={s.dirty}
       onSave={s.save}
@@ -1115,53 +1129,176 @@ function BrandingSettingsPanel() {
       isLoading={s.isLoading}
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {BRANDING_FIELDS.map((f) => (
-          <FieldRow key={f.key} field={f} value={s.draft[f.key]} onChange={(v) => s.setValue(f.key, v)} />
+        {BRAND_UPLOADS.map((u) => (
+          <BrandUploader
+            key={u.key}
+            label={u.label}
+            hint={u.hint}
+            accept={u.accept}
+            background={u.background}
+            height={u.height}
+            value={s.draft[u.key] as string}
+            onChange={(v) => s.setValue(u.key, v)}
+          />
         ))}
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <LogoPreview label="Light preview" src={logo} background="#ffffff" />
-        <LogoPreview label="Dark preview" src={dark || logo} background="#0b0b12" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {BRAND_META_FIELDS.map((f) => (
+          <FieldRow key={f.key} field={f} value={s.draft[f.key]} onChange={(v) => s.setValue(f.key, v)} />
+        ))}
       </div>
     </SettingsPanelShell>
   );
 }
 
-function LogoPreview({ label, src, background }: { label: string; src?: string; background: string }) {
+function BrandUploader({
+  label,
+  hint,
+  accept,
+  background,
+  height,
+  value,
+  onChange,
+}: {
+  label: string;
+  hint: string;
+  accept: string;
+  background: string;
+  height: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
+  const inputId = `upload-${label.replace(/\W+/g, "-").toLowerCase()}`;
+
+  async function handleFile(file: File) {
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image is larger than 5 MB.");
+      return;
+    }
+    setLocalPreview(URL.createObjectURL(file));
+    setUploading(true);
+    try {
+      const ext = (file.name.split(".").pop() || "png").toLowerCase();
+      const path = `${label.replace(/\W+/g, "-").toLowerCase()}/${Date.now()}.${ext}`;
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { error: upErr } = await supabase.storage
+        .from("branding")
+        .upload(path, file, { upsert: true, contentType: file.type || undefined });
+      if (upErr) throw upErr;
+      // Long-lived signed URL (10 years) so the asset is publicly cacheable.
+      const { data: signed, error: signErr } = await supabase.storage
+        .from("branding")
+        .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+      if (signErr || !signed?.signedUrl) throw signErr ?? new Error("Failed to sign URL");
+      onChange(signed.signedUrl);
+      toast.success(`${label} uploaded — remember to save.`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  const preview = localPreview || value;
   return (
-    <div className="rounded-lg border border-white/10 overflow-hidden">
-      <div className="text-[11px] uppercase tracking-wide text-muted-foreground px-3 py-1.5 bg-white/5">
-        {label}
+    <div className="rounded-lg border border-white/10 bg-white/5 p-3 space-y-2">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <Label className="text-sm">{label}</Label>
+          <p className="text-xs text-muted-foreground mt-0.5">{hint}</p>
+        </div>
+        {value && (
+          <button
+            type="button"
+            onClick={() => {
+              setLocalPreview(null);
+              onChange("");
+            }}
+            className="text-xs text-muted-foreground hover:text-destructive"
+          >
+            Remove
+          </button>
+        )}
       </div>
-      <div className="h-24 flex items-center justify-center" style={{ background }}>
-        {src ? (
-          <img src={src} alt={label} className="max-h-16 max-w-[70%] object-contain" />
+      <div
+        className={`rounded-md overflow-hidden flex items-center justify-center ${height} relative`}
+        style={{ background }}
+      >
+        {preview ? (
+          <img src={preview} alt={label} className="max-h-[80%] max-w-[80%] object-contain" />
         ) : (
           <span className="text-xs text-muted-foreground/70">No image set</span>
         )}
+        {uploading && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+            <Loader2 className="h-5 w-5 animate-spin text-white" />
+          </div>
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        <input
+          id={inputId}
+          type="file"
+          accept={accept}
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) handleFile(f);
+            e.target.value = "";
+          }}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => document.getElementById(inputId)?.click()}
+          disabled={uploading}
+        >
+          {uploading ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Uploading…
+            </>
+          ) : (
+            <>Upload image</>
+          )}
+        </Button>
+        <Input
+          value={value ?? ""}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="or paste an image URL"
+          className="text-xs"
+        />
       </div>
     </div>
   );
 }
 
+
+
 /* ============================ Landing Page ============================ */
 
 const LANDING_FIELDS: FieldDef[] = [
   { key: "hero_eyebrow", label: "Hero eyebrow", type: "text", placeholder: "New — AI assignment workspace" },
-  { key: "hero_title", label: "Hero title", type: "text", placeholder: "Turn any assignment into a polished submission" },
-  { key: "hero_subtitle", label: "Hero subtitle", type: "textarea", rows: 2, placeholder: "Upload, generate, humanize, export — in one click." },
-  { key: "hero_cta_text", label: "Primary CTA text", type: "text", default: "Get started", placeholder: "Get started" },
-  { key: "hero_cta_url", label: "Primary CTA URL", type: "url", default: "/auth", placeholder: "/auth" },
-  { key: "hero_secondary_cta_text", label: "Secondary CTA text", type: "text", placeholder: "See pricing" },
-  { key: "hero_secondary_cta_url", label: "Secondary CTA URL", type: "url", placeholder: "/#pricing" },
+  { key: "hero_title", label: "Hero heading", type: "text", placeholder: "Turn any assignment into a polished submission" },
+  { key: "hero_subtitle", label: "Hero description", type: "textarea", rows: 3, placeholder: "Upload, generate, humanize, export — in one click." },
+  { key: "hero_cta_text", label: "Primary button text", type: "text", default: "Try Free", placeholder: "Try Free" },
+  { key: "hero_cta_url", label: "Primary button URL", type: "url", default: "/auth", placeholder: "/auth" },
+  { key: "hero_secondary_cta_text", label: "Secondary button text", type: "text", placeholder: "See how it works" },
+  { key: "hero_secondary_cta_url", label: "Secondary button URL", type: "url", placeholder: "#features" },
   { key: "show_pricing", label: "Show pricing section", type: "switch", default: true },
   { key: "show_testimonials", label: "Show testimonials section", type: "switch", default: false },
   { key: "show_faq", label: "Show FAQ section", type: "switch", default: true },
-  { key: "pricing_heading", label: "Pricing heading", type: "text", default: "Simple, transparent pricing", placeholder: "Pricing heading" },
-  { key: "faq_heading", label: "FAQ heading", type: "text", default: "Frequently asked questions", placeholder: "FAQ heading" },
+  { key: "features_heading", label: "Features title", type: "text", placeholder: "Everything you need to ship the assignment" },
+  { key: "features_subheading", label: "Features subtitle", type: "textarea", rows: 2, placeholder: "Built for real student workflows." },
+  { key: "pricing_heading", label: "Pricing title", type: "text", placeholder: "Simple, student-friendly pricing" },
+  { key: "pricing_subheading", label: "Pricing subtitle", type: "textarea", rows: 2, placeholder: "Cancel anytime. No credit card required to start." },
+  { key: "testimonials_heading", label: "Testimonials title", type: "text", placeholder: "Loved by students" },
+  { key: "faq_heading", label: "FAQ title", type: "text", default: "Frequently asked", placeholder: "Frequently asked" },
 ];
 
-type ListItem = { question?: string; answer?: string; title?: string; body?: string };
+type ListItem = { question?: string; answer?: string; title?: string; body?: string; name?: string; role?: string; quote?: string };
 
 function LandingSettingsPanel() {
   const s = useSettingsDraft("landing", LANDING_FIELDS);
@@ -1169,21 +1306,29 @@ function LandingSettingsPanel() {
   const { data: settingsMap, isLoading } = useSettingsMap();
   const [faq, setFaq] = useState<ListItem[]>([]);
   const [features, setFeatures] = useState<ListItem[]>([]);
-  const [initialLists, setInitialLists] = useState<{ faq: ListItem[]; features: ListItem[] }>({ faq: [], features: [] });
+  const [testimonials, setTestimonials] = useState<ListItem[]>([]);
+  const [initialLists, setInitialLists] = useState<{ faq: ListItem[]; features: ListItem[]; testimonials: ListItem[] }>({
+    faq: [],
+    features: [],
+    testimonials: [],
+  });
   const [listSaving, setListSaving] = useState(false);
 
   useEffect(() => {
     if (!settingsMap) return;
     const f = Array.isArray(settingsMap["landing.faq"]) ? settingsMap["landing.faq"] : [];
     const feats = Array.isArray(settingsMap["landing.features"]) ? settingsMap["landing.features"] : [];
+    const tests = Array.isArray(settingsMap["landing.testimonials"]) ? settingsMap["landing.testimonials"] : [];
     setFaq(f);
     setFeatures(feats);
-    setInitialLists({ faq: f, features: feats });
+    setTestimonials(tests);
+    setInitialLists({ faq: f, features: feats, testimonials: tests });
   }, [settingsMap]);
 
   const listsDirty =
     JSON.stringify(faq) !== JSON.stringify(initialLists.faq) ||
-    JSON.stringify(features) !== JSON.stringify(initialLists.features);
+    JSON.stringify(features) !== JSON.stringify(initialLists.features) ||
+    JSON.stringify(testimonials) !== JSON.stringify(initialLists.testimonials);
   useUnsavedChanges(listsDirty);
 
   async function saveLists() {
@@ -1194,6 +1339,10 @@ function LandingSettingsPanel() {
           entries: [
             { key: "landing.faq", value: faq.filter((i) => (i.question || "").trim() || (i.answer || "").trim()) },
             { key: "landing.features", value: features.filter((i) => (i.title || "").trim() || (i.body || "").trim()) },
+            {
+              key: "landing.testimonials",
+              value: testimonials.filter((i) => (i.name || "").trim() || (i.quote || "").trim()),
+            },
           ],
         },
       });
@@ -1210,7 +1359,7 @@ function LandingSettingsPanel() {
     <div className="space-y-6">
       <SettingsPanelShell
         title="Landing page — hero & sections"
-        description="Hero copy, primary calls to action and visibility of home page sections."
+        description="Hero copy, primary calls to action, section headings and visibility toggles for the home page."
         saving={s.saving}
         dirty={s.dirty}
         onSave={s.save}
@@ -1227,7 +1376,7 @@ function LandingSettingsPanel() {
       <Card className="glass border-white/10 p-6 space-y-4">
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
-            <h2 className="font-display text-xl font-semibold">Features & FAQ</h2>
+            <h2 className="font-display text-xl font-semibold">Features, FAQ & testimonials</h2>
             <p className="text-sm text-muted-foreground mt-1">
               Editable lists rendered on the landing page. Empty rows are dropped on save.
             </p>
@@ -1253,7 +1402,7 @@ function LandingSettingsPanel() {
               onChange={setFeatures}
               fields={[
                 { key: "title", label: "Title", placeholder: "Multi-format uploads" },
-                { key: "body", label: "Description", placeholder: "PDF, DOCX, images, or plain text — we handle all of it.", textarea: true },
+                { key: "body", label: "Description", placeholder: "PDF, DOCX, images, or plain text.", textarea: true },
               ]}
               addLabel="Add feature"
             />
@@ -1267,6 +1416,19 @@ function LandingSettingsPanel() {
               ]}
               addLabel="Add question"
             />
+            <div className="lg:col-span-2">
+              <ListEditor
+                heading="Testimonials"
+                items={testimonials}
+                onChange={setTestimonials}
+                fields={[
+                  { key: "name", label: "Name", placeholder: "Priya S." },
+                  { key: "role", label: "Role", placeholder: "MSc student, IIT Delhi" },
+                  { key: "quote", label: "Quote", placeholder: "Assignmate saved me hours every week.", textarea: true },
+                ]}
+                addLabel="Add testimonial"
+              />
+            </div>
           </div>
         )}
         {listsDirty && (
@@ -1276,6 +1438,7 @@ function LandingSettingsPanel() {
     </div>
   );
 }
+
 
 function ListEditor({
   heading,
