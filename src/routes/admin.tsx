@@ -66,7 +66,7 @@ function AdminLayout() {
               <Sparkles className="h-4 w-4 text-white" />
             </div>
             <div className="flex flex-col leading-tight">
-              <span className="font-display font-semibold">AssignAI</span>
+              <span className="font-display font-semibold">Assignmate</span>
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Admin</span>
             </div>
           </Link>

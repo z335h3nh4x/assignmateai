@@ -20,7 +20,7 @@ type Row = {
 };
 
 export const Route = createFileRoute("/_authenticated/history")({
-  head: () => ({ meta: [{ title: "History — AssignAI" }] }),
+  head: () => ({ meta: [{ title: "History — Assignmate" }] }),
   component: HistoryPage,
 });
 

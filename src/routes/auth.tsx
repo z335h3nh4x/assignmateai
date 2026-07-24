@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({ meta: [{ title: "Sign in — AssignAI" }] }),
+  head: () => ({ meta: [{ title: "Sign in — Assignmate" }] }),
   component: AuthPage,
 });
 

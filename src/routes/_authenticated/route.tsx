@@ -42,7 +42,7 @@ function AuthedLayout() {
             <div className="h-8 w-8 rounded-lg gradient-bg grid place-items-center">
               <Sparkles className="h-4 w-4 text-white" />
             </div>
-            <span className="font-display font-semibold">AssignAI</span>
+            <span className="font-display font-semibold">Assignmate</span>
           </Link>
           <nav className="mt-6 space-y-1">
             {NAV.map((item) => {
