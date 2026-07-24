@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Moon, Sun, User, CreditCard, Sparkles } from "lucide-react";
+import { Moon, Sun, User } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useSiteSettings, supportEmail as siteSupportEmail } from "@/hooks/use-site-settings";
+import { UsagePanel } from "@/components/usage-panel";
 
 
 export const Route = createFileRoute("/_authenticated/settings")({
@@ -42,21 +43,6 @@ function SettingsPage() {
     },
   });
 
-  const { data: sub } = useQuery({
-    queryKey: ["subscription"],
-    queryFn: async () => {
-      const { data } = await supabase.from("subscriptions").select("plan,status").maybeSingle();
-      return data;
-    },
-  });
-
-  const { data: tokens } = useQuery({
-    queryKey: ["tokens"],
-    queryFn: async () => {
-      const { data } = await supabase.from("tokens").select("balance,used").maybeSingle();
-      return data;
-    },
-  });
 
   useEffect(() => {
     if (profile?.display_name) setDisplayName(profile.display_name);
@@ -135,31 +121,16 @@ function SettingsPage() {
         </div>
       </Card>
 
-      <Card className="glass border-white/10 p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <CreditCard className="h-4 w-4 text-primary" />
-          <h2 className="font-semibold">Subscription</h2>
-        </div>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="font-medium capitalize">{sub?.plan ?? "free"} plan</p>
-            <p className="text-sm text-muted-foreground">
-              {tokens ? `${tokens.balance.toLocaleString()} tokens remaining · ${tokens.used.toLocaleString()} used` : "—"}
-            </p>
-          </div>
-          <Button className="gradient-bg text-white border-0" onClick={() => toast.message("Upgrades open soon — join the waitlist!")}>
-            <Sparkles className="h-4 w-4 mr-2" /> Upgrade
-          </Button>
-        </div>
-        {supportEmail && (
-          <div className="mt-4 pt-4 border-t border-white/10 text-sm text-muted-foreground">
-            Need help with your plan?{" "}
-            <a href={`mailto:${supportEmail}`} className="text-primary hover:underline">
-              Contact support
-            </a>
-          </div>
-        )}
-      </Card>
+      <UsagePanel />
+
+      {supportEmail && (
+        <Card className="glass border-white/10 p-6 text-sm text-muted-foreground">
+          Need help with your plan?{" "}
+          <a href={`mailto:${supportEmail}`} className="text-primary hover:underline">
+            Contact support
+          </a>
+        </Card>
+      )}
 
     </div>
   );
