@@ -353,7 +353,7 @@ function Pricing({ site }: { site?: SiteSettings }) {
 
 function Testimonials({ site }: { site?: SiteSettings }) {
   const items = (site?.landing.testimonials || []).filter(
-    (t) => (t.name || "").trim() || (t.quote || "").trim(),
+    (t) => !t.hidden && ((t.name || "").trim() || (t.quote || "").trim()),
   );
   if (items.length === 0) return null;
   const heading = site?.landing.testimonials_heading || "Loved by students";
@@ -364,16 +364,43 @@ function Testimonials({ site }: { site?: SiteSettings }) {
           <h2 className="font-display text-4xl md:text-5xl font-bold tracking-tight">{heading}</h2>
         </div>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {items.map((t, i) => (
-            <div key={i} className="glass rounded-2xl p-6">
-              <Quote className="h-5 w-5 text-primary mb-3" />
-              <p className="text-sm text-foreground/90">{t.quote}</p>
-              <div className="mt-4">
-                <p className="text-sm font-semibold">{t.name}</p>
-                {t.role && <p className="text-xs text-muted-foreground">{t.role}</p>}
+          {items.map((t, i) => {
+            const rating = Math.max(0, Math.min(5, Number(t.rating ?? 0)));
+            return (
+              <div key={i} className="glass rounded-2xl p-6">
+                <Quote className="h-5 w-5 text-primary mb-3" />
+                {rating > 0 && (
+                  <div className="flex gap-0.5 mb-2" aria-label={`${rating} out of 5 stars`}>
+                    {Array.from({ length: 5 }).map((_, n) => (
+                      <Star
+                        key={n}
+                        className={`h-4 w-4 ${n < rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`}
+                      />
+                    ))}
+                  </div>
+                )}
+                <p className="text-sm text-foreground/90">{t.quote}</p>
+                <div className="mt-4 flex items-center gap-3">
+                  {t.avatar ? (
+                    <img
+                      src={t.avatar}
+                      alt=""
+                      className="h-10 w-10 rounded-full object-cover border border-white/10"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="h-10 w-10 rounded-full gradient-bg grid place-items-center text-white text-sm font-semibold">
+                      {(t.name || "?").trim().charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-sm font-semibold">{t.name}</p>
+                    {t.role && <p className="text-xs text-muted-foreground">{t.role}</p>}
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>
@@ -391,9 +418,18 @@ function defaultFaqs(name: string) {
 }
 
 function FAQ({ site }: { site?: SiteSettings }) {
-  const custom = (site?.landing.faq || []).filter((f) => (f.question || "").trim() || (f.answer || "").trim());
-  const items = custom.length > 0 ? custom : defaultFaqs(site?.general.platform_name || "Assignmate");
+  const raw = site?.landing.faq;
+  let items: { question?: string | null; answer?: string | null }[];
+  if (Array.isArray(raw)) {
+    items = raw.filter(
+      (f) => !f.hidden && ((f.question || "").trim() || (f.answer || "").trim()),
+    );
+    if (items.length === 0) return null;
+  } else {
+    items = defaultFaqs(site?.general.platform_name || "Assignmate");
+  }
   const heading = site?.landing.faq_heading || "Frequently asked";
+
 
   return (
     <section id="faq" className="py-24 px-4">
