@@ -1830,7 +1830,15 @@ function MonetizationSettingsPanel() {
         toast.error("Button URL is required when button text is set.");
         return;
       }
-      if (draft.button_url.trim() && !isValidLinkUrl(draft.button_url.trim())) {
+      const u = draft.button_url.trim();
+      const okUrl =
+        !u ||
+        u.startsWith("/") ||
+        u.startsWith("#") ||
+        u.startsWith("mailto:") ||
+        u.startsWith("tel:") ||
+        /^https?:\/\//i.test(u);
+      if (!okUrl) {
         toast.error("Button URL must be a URL, /path, #anchor, or mailto: link.");
         return;
       }
