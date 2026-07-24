@@ -96,8 +96,8 @@
   --accent-foreground: oklch(0.98 0.005 265);
   --border: oklch(0.15 0.04 275 / 0.12);
   --input: oklch(0.15 0.04 275 / 0.15);
-  --glass: oklch(1 0 0 / 0.7);
-  --glass-border: oklch(0.15 0.04 275 / 0.1);
+  --glass: oklch(1 0 0 / var(--surface-opacity, 0.97));
+  --glass-border: oklch(0.15 0.04 275 / 0.12);
 }
 
 @layer base {
