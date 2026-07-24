@@ -91,12 +91,33 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
 
+  const { data: site } = useQuery({
+    queryKey: ["site-settings"],
+    queryFn: () => getSiteSettings(),
+    staleTime: 30_000,
+  });
+
   useEffect(() => {
-    // Apply saved theme
     const theme = typeof window !== "undefined" ? localStorage.getItem("theme") : null;
     if (theme === "light") document.documentElement.classList.add("light");
     else document.documentElement.classList.remove("light");
   }, []);
+
+  useEffect(() => {
+    if (typeof document === "undefined" || !site) return;
+    const name = site.general.platform_name || "Assignmate";
+    const tagline = site.general.tagline || "AI-powered assignment workspace for students.";
+    document.title = `${name} — ${tagline}`;
+    if (site.branding.favicon_url) {
+      let link = document.querySelector<HTMLLinkElement>('link[rel~="icon"]');
+      if (!link) {
+        link = document.createElement("link");
+        link.rel = "icon";
+        document.head.appendChild(link);
+      }
+      link.href = site.branding.favicon_url;
+    }
+  }, [site]);
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
@@ -106,6 +127,7 @@ function RootComponent() {
     });
     return () => sub.subscription.unsubscribe();
   }, [router, queryClient]);
+
 
   return (
     <QueryClientProvider client={queryClient}>
