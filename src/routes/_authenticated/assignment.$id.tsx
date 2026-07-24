@@ -434,6 +434,7 @@ function AssignmentView() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      <PromoCard placement="workspace" />
       <div className="flex items-center gap-3">
         <Link to="/history" className="glass rounded-lg p-2 hover:bg-white/10">
           <ArrowLeft className="h-4 w-4" />
