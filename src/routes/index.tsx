@@ -32,23 +32,12 @@ function useSite() {
 }
 
 function Nav({ site }: { site?: SiteSettings }) {
-  const name = site?.general.platform_name || "Assignmate";
-  const logo = site?.branding.logo_url;
   return (
     <header className="fixed top-0 inset-x-0 z-40">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-4">
         <div className="glass rounded-2xl px-5 py-3 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            {logo ? (
-              <img src={logo} alt={name} className="h-8 w-auto max-w-[140px] object-contain" />
-            ) : (
-              <>
-                <div className="h-8 w-8 rounded-lg gradient-bg grid place-items-center">
-                  <Sparkles className="h-4 w-4 text-white" />
-                </div>
-                <span className="font-display font-semibold tracking-tight">{name}</span>
-              </>
-            )}
+            <BrandLogo />
           </Link>
           <nav className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
             <a href="#features" className="hover:text-foreground transition">Features</a>
