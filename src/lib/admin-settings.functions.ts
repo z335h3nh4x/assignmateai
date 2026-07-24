@@ -10,6 +10,19 @@ async function assertAdmin(context: { supabase: any; userId: string }) {
   if (error || !data) throw new Error("Forbidden");
 }
 
+// ------------------------- Access log -------------------------
+
+export const recordAdminAccess = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { logAudit } = await import("./audit.server");
+    await logAudit(context, { action: "admin.access", entityType: "session" });
+    return { ok: true };
+  });
+
+
+
 // ------------------------- Platform Settings -------------------------
 
 export type PlatformSetting = {
