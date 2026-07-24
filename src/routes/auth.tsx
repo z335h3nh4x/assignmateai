@@ -20,9 +20,8 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const site = useSiteSettings();
   const name = platformName(site);
-  const tagline = site?.general.tagline?.trim() || (
-    site && useState ? "" : ""
-  ) || "AI-powered assignment workspace for students.";
+  const tagline = site?.general.tagline?.trim() || "AI-powered assignment workspace for students.";
+
 
   const navigate = useNavigate();
   const [mode, setMode] = useState<"login" | "signup">("login");
