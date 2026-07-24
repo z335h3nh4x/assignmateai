@@ -109,6 +109,12 @@ export const upsertPlan = createServerFn({ method: "POST" })
     if (payload.id) {
       const { error } = await supabaseAdmin.from("plans").update(payload).eq("id", payload.id);
       if (error) throw new Error(error.message);
+      await logAudit(context, {
+        action: "plan.update",
+        entityType: "plan",
+        entityId: payload.id,
+        metadata: { slug: payload.slug, name: payload.name },
+      });
       return { ok: true, id: payload.id as string };
     }
     delete payload.id;
@@ -118,8 +124,16 @@ export const upsertPlan = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (error) throw new Error(error.message);
-    return { ok: true, id: (inserted as any).id as string };
+    const newId = (inserted as any).id as string;
+    await logAudit(context, {
+      action: "plan.create",
+      entityType: "plan",
+      entityId: newId,
+      metadata: { slug: payload.slug, name: payload.name },
+    });
+    return { ok: true, id: newId };
   });
+
 
 
 export const duplicatePlan = createServerFn({ method: "POST" })
