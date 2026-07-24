@@ -388,6 +388,33 @@ export type Database = {
         }
         Relationships: []
       }
+      promo_events: {
+        Row: {
+          content_hash: string
+          created_at: string
+          event: string
+          id: string
+          placement: string
+          user_id: string | null
+        }
+        Insert: {
+          content_hash: string
+          created_at?: string
+          event: string
+          id?: string
+          placement: string
+          user_id?: string | null
+        }
+        Update: {
+          content_hash?: string
+          created_at?: string
+          event?: string
+          id?: string
+          placement?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           billing_interval: string | null
