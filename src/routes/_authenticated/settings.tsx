@@ -121,31 +121,16 @@ function SettingsPage() {
         </div>
       </Card>
 
-      <Card className="glass border-white/10 p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <CreditCard className="h-4 w-4 text-primary" />
-          <h2 className="font-semibold">Subscription</h2>
-        </div>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="font-medium capitalize">{sub?.plan ?? "free"} plan</p>
-            <p className="text-sm text-muted-foreground">
-              {tokens ? `${tokens.balance.toLocaleString()} tokens remaining · ${tokens.used.toLocaleString()} used` : "—"}
-            </p>
-          </div>
-          <Button className="gradient-bg text-white border-0" onClick={() => toast.message("Upgrades open soon — join the waitlist!")}>
-            <Sparkles className="h-4 w-4 mr-2" /> Upgrade
-          </Button>
-        </div>
-        {supportEmail && (
-          <div className="mt-4 pt-4 border-t border-white/10 text-sm text-muted-foreground">
-            Need help with your plan?{" "}
-            <a href={`mailto:${supportEmail}`} className="text-primary hover:underline">
-              Contact support
-            </a>
-          </div>
-        )}
-      </Card>
+      <UsagePanel />
+
+      {supportEmail && (
+        <Card className="glass border-white/10 p-6 text-sm text-muted-foreground">
+          Need help with your plan?{" "}
+          <a href={`mailto:${supportEmail}`} className="text-primary hover:underline">
+            Contact support
+          </a>
+        </Card>
+      )}
 
     </div>
   );
