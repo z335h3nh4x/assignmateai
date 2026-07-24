@@ -1344,12 +1344,12 @@ const FEATURE_ICON_CHOICES = [
   "CheckCircle2", "Layers", "Bot", "Cpu", "Globe", "Lock", "Heart",
 ] as const;
 
-type FieldType = "text" | "textarea" | "icon" | "image" | "rating";
+type ListFieldType = "text" | "textarea" | "icon" | "image" | "rating";
 type ListFieldDef = {
   key: keyof ListItem;
   label: string;
   placeholder?: string;
-  type?: FieldType;
+  type?: ListFieldType;
   required?: boolean;
 };
 
