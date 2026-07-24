@@ -14,7 +14,11 @@ import {
   Download,
   Search,
   Settings as SettingsIcon,
+  Palette,
+  LayoutTemplate,
+  X,
 } from "lucide-react";
+
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
