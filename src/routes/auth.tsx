@@ -82,11 +82,12 @@ function AuthPage() {
           </div>
         </div>
         <h1 className="text-2xl font-display font-bold text-center">
-          {mode === "login" ? "Welcome back" : "Create your account"}
+          {mode === "login" ? `Welcome back to ${name}` : `Create your ${name} account`}
         </h1>
         <p className="text-sm text-muted-foreground text-center mt-1">
-          {mode === "login" ? "Sign in to continue" : "Start solving assignments in seconds"}
+          {tagline}
         </p>
+
 
         <Button
           type="button"
