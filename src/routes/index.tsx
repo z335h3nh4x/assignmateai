@@ -14,10 +14,10 @@ import { listPublicPlans, type PublicPlan } from "@/lib/plans.functions";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Assignmate — AI Assignment Helper for Students" },
-      { name: "description", content: "Upload or paste any assignment. Assignmate writes clean, referenced, human-sounding answers in seconds." },
-      { property: "og:title", content: "Assignmate — AI Assignment Helper" },
-      { property: "og:description", content: "Upload or paste any assignment. Get referenced, human-sounding answers in seconds." },
+      { title: "Assignmate — AI-powered assignment workspace for students" },
+      { name: "description", content: "AI-powered assignment workspace for students." },
+      { property: "og:title", content: "Assignmate — AI assignment workspace" },
+      { property: "og:description", content: "AI-powered assignment workspace for students." },
     ],
   }),
   component: Landing,
