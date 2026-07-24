@@ -91,18 +91,38 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
 
-  const { data: site } = useQuery({
-    queryKey: ["site-settings"],
-    queryFn: () => getSiteSettings(),
-    staleTime: 30_000,
-  });
-
   useEffect(() => {
     const theme = typeof window !== "undefined" ? localStorage.getItem("theme") : null;
     if (theme === "light") document.documentElement.classList.add("light");
     else document.documentElement.classList.remove("light");
   }, []);
 
+  useEffect(() => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
+      router.invalidate();
+      if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
+    });
+    return () => sub.subscription.unsubscribe();
+  }, [router, queryClient]);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <PlanFeaturesProvider>
+        <SiteHeadSync />
+        <Outlet />
+        <Toaster position="top-right" />
+      </PlanFeaturesProvider>
+    </QueryClientProvider>
+  );
+}
+
+function SiteHeadSync() {
+  const { data: site } = useQuery({
+    queryKey: ["site-settings"],
+    queryFn: () => getSiteSettings(),
+    staleTime: 30_000,
+  });
   useEffect(() => {
     if (typeof document === "undefined" || !site) return;
     const name = site.general.platform_name || "Assignmate";
@@ -118,23 +138,6 @@ function RootComponent() {
       link.href = site.branding.favicon_url;
     }
   }, [site]);
-
-  useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
-      router.invalidate();
-      if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
-    });
-    return () => sub.subscription.unsubscribe();
-  }, [router, queryClient]);
-
-
-  return (
-    <QueryClientProvider client={queryClient}>
-      <PlanFeaturesProvider>
-        <Outlet />
-        <Toaster position="top-right" />
-      </PlanFeaturesProvider>
-    </QueryClientProvider>
-  );
+  return null;
 }
+
