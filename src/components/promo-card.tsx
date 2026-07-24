@@ -1,10 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { X } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
 import { useSiteSettings } from "@/hooks/use-site-settings";
 import { useMyPlan } from "@/lib/use-plan-features";
 import type { PromoPlacement } from "@/lib/site-settings.functions";
+import { logPromoEvent } from "@/lib/promo-events.functions";
 
 const DISMISS_MS = 24 * 60 * 60 * 1000;
+const FALLBACK = {
+  title: "Upgrade to unlock more",
+  description: "Get more assignments, faster exports, and premium writing styles.",
+  button_text: "Learn more",
+};
+
 
 function promoHash(s: string) {
   let h = 0;
