@@ -84,14 +84,22 @@ function AdminSettingsPage() {
       <div>
         <h1 className="text-3xl font-display font-bold">Platform Settings</h1>
         <p className="text-muted-foreground mt-1">
-          Foundational configuration for Assignmate. Feature flags, announcements and admin
-          audit logs are live now — general branding, landing page content, AI settings and the
-          rest land in the next phases.
+          Configure the entire Assignmate platform — branding, landing page copy, feature flags,
+          announcements and admin audit logs — all in one place.
         </p>
       </div>
 
-      <Tabs defaultValue="flags" className="w-full">
+      <Tabs defaultValue="general" className="w-full">
         <TabsList className="glass border border-white/10 flex flex-wrap h-auto p-1">
+          <TabsTrigger value="general" className="gap-1.5">
+            <SettingsIcon className="h-3.5 w-3.5" /> General
+          </TabsTrigger>
+          <TabsTrigger value="branding" className="gap-1.5">
+            <Palette className="h-3.5 w-3.5" /> Branding
+          </TabsTrigger>
+          <TabsTrigger value="landing" className="gap-1.5">
+            <LayoutTemplate className="h-3.5 w-3.5" /> Landing Page
+          </TabsTrigger>
           <TabsTrigger value="flags" className="gap-1.5">
             <Flag className="h-3.5 w-3.5" /> Feature Flags
           </TabsTrigger>
@@ -101,11 +109,17 @@ function AdminSettingsPage() {
           <TabsTrigger value="audit" className="gap-1.5">
             <History className="h-3.5 w-3.5" /> Audit Logs
           </TabsTrigger>
-          <TabsTrigger value="soon" className="gap-1.5 text-muted-foreground">
-            <SettingsIcon className="h-3.5 w-3.5" /> Coming next
-          </TabsTrigger>
         </TabsList>
 
+        <TabsContent value="general" className="mt-6">
+          <GeneralSettingsPanel />
+        </TabsContent>
+        <TabsContent value="branding" className="mt-6">
+          <BrandingSettingsPanel />
+        </TabsContent>
+        <TabsContent value="landing" className="mt-6">
+          <LandingSettingsPanel />
+        </TabsContent>
         <TabsContent value="flags" className="mt-6">
           <FeatureFlagsPanel />
         </TabsContent>
@@ -115,13 +129,11 @@ function AdminSettingsPage() {
         <TabsContent value="audit" className="mt-6">
           <AuditLogsPanel />
         </TabsContent>
-        <TabsContent value="soon" className="mt-6">
-          <ComingNextPanel />
-        </TabsContent>
       </Tabs>
     </div>
   );
 }
+
 
 /* ============================ Feature Flags ============================ */
 
