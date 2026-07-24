@@ -121,6 +121,21 @@ const DEFAULTS: SiteSettings = {
     faq: [],
     testimonials: [],
   },
+  monetization: {
+    enabled: false,
+    audience: "free",
+    placements: ["dashboard"],
+    badge: "",
+    title: "",
+    description: "",
+    button_text: "Learn more",
+    button_url: "",
+    image_url: "",
+    bg_color: "#0f172a",
+    text_color: "#f8fafc",
+    accent_color: "#8b5cf6",
+    open_new_tab: true,
+  },
 };
 
 function serverClient() {
