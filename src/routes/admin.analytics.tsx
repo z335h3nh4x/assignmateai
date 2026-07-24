@@ -13,6 +13,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { getAdminAnalytics } from "@/lib/admin.functions";
+import { getPromoStats } from "@/lib/promo-events.functions";
 
 export const Route = createFileRoute("/admin/analytics")({
   head: () => ({ meta: [{ title: "Analytics — Admin" }] }),
