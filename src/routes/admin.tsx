@@ -1,11 +1,13 @@
 import { createFileRoute, Outlet, redirect, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
-  Sparkles, LayoutDashboard, Users, FileStack, BarChart3, CreditCard, Settings, LogOut, Menu, X, ArrowLeft,
+  LayoutDashboard, Users, FileStack, BarChart3, CreditCard, Settings, LogOut, Menu, X, ArrowLeft,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { useSiteSettings, platformName } from "@/hooks/use-site-settings";
+import { BrandLogo } from "@/components/brand-logo";
+import { platformName } from "@/hooks/use-site-settings";
+import { useSiteSettings } from "@/hooks/use-site-settings";
 
 
 export const Route = createFileRoute("/admin")({
