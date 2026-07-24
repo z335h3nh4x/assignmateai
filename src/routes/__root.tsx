@@ -14,20 +14,32 @@ import { supabase } from "@/integrations/supabase/client";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { PlanFeaturesProvider } from "@/lib/use-plan-features";
 import { getSiteSettings } from "@/lib/site-settings.functions";
+import { useSiteSettings, platformName, supportEmail, websiteUrl } from "@/hooks/use-site-settings";
+import { useRouterState } from "@tanstack/react-router";
 
 
 function NotFoundComponent() {
+  const site = useSiteSettings();
+  const name = platformName(site);
+  const email = supportEmail(site);
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="glass rounded-2xl p-10 max-w-md text-center">
         <h1 className="text-7xl font-bold gradient-text">404</h1>
         <h2 className="mt-4 text-xl font-semibold">Page not found</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          This page drifted off. Head back to the dashboard.
+          This page drifted off. Head back to {name}.
         </p>
-        <a href="/" className="mt-6 inline-flex rounded-lg gradient-bg px-5 py-2.5 text-sm font-medium text-white glow">
-          Go home
-        </a>
+        <div className="mt-6 flex flex-wrap gap-2 justify-center">
+          <a href="/" className="inline-flex rounded-lg gradient-bg px-5 py-2.5 text-sm font-medium text-white glow">
+            Go home
+          </a>
+          {email && (
+            <a href={`mailto:${email}`} className="inline-flex rounded-lg glass px-5 py-2.5 text-sm font-medium">
+              Contact support
+            </a>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -35,22 +47,32 @@ function NotFoundComponent() {
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
+  const site = useSiteSettings();
+  const email = supportEmail(site);
   useEffect(() => { reportLovableError(error, { boundary: "root" }); }, [error]);
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="glass rounded-2xl p-8 max-w-md text-center">
         <h1 className="text-xl font-semibold">Something broke</h1>
         <p className="mt-2 text-sm text-muted-foreground">{error.message}</p>
-        <button
-          onClick={() => { router.invalidate(); reset(); }}
-          className="mt-6 rounded-lg gradient-bg px-5 py-2.5 text-sm font-medium text-white"
-        >
-          Try again
-        </button>
+        <div className="mt-6 flex flex-wrap gap-2 justify-center">
+          <button
+            onClick={() => { router.invalidate(); reset(); }}
+            className="rounded-lg gradient-bg px-5 py-2.5 text-sm font-medium text-white"
+          >
+            Try again
+          </button>
+          {email && (
+            <a href={`mailto:${email}`} className="rounded-lg glass px-5 py-2.5 text-sm font-medium">
+              Contact support
+            </a>
+          )}
+        </div>
       </div>
     </div>
   );
 }
+
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
