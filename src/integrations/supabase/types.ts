@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      announcements: {
+        Row: {
+          audiences: string[]
+          bg_color: string
+          button_text: string | null
+          button_url: string | null
+          created_at: string
+          created_by: string | null
+          ends_at: string | null
+          id: string
+          is_active: boolean
+          message: string
+          starts_at: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          audiences?: string[]
+          bg_color?: string
+          button_text?: string | null
+          button_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          message: string
+          starts_at?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          audiences?: string[]
+          bg_color?: string
+          button_text?: string | null
+          button_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          message?: string
+          starts_at?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       assignment_messages: {
         Row: {
           assignment_id: string
@@ -115,6 +163,75 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_logs: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          ip: string | null
+          metadata: Json
+          target_user_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip?: string | null
+          metadata?: Json
+          target_user_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip?: string | null
+          metadata?: Json
+          target_user_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      feature_flags: {
+        Row: {
+          created_at: string
+          description: string | null
+          enabled: boolean
+          key: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount_cents: number
@@ -211,6 +328,30 @@ export type Database = {
           sort_order?: number
           updated_at?: string
           yearly_price_cents?: number
+        }
+        Relationships: []
+      }
+      platform_settings: {
+        Row: {
+          created_at: string
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          created_at?: string
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Update: {
+          created_at?: string
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
         }
         Relationships: []
       }

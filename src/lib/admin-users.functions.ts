@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { logAudit } from "./audit.server";
 
 async function assertAdmin(context: { supabase: any; userId: string }) {
   const { data, error } = await context.supabase.rpc("has_role", {
@@ -8,6 +9,7 @@ async function assertAdmin(context: { supabase: any; userId: string }) {
   });
   if (error || !data) throw new Error("Forbidden");
 }
+
 
 export type AdminUserRow = {
   id: string;
@@ -100,6 +102,13 @@ export const updateUserProfile = createServerFn({ method: "POST" })
     if (data.email !== undefined) patch.email = data.email;
     const { error } = await supabaseAdmin.from("profiles").update(patch).eq("id", data.userId);
     if (error) throw new Error(error.message);
+    await logAudit(context, {
+      action: "user.profile.update",
+      entityType: "user",
+      entityId: data.userId,
+      targetUserId: data.userId,
+      metadata: patch,
+    });
     return { ok: true };
   });
 
@@ -129,7 +138,12 @@ export const setUserAdminRole = createServerFn({ method: "POST" })
         .eq("role", "admin");
       if (error) throw new Error(error.message);
     }
-
+    await logAudit(context, {
+      action: data.makeAdmin ? "user.role.grant_admin" : "user.role.revoke_admin",
+      entityType: "user",
+      entityId: data.userId,
+      targetUserId: data.userId,
+    });
     return { ok: true };
   });
 
@@ -145,6 +159,12 @@ export const setUserBanned = createServerFn({ method: "POST" })
       .update({ banned_at: data.banned ? new Date().toISOString() : null } as any)
       .eq("id", data.userId);
     if (error) throw new Error(error.message);
+    await logAudit(context, {
+      action: data.banned ? "user.ban" : "user.unban",
+      entityType: "user",
+      entityId: data.userId,
+      targetUserId: data.userId,
+    });
     return { ok: true };
   });
 
@@ -159,6 +179,13 @@ export const resetUserCredits = createServerFn({ method: "POST" })
       .from("tokens")
       .upsert({ user_id: data.userId, balance, used: 0 }, { onConflict: "user_id" });
     if (error) throw new Error(error.message);
+    await logAudit(context, {
+      action: "user.credits.reset",
+      entityType: "user",
+      entityId: data.userId,
+      targetUserId: data.userId,
+      metadata: { balance },
+    });
     return { ok: true, balance };
   });
 
@@ -171,5 +198,12 @@ export const deleteUser = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
     if (error) throw new Error(error.message);
+    await logAudit(context, {
+      action: "user.delete",
+      entityType: "user",
+      entityId: data.userId,
+      targetUserId: data.userId,
+    });
     return { ok: true };
   });
+

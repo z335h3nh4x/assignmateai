@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { logAudit } from "./audit.server";
 
 async function assertAdmin(context: { supabase: any; userId: string }) {
   const { data, error } = await context.supabase.rpc("has_role", {
@@ -9,6 +10,7 @@ async function assertAdmin(context: { supabase: any; userId: string }) {
   });
   if (error || !data) throw new Error("Forbidden");
 }
+
 
 export type AdminAssignmentRow = {
   id: string;
@@ -196,5 +198,11 @@ export const deleteAdminAssignments = createServerFn({ method: "POST" })
     await supabaseAdmin.from("assignment_messages").delete().in("assignment_id", data.ids);
     const { error } = await supabaseAdmin.from("assignments").delete().in("id", data.ids);
     if (error) throw new Error(error.message);
+    await logAudit(context, {
+      action: "assignment.delete",
+      entityType: "assignment",
+      metadata: { ids: data.ids, count: data.ids.length },
+    });
     return { ok: true, deleted: data.ids.length };
   });
+
