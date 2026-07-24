@@ -75,7 +75,7 @@ INSERT INTO public.plans (
   credits, daily_limit, monthly_limit, max_words, max_upload_mb, max_upload_pages,
   features, is_active, is_recommended, sort_order
 ) VALUES (
-  'free', 'Free', 'Get started with core AssignAI features.', 'USD',
+  'free', 'Free', 'Get started with core Assignmate features.', 'USD',
   0, 0,
   10000, 3, 15, 1500, 5, 10,
   '{"humanized_writing": false, "ocr": true, "ai_chat": true, "pdf_export": true, "docx_export": true, "notebook_pdf": false, "citation_generator": true, "grammar_checker": true, "priority_queue": false, "faster_generation": false, "premium_templates": false, "api_access": false, "future_features": false}'::jsonb,

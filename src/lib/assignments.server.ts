@@ -10,7 +10,7 @@ export async function fetchUrlText(url: string): Promise<string | null> {
     const t = setTimeout(() => controller.abort(), URL_FETCH_TIMEOUT_MS);
     const resp = await fetch(url, {
       signal: controller.signal,
-      headers: { "User-Agent": "AssignAI/1.0 (+https://lovable.dev)" },
+      headers: { "User-Agent": "Assignmate/1.0 (+https://lovable.dev)" },
       redirect: "follow",
     });
     clearTimeout(t);
@@ -96,7 +96,7 @@ export async function chatAboutAssignment(opts: {
   history: Array<{ role: "user" | "assistant"; content: string }>;
   userMessage: string;
 }): Promise<string> {
-  const system = `You are AssignAI's writing assistant. The user is working on the assignment below. Help them refine it: expand or shorten sections, rewrite paragraphs, explain difficult concepts, answer follow-up questions. Keep replies focused and useful. Use Markdown.
+  const system = `You are Assignmate's writing assistant. The user is working on the assignment below. Help them refine it: expand or shorten sections, rewrite paragraphs, explain difficult concepts, answer follow-up questions. Keep replies focused and useful. Use Markdown.
 
 --- ASSIGNMENT START ---
 ${opts.assignmentText.slice(0, 18000)}

@@ -76,7 +76,7 @@ function AdminSettingsPage() {
       <div>
         <h1 className="text-3xl font-display font-bold">Platform Settings</h1>
         <p className="text-muted-foreground mt-1">
-          Foundational configuration for AssignAI. Feature flags, announcements and admin
+          Foundational configuration for Assignmate. Feature flags, announcements and admin
           audit logs are live now — general branding, landing page content, AI settings and the
           rest land in the next phases.
         </p>
@@ -525,7 +525,7 @@ function AnnouncementEditor({
               value={draft.message}
               onChange={(e) => setDraft({ ...draft, message: e.target.value })}
               rows={3}
-              placeholder="AssignAI will be briefly unavailable on Saturday at 10 PM UTC."
+              placeholder="Assignmate will be briefly unavailable on Saturday at 10 PM UTC."
               className="mt-1.5"
             />
           </div>

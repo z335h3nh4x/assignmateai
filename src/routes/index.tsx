@@ -14,10 +14,10 @@ import { listPublicPlans, type PublicPlan } from "@/lib/plans.functions";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "AssignAI — AI Assignment Helper for Students" },
-      { name: "description", content: "Upload or paste any assignment. AssignAI writes clean, referenced, human-sounding answers in seconds." },
-      { property: "og:title", content: "AssignAI — AI Assignment Helper" },
-      { property: "og:description", content: "Upload or paste any assignment. Get referenced, human-sounding answers in seconds." },
+      { title: "Assignmate — AI-powered assignment workspace for students" },
+      { name: "description", content: "AI-powered assignment workspace for students." },
+      { property: "og:title", content: "Assignmate — AI assignment workspace" },
+      { property: "og:description", content: "AI-powered assignment workspace for students." },
     ],
   }),
   component: Landing,
@@ -32,7 +32,7 @@ function Nav() {
             <div className="h-8 w-8 rounded-lg gradient-bg grid place-items-center">
               <Sparkles className="h-4 w-4 text-white" />
             </div>
-            <span className="font-display font-semibold tracking-tight">AssignAI</span>
+            <span className="font-display font-semibold tracking-tight">Assignmate</span>
           </Link>
           <nav className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
             <a href="#features" className="hover:text-foreground transition">Features</a>
@@ -69,7 +69,7 @@ function Hero() {
           className="font-display text-5xl sm:text-6xl md:text-7xl font-bold tracking-tighter"
         >
           Solve any assignment with{" "}
-          <span className="gradient-text">AssignAI</span>
+          <span className="gradient-text">Assignmate</span>
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }}
@@ -269,7 +269,7 @@ function Pricing() {
 
 
 const FAQS = [
-  { q: "Is AssignAI detected as AI?", a: "We use a dedicated humanized style that produces natural, varied prose — most detectors flag it as human-written. Always review before submitting." },
+  { q: "Is Assignmate detected as AI?", a: "We use a dedicated humanized style that produces natural, varied prose — most detectors flag it as human-written. Always review before submitting." },
   { q: "What files can I upload?", a: "PDF, DOCX, TXT and images (JPG, PNG). You can also paste text directly." },
   { q: "Do you include references?", a: "Yes. Any output style except 'Simple' produces formatted headings, bullets and inline references." },
   { q: "Can I edit the result?", a: "Absolutely — copy it, download as PDF/DOCX, or regenerate with different settings." },
@@ -308,7 +308,7 @@ function Footer() {
           <div className="h-6 w-6 rounded-md gradient-bg grid place-items-center">
             <Sparkles className="h-3 w-3 text-white" />
           </div>
-          <span className="text-sm text-muted-foreground">© 2026 AssignAI</span>
+          <span className="text-sm text-muted-foreground">© 2026 Assignmate</span>
         </div>
         <div className="text-xs text-muted-foreground">Built for students who ship.</div>
       </div>

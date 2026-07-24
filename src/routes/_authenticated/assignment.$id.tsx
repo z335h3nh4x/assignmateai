@@ -33,7 +33,7 @@ import {
 } from "@/lib/render-markdown";
 
 export const Route = createFileRoute("/_authenticated/assignment/$id")({
-  head: () => ({ meta: [{ title: "Assignment — AssignAI" }] }),
+  head: () => ({ meta: [{ title: "Assignment — Assignmate" }] }),
   component: AssignmentView,
 });
 

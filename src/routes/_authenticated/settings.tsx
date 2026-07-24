@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 
 export const Route = createFileRoute("/_authenticated/settings")({
-  head: () => ({ meta: [{ title: "Settings — AssignAI" }] }),
+  head: () => ({ meta: [{ title: "Settings — Assignmate" }] }),
   component: SettingsPage,
 });
 
