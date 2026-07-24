@@ -16,6 +16,25 @@ export type ListItem = {
   hidden?: boolean | null;
 };
 
+export type PromoPlacement = "dashboard" | "workspace" | "sidebar" | "bottom";
+export type PromoAudience = "free" | "everyone" | "off";
+
+export type MonetizationSettings = {
+  enabled: boolean;
+  audience: PromoAudience;
+  placements: PromoPlacement[];
+  badge: string;
+  title: string;
+  description: string;
+  button_text: string;
+  button_url: string;
+  image_url: string;
+  bg_color: string;
+  text_color: string;
+  accent_color: string;
+  open_new_tab: boolean;
+};
+
 
 export type SiteSettings = {
   general: {
