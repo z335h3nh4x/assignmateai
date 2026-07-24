@@ -215,7 +215,7 @@ function AdminAssignments() {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-3xl font-display font-bold">Assignments</h1>
-          <p className="text-muted-foreground mt-1">Review, preview, and manage every assignment generated on Assignmate.</p>
+          <p className="text-muted-foreground mt-1">Review, preview, and manage every assignment generated on the platform.</p>
         </div>
         <div className="text-sm text-muted-foreground flex items-center gap-2">
           {isFetching && <Loader2 className="h-3.5 w-3.5 animate-spin" />}

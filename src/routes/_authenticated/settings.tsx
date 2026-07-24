@@ -12,9 +12,10 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 
 export const Route = createFileRoute("/_authenticated/settings")({
-  head: () => ({ meta: [{ title: "Settings — Assignmate" }] }),
+  head: () => ({ meta: [{ title: "Settings" }] }),
   component: SettingsPage,
 });
+
 
 function SettingsPage() {
   const [displayName, setDisplayName] = useState("");
@@ -145,7 +146,16 @@ function SettingsPage() {
             <Sparkles className="h-4 w-4 mr-2" /> Upgrade
           </Button>
         </div>
+        {supportEmail && (
+          <div className="mt-4 pt-4 border-t border-white/10 text-sm text-muted-foreground">
+            Need help with your plan?{" "}
+            <a href={`mailto:${supportEmail}`} className="text-primary hover:underline">
+              Contact support
+            </a>
+          </div>
+        )}
       </Card>
+
     </div>
   );
 }
