@@ -17,9 +17,13 @@ export type ListItem = {
 };
 
 export type PromoPlacement = "dashboard" | "workspace" | "sidebar" | "bottom";
-export type PromoAudience = "free" | "everyone" | "off";
+export type PromoAudience = "free" | "premium" | "everyone" | "off";
+export type PromoFrequency = "always" | "daily" | "weekly" | "once";
+export type PromoButtonVariant = "primary" | "secondary" | "ghost";
+export type PromoThemeMode = "auto" | "custom";
 
 export type MonetizationSettings = {
+  id: string;
   enabled: boolean;
   audience: PromoAudience;
   placements: PromoPlacement[];
@@ -28,12 +32,19 @@ export type MonetizationSettings = {
   description: string;
   button_text: string;
   button_url: string;
+  button_variant: PromoButtonVariant;
   image_url: string;
+  icon_emoji: string;
   bg_color: string;
   text_color: string;
   accent_color: string;
+  theme_mode: PromoThemeMode;
   open_new_tab: boolean;
+  start_date: string; // ISO date, "" = unbounded
+  end_date: string;   // ISO date, "" = unbounded
+  frequency: PromoFrequency;
 };
+
 
 
 export type SiteSettings = {
@@ -122,6 +133,7 @@ const DEFAULTS: SiteSettings = {
     testimonials: [],
   },
   monetization: {
+    id: "default",
     enabled: false,
     audience: "free",
     placements: ["dashboard"],
@@ -130,13 +142,20 @@ const DEFAULTS: SiteSettings = {
     description: "",
     button_text: "Learn more",
     button_url: "",
+    button_variant: "primary",
     image_url: "",
+    icon_emoji: "",
     bg_color: "#0f172a",
     text_color: "#f8fafc",
     accent_color: "#8b5cf6",
+    theme_mode: "auto",
     open_new_tab: true,
+    start_date: "",
+    end_date: "",
+    frequency: "always",
   },
 };
+
 
 function serverClient() {
   const url = process.env.SUPABASE_URL!;

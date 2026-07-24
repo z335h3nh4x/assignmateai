@@ -1041,6 +1041,8 @@ function SettingsPanelShell({
   onReset,
   isLoading,
   rightActions,
+  saveDisabled,
+  saveDisabledReason,
 }: {
   title: string;
   description: string;
@@ -1051,6 +1053,8 @@ function SettingsPanelShell({
   onReset: () => void;
   isLoading: boolean;
   rightActions?: React.ReactNode;
+  saveDisabled?: boolean;
+  saveDisabledReason?: string;
 }) {
   return (
     <Card className="glass border-white/10 p-6 space-y-5">
@@ -1066,7 +1070,9 @@ function SettingsPanelShell({
           <Button
             size="sm"
             onClick={onSave}
-            disabled={!dirty || saving}
+            disabled={!dirty || saving || !!saveDisabled}
+            title={saveDisabled ? saveDisabledReason : undefined}
+
             className="gradient-bg text-white border-0"
           >
             {saving ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1.5" />}
@@ -1730,9 +1736,13 @@ function ListEditor({
 /* ============================ Monetization ============================ */
 
 type PromoPlacement = "dashboard" | "workspace" | "sidebar" | "bottom";
-type PromoAudience = "free" | "everyone" | "off";
+type PromoAudience = "free" | "premium" | "everyone" | "off";
+type PromoFrequency = "always" | "daily" | "weekly" | "once";
+type PromoButtonVariant = "primary" | "secondary" | "ghost";
+type PromoThemeMode = "auto" | "custom";
 
 type MonetizationDraft = {
+  id: string;
   enabled: boolean;
   audience: PromoAudience;
   placements: PromoPlacement[];
@@ -1741,14 +1751,21 @@ type MonetizationDraft = {
   description: string;
   button_text: string;
   button_url: string;
+  button_variant: PromoButtonVariant;
   image_url: string;
+  icon_emoji: string;
   bg_color: string;
   text_color: string;
   accent_color: string;
+  theme_mode: PromoThemeMode;
   open_new_tab: boolean;
+  start_date: string;
+  end_date: string;
+  frequency: PromoFrequency;
 };
 
 const MON_DEFAULT: MonetizationDraft = {
+  id: "default",
   enabled: false,
   audience: "free",
   placements: ["dashboard"],
@@ -1757,19 +1774,37 @@ const MON_DEFAULT: MonetizationDraft = {
   description: "",
   button_text: "Learn more",
   button_url: "",
+  button_variant: "primary",
   image_url: "",
+  icon_emoji: "",
   bg_color: "#0f172a",
   text_color: "#f8fafc",
   accent_color: "#8b5cf6",
+  theme_mode: "auto",
   open_new_tab: true,
+  start_date: "",
+  end_date: "",
+  frequency: "always",
 };
 
 const PLACEMENT_OPTIONS: { value: PromoPlacement; label: string; hint: string }[] = [
   { value: "dashboard", label: "Dashboard", hint: "Above the new-assignment form" },
   { value: "workspace", label: "Assignment workspace", hint: "Inside a generated assignment view" },
   { value: "sidebar", label: "Sidebar", hint: "Compact card in the left nav" },
-  { value: "bottom", label: "Bottom of page", hint: "Below all app pages" },
+  { value: "bottom", label: "Bottom banner", hint: "Below all app pages" },
 ];
+
+function isValidPromoUrl(u: string) {
+  const s = u.trim();
+  if (!s) return false;
+  return (
+    s.startsWith("/") ||
+    s.startsWith("#") ||
+    s.startsWith("mailto:") ||
+    s.startsWith("tel:") ||
+    /^https?:\/\//i.test(s)
+  );
+}
 
 function MonetizationSettingsPanel() {
   const qc = useQueryClient();
@@ -1785,6 +1820,7 @@ function MonetizationSettingsPanel() {
       return v === undefined || v === null ? fallback : v;
     };
     const next: MonetizationDraft = {
+      id: String(g("id", MON_DEFAULT.id)),
       enabled: !!g("enabled", MON_DEFAULT.enabled),
       audience: (g("audience", MON_DEFAULT.audience) as PromoAudience) ?? "free",
       placements: Array.isArray(settingsMap["monetization.placements"])
@@ -1795,11 +1831,17 @@ function MonetizationSettingsPanel() {
       description: String(g("description", "")),
       button_text: String(g("button_text", MON_DEFAULT.button_text)),
       button_url: String(g("button_url", "")),
+      button_variant: (g("button_variant", MON_DEFAULT.button_variant) as PromoButtonVariant) ?? "primary",
       image_url: String(g("image_url", "")),
+      icon_emoji: String(g("icon_emoji", "")),
       bg_color: String(g("bg_color", MON_DEFAULT.bg_color)),
       text_color: String(g("text_color", MON_DEFAULT.text_color)),
       accent_color: String(g("accent_color", MON_DEFAULT.accent_color)),
+      theme_mode: (g("theme_mode", MON_DEFAULT.theme_mode) as PromoThemeMode) ?? "auto",
       open_new_tab: !!g("open_new_tab", MON_DEFAULT.open_new_tab),
+      start_date: String(g("start_date", "")),
+      end_date: String(g("end_date", "")),
+      frequency: (g("frequency", MON_DEFAULT.frequency) as PromoFrequency) ?? "always",
     };
     setDraft(next);
     setInitial(next);
@@ -1820,49 +1862,69 @@ function MonetizationSettingsPanel() {
     }));
   }
 
+  // Validation for #11
+  const invalid =
+    !draft.title.trim() ||
+    !draft.description.trim() ||
+    !draft.button_text.trim() ||
+    !isValidPromoUrl(draft.button_url) ||
+    draft.placements.length === 0 ||
+    (!!draft.start_date && !!draft.end_date && draft.start_date > draft.end_date);
+
+  const invalidReason = !draft.title.trim()
+    ? "Title is required"
+    : !draft.description.trim()
+      ? "Description is required"
+      : !draft.button_text.trim()
+        ? "Button text is required"
+        : !isValidPromoUrl(draft.button_url)
+          ? "Button URL must be a valid URL, /path, #anchor, mailto: or tel:"
+          : draft.placements.length === 0
+            ? "Pick at least one placement"
+            : draft.start_date > draft.end_date && draft.end_date
+              ? "End date must be after start date"
+              : "";
+
   async function save() {
-    if (draft.enabled) {
-      if (!draft.title.trim()) {
-        toast.error("Give the promotion a title before enabling it.");
-        return;
-      }
-      if (draft.button_text.trim() && !draft.button_url.trim()) {
-        toast.error("Button URL is required when button text is set.");
-        return;
-      }
-      const u = draft.button_url.trim();
-      const okUrl =
-        !u ||
-        u.startsWith("/") ||
-        u.startsWith("#") ||
-        u.startsWith("mailto:") ||
-        u.startsWith("tel:") ||
-        /^https?:\/\//i.test(u);
-      if (!okUrl) {
-        toast.error("Button URL must be a URL, /path, #anchor, or mailto: link.");
-        return;
-      }
-      if (draft.placements.length === 0) {
-        toast.error("Pick at least one placement.");
-        return;
-      }
+    if (invalid) {
+      toast.error(invalidReason || "Fill required fields");
+      return;
     }
     setSaving(true);
     try {
+      const clean: MonetizationDraft = {
+        ...draft,
+        badge: draft.badge.trim(),
+        title: draft.title.trim(),
+        description: draft.description.trim(),
+        button_text: draft.button_text.trim(),
+        button_url: draft.button_url.trim(),
+        image_url: draft.image_url.trim(),
+        icon_emoji: draft.icon_emoji.trim().slice(0, 4),
+      };
       const entries: { key: string; value: any }[] = [
-        { key: "monetization.enabled", value: draft.enabled },
-        { key: "monetization.audience", value: draft.audience },
-        { key: "monetization.placements", value: draft.placements },
-        { key: "monetization.badge", value: draft.badge.trim() },
-        { key: "monetization.title", value: draft.title.trim() },
-        { key: "monetization.description", value: draft.description.trim() },
-        { key: "monetization.button_text", value: draft.button_text.trim() },
-        { key: "monetization.button_url", value: draft.button_url.trim() },
-        { key: "monetization.image_url", value: draft.image_url.trim() },
-        { key: "monetization.bg_color", value: draft.bg_color },
-        { key: "monetization.text_color", value: draft.text_color },
-        { key: "monetization.accent_color", value: draft.accent_color },
-        { key: "monetization.open_new_tab", value: draft.open_new_tab },
+        { key: "monetization.id", value: clean.id || "default" },
+        { key: "monetization.enabled", value: clean.enabled },
+        { key: "monetization.audience", value: clean.audience },
+        { key: "monetization.placements", value: clean.placements },
+        { key: "monetization.badge", value: clean.badge },
+        { key: "monetization.title", value: clean.title },
+        { key: "monetization.description", value: clean.description },
+        { key: "monetization.button_text", value: clean.button_text },
+        { key: "monetization.button_url", value: clean.button_url },
+        { key: "monetization.button_variant", value: clean.button_variant },
+        { key: "monetization.image_url", value: clean.image_url },
+        { key: "monetization.icon_emoji", value: clean.icon_emoji },
+        { key: "monetization.bg_color", value: clean.bg_color },
+        { key: "monetization.text_color", value: clean.text_color },
+        { key: "monetization.accent_color", value: clean.accent_color },
+        { key: "monetization.theme_mode", value: clean.theme_mode },
+        { key: "monetization.open_new_tab", value: clean.open_new_tab },
+        { key: "monetization.start_date", value: clean.start_date },
+        { key: "monetization.end_date", value: clean.end_date },
+        { key: "monetization.frequency", value: clean.frequency },
+        // Future-ready: multi-promotion array. Reader ignores today, UI mirrors the single edited promo.
+        { key: "monetization.promotions", value: [clean] },
       ];
       await upsertPlatformSettings({ data: { entries } });
       toast.success("Promotion saved");
@@ -1875,19 +1937,17 @@ function MonetizationSettingsPanel() {
     }
   }
 
-  const bg = draft.bg_color || "#0f172a";
-  const fg = draft.text_color || "#f8fafc";
-  const accent = draft.accent_color || "#8b5cf6";
-
   return (
     <SettingsPanelShell
       title="Monetization — internal promotions"
-      description="Promote your own offers with a clean, dismissible card. No third-party ads, no popups, no full-screen takeovers. Changes go live instantly after saving."
+      description="Promote your own offers with a clean, dismissible card. No third-party ads, no popups. Preview updates live; changes go live instantly after saving."
       saving={saving}
       dirty={dirty}
       onSave={save}
       onReset={() => setDraft(initial)}
       isLoading={isLoading}
+      saveDisabled={invalid}
+      saveDisabledReason={invalidReason}
     >
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-4">
@@ -1902,19 +1962,52 @@ function MonetizationSettingsPanel() {
             onChange={(v) => set("enabled", !!v)}
           />
 
-          <div>
-            <Label>Audience</Label>
-            <Select value={draft.audience} onValueChange={(v) => set("audience", v as PromoAudience)}>
-              <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="free">Free plan users only (default)</SelectItem>
-                <SelectItem value="everyone">Everyone (free & paid)</SelectItem>
-                <SelectItem value="off">Disabled — show to no one</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground mt-1">
-              Paid plan users never see the card unless you pick "Everyone".
-            </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <Label>Audience</Label>
+              <Select value={draft.audience} onValueChange={(v) => set("audience", v as PromoAudience)}>
+                <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="free">Free users only</SelectItem>
+                  <SelectItem value="premium">Premium users only</SelectItem>
+                  <SelectItem value="everyone">Everyone</SelectItem>
+                  <SelectItem value="off">Disabled — nobody</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Frequency</Label>
+              <Select value={draft.frequency} onValueChange={(v) => set("frequency", v as PromoFrequency)}>
+                <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="always">Every page load</SelectItem>
+                  <SelectItem value="daily">Once per day</SelectItem>
+                  <SelectItem value="weekly">Once every 7 days</SelectItem>
+                  <SelectItem value="once">Never show again after dismiss</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <Label>Start date (optional)</Label>
+              <Input
+                type="date"
+                value={draft.start_date}
+                onChange={(e) => set("start_date", e.target.value)}
+                className="mt-1.5"
+              />
+            </div>
+            <div>
+              <Label>End date (optional)</Label>
+              <Input
+                type="date"
+                value={draft.end_date}
+                onChange={(e) => set("end_date", e.target.value)}
+                className="mt-1.5"
+              />
+            </div>
           </div>
 
           <div>
@@ -1974,8 +2067,8 @@ function MonetizationSettingsPanel() {
               className="mt-1.5"
             />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="sm:col-span-1">
               <Label>Button text</Label>
               <Input
                 value={draft.button_text}
@@ -1984,7 +2077,7 @@ function MonetizationSettingsPanel() {
                 className="mt-1.5"
               />
             </div>
-            <div>
+            <div className="sm:col-span-1">
               <Label>Button URL</Label>
               <Input
                 value={draft.button_url}
@@ -1993,11 +2086,43 @@ function MonetizationSettingsPanel() {
                 className="mt-1.5"
               />
             </div>
+            <div className="sm:col-span-1">
+              <Label>Button style</Label>
+              <Select value={draft.button_variant} onValueChange={(v) => set("button_variant", v as PromoButtonVariant)}>
+                <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="primary">Primary (filled)</SelectItem>
+                  <SelectItem value="secondary">Secondary (outline)</SelectItem>
+                  <SelectItem value="ghost">Ghost (text only)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <Label>Emoji icon (optional)</Label>
+              <Input
+                value={draft.icon_emoji}
+                onChange={(e) => set("icon_emoji", e.target.value)}
+                placeholder="🚀"
+                maxLength={4}
+                className="mt-1.5"
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">Used when no image is uploaded.</p>
+            </div>
+            <div className="flex items-end">
+              {draft.image_url && (
+                <Button variant="outline" size="sm" onClick={() => set("image_url", "")}>
+                  <X className="h-3.5 w-3.5 mr-1.5" /> Remove image
+                </Button>
+              )}
+            </div>
           </div>
 
           <BrandUploader
-            label="Image / icon (optional)"
-            hint="Shown on the left of the card. PNG / JPG / SVG."
+            label="Image / SVG (optional)"
+            hint="Shown on the left of the card. PNG, JPG, SVG, or WEBP."
             accept="image/png,image/jpeg,image/svg+xml,image/webp"
             background="#0b0b12"
             height="h-24"
@@ -2005,80 +2130,107 @@ function MonetizationSettingsPanel() {
             onChange={(v) => set("image_url", v)}
           />
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <FieldRow
-              field={{ key: "bg_color", label: "Background", type: "color" }}
-              value={draft.bg_color}
-              onChange={(v) => set("bg_color", v)}
-            />
-            <FieldRow
-              field={{ key: "text_color", label: "Text", type: "color" }}
-              value={draft.text_color}
-              onChange={(v) => set("text_color", v)}
-            />
-            <FieldRow
-              field={{ key: "accent_color", label: "Accent", type: "color" }}
-              value={draft.accent_color}
-              onChange={(v) => set("accent_color", v)}
-            />
+          <div>
+            <Label>Card theme</Label>
+            <Select value={draft.theme_mode} onValueChange={(v) => set("theme_mode", v as PromoThemeMode)}>
+              <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto">Auto — adapt to dark/light</SelectItem>
+                <SelectItem value="custom">Custom colors</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Auto uses your app's dark/light theme (purple accent). Custom uses the colors below.
+            </p>
           </div>
+
+          {draft.theme_mode === "custom" && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <FieldRow field={{ key: "bg_color", label: "Background", type: "color" }} value={draft.bg_color} onChange={(v) => set("bg_color", v)} />
+              <FieldRow field={{ key: "text_color", label: "Text", type: "color" }} value={draft.text_color} onChange={(v) => set("text_color", v)} />
+              <FieldRow field={{ key: "accent_color", label: "Accent", type: "color" }} value={draft.accent_color} onChange={(v) => set("accent_color", v)} />
+            </div>
+          )}
         </div>
 
         <div className="space-y-3">
           <Label className="text-xs uppercase tracking-wide text-muted-foreground">Live preview</Label>
-          <div
-            className="relative overflow-hidden rounded-2xl border p-4 md:p-5 flex items-start gap-4"
-            style={{ background: bg, color: fg, borderColor: `${accent}55` }}
-          >
-            <button
-              aria-label="Dismiss"
-              className="absolute top-2 right-2 opacity-60 p-1"
-              style={{ color: fg }}
-              type="button"
-            >
-              <X className="h-4 w-4" />
-            </button>
-            {draft.image_url && (
-              <img
-                src={draft.image_url}
-                alt=""
-                className="hidden sm:block h-16 w-16 rounded-xl object-cover shrink-0"
-              />
-            )}
-            <div className="min-w-0 flex-1">
-              {draft.badge && (
-                <span
-                  className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded"
-                  style={{ background: accent, color: "#fff" }}
-                >
-                  {draft.badge}
-                </span>
-              )}
-              <div className="mt-1.5 text-base md:text-lg font-semibold leading-tight">
-                {draft.title || "Your promotion title"}
-              </div>
-              <p className="mt-1 text-sm opacity-80 leading-snug">
-                {draft.description || "Short description shown to users."}
-              </p>
-            </div>
-            {(draft.button_text.trim() || draft.button_url.trim()) && (
-              <span
-                className="shrink-0 self-center inline-flex text-sm font-medium px-3.5 py-2 rounded-lg"
-                style={{ background: accent, color: "#fff" }}
-              >
-                {draft.button_text.trim() || "Button"}
-              </span>
-            )}
-          </div>
+          <MonetizationPreview draft={draft} />
           <p className="text-xs text-muted-foreground">
-            Users can dismiss the card. Dismissals are remembered for 24 hours per browser.
+            Users can dismiss the card. Frequency controls how often it comes back per browser.
             No popups. No autoplay. No full-screen ads.
           </p>
+          {invalid && (
+            <p className="text-xs text-amber-400">
+              {invalidReason} — Save is disabled until this is fixed.
+            </p>
+          )}
         </div>
       </div>
     </SettingsPanelShell>
   );
 }
+
+function MonetizationPreview({ draft }: { draft: MonetizationDraft }) {
+  const auto = draft.theme_mode === "auto";
+  const bg = auto ? undefined : draft.bg_color || "#0f172a";
+  const fg = auto ? undefined : draft.text_color || "#f8fafc";
+  const accent = draft.accent_color || "#8b5cf6";
+  const btnText = draft.button_text.trim() || "Learn more";
+  const btnStyle: React.CSSProperties =
+    draft.button_variant === "primary"
+      ? { background: accent, color: "#fff" }
+      : draft.button_variant === "secondary"
+        ? { background: "transparent", color: auto ? undefined : fg, border: `1px solid ${accent}` }
+        : { background: "transparent", color: accent };
+  return (
+    <div
+      className={
+        auto
+          ? "relative overflow-hidden rounded-2xl border border-border bg-card text-card-foreground p-4 md:p-5 flex flex-col sm:flex-row items-start gap-4"
+          : "relative overflow-hidden rounded-2xl border p-4 md:p-5 flex flex-col sm:flex-row items-start gap-4"
+      }
+      style={auto ? { borderColor: `${accent}55` } : { background: bg, color: fg, borderColor: `${accent}55` }}
+    >
+      <button aria-label="Dismiss" className="absolute top-2 right-2 opacity-60 p-1" type="button">
+        <X className="h-4 w-4" />
+      </button>
+      {draft.image_url ? (
+        <img src={draft.image_url} alt="" className="h-16 w-16 rounded-xl object-cover shrink-0" />
+      ) : draft.icon_emoji ? (
+        <div
+          className="h-14 w-14 rounded-xl flex items-center justify-center text-2xl shrink-0"
+          style={{ background: `${accent}22` }}
+        >
+          {draft.icon_emoji}
+        </div>
+      ) : null}
+      <div className="min-w-0 flex-1 pr-6">
+        {draft.badge && (
+          <span
+            className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded"
+            style={{ background: accent, color: "#fff" }}
+          >
+            {draft.badge}
+          </span>
+        )}
+        <div className="mt-1.5 text-base md:text-lg font-semibold leading-tight">
+          {draft.title || "Your promotion title"}
+        </div>
+        <p className="mt-1 text-sm opacity-80 leading-snug">
+          {draft.description || "Short description shown to users."}
+        </p>
+      </div>
+      <span
+        className="shrink-0 self-start sm:self-center inline-flex text-sm font-medium px-3.5 py-2 rounded-lg"
+        style={btnStyle}
+      >
+        {btnText}
+      </span>
+    </div>
+  );
+}
+
 
 
 
