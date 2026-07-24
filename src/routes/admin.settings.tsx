@@ -1281,20 +1281,24 @@ function BrandUploader({
 
 const LANDING_FIELDS: FieldDef[] = [
   { key: "hero_eyebrow", label: "Hero eyebrow", type: "text", placeholder: "New — AI assignment workspace" },
-  { key: "hero_title", label: "Hero title", type: "text", placeholder: "Turn any assignment into a polished submission" },
-  { key: "hero_subtitle", label: "Hero subtitle", type: "textarea", rows: 2, placeholder: "Upload, generate, humanize, export — in one click." },
-  { key: "hero_cta_text", label: "Primary CTA text", type: "text", default: "Get started", placeholder: "Get started" },
-  { key: "hero_cta_url", label: "Primary CTA URL", type: "url", default: "/auth", placeholder: "/auth" },
-  { key: "hero_secondary_cta_text", label: "Secondary CTA text", type: "text", placeholder: "See pricing" },
-  { key: "hero_secondary_cta_url", label: "Secondary CTA URL", type: "url", placeholder: "/#pricing" },
+  { key: "hero_title", label: "Hero heading", type: "text", placeholder: "Turn any assignment into a polished submission" },
+  { key: "hero_subtitle", label: "Hero description", type: "textarea", rows: 3, placeholder: "Upload, generate, humanize, export — in one click." },
+  { key: "hero_cta_text", label: "Primary button text", type: "text", default: "Try Free", placeholder: "Try Free" },
+  { key: "hero_cta_url", label: "Primary button URL", type: "url", default: "/auth", placeholder: "/auth" },
+  { key: "hero_secondary_cta_text", label: "Secondary button text", type: "text", placeholder: "See how it works" },
+  { key: "hero_secondary_cta_url", label: "Secondary button URL", type: "url", placeholder: "#features" },
   { key: "show_pricing", label: "Show pricing section", type: "switch", default: true },
   { key: "show_testimonials", label: "Show testimonials section", type: "switch", default: false },
   { key: "show_faq", label: "Show FAQ section", type: "switch", default: true },
-  { key: "pricing_heading", label: "Pricing heading", type: "text", default: "Simple, transparent pricing", placeholder: "Pricing heading" },
-  { key: "faq_heading", label: "FAQ heading", type: "text", default: "Frequently asked questions", placeholder: "FAQ heading" },
+  { key: "features_heading", label: "Features title", type: "text", placeholder: "Everything you need to ship the assignment" },
+  { key: "features_subheading", label: "Features subtitle", type: "textarea", rows: 2, placeholder: "Built for real student workflows." },
+  { key: "pricing_heading", label: "Pricing title", type: "text", placeholder: "Simple, student-friendly pricing" },
+  { key: "pricing_subheading", label: "Pricing subtitle", type: "textarea", rows: 2, placeholder: "Cancel anytime. No credit card required to start." },
+  { key: "testimonials_heading", label: "Testimonials title", type: "text", placeholder: "Loved by students" },
+  { key: "faq_heading", label: "FAQ title", type: "text", default: "Frequently asked", placeholder: "Frequently asked" },
 ];
 
-type ListItem = { question?: string; answer?: string; title?: string; body?: string };
+type ListItem = { question?: string; answer?: string; title?: string; body?: string; name?: string; role?: string; quote?: string };
 
 function LandingSettingsPanel() {
   const s = useSettingsDraft("landing", LANDING_FIELDS);
@@ -1302,21 +1306,29 @@ function LandingSettingsPanel() {
   const { data: settingsMap, isLoading } = useSettingsMap();
   const [faq, setFaq] = useState<ListItem[]>([]);
   const [features, setFeatures] = useState<ListItem[]>([]);
-  const [initialLists, setInitialLists] = useState<{ faq: ListItem[]; features: ListItem[] }>({ faq: [], features: [] });
+  const [testimonials, setTestimonials] = useState<ListItem[]>([]);
+  const [initialLists, setInitialLists] = useState<{ faq: ListItem[]; features: ListItem[]; testimonials: ListItem[] }>({
+    faq: [],
+    features: [],
+    testimonials: [],
+  });
   const [listSaving, setListSaving] = useState(false);
 
   useEffect(() => {
     if (!settingsMap) return;
     const f = Array.isArray(settingsMap["landing.faq"]) ? settingsMap["landing.faq"] : [];
     const feats = Array.isArray(settingsMap["landing.features"]) ? settingsMap["landing.features"] : [];
+    const tests = Array.isArray(settingsMap["landing.testimonials"]) ? settingsMap["landing.testimonials"] : [];
     setFaq(f);
     setFeatures(feats);
-    setInitialLists({ faq: f, features: feats });
+    setTestimonials(tests);
+    setInitialLists({ faq: f, features: feats, testimonials: tests });
   }, [settingsMap]);
 
   const listsDirty =
     JSON.stringify(faq) !== JSON.stringify(initialLists.faq) ||
-    JSON.stringify(features) !== JSON.stringify(initialLists.features);
+    JSON.stringify(features) !== JSON.stringify(initialLists.features) ||
+    JSON.stringify(testimonials) !== JSON.stringify(initialLists.testimonials);
   useUnsavedChanges(listsDirty);
 
   async function saveLists() {
@@ -1327,6 +1339,10 @@ function LandingSettingsPanel() {
           entries: [
             { key: "landing.faq", value: faq.filter((i) => (i.question || "").trim() || (i.answer || "").trim()) },
             { key: "landing.features", value: features.filter((i) => (i.title || "").trim() || (i.body || "").trim()) },
+            {
+              key: "landing.testimonials",
+              value: testimonials.filter((i) => (i.name || "").trim() || (i.quote || "").trim()),
+            },
           ],
         },
       });
@@ -1343,7 +1359,7 @@ function LandingSettingsPanel() {
     <div className="space-y-6">
       <SettingsPanelShell
         title="Landing page — hero & sections"
-        description="Hero copy, primary calls to action and visibility of home page sections."
+        description="Hero copy, primary calls to action, section headings and visibility toggles for the home page."
         saving={s.saving}
         dirty={s.dirty}
         onSave={s.save}
@@ -1360,7 +1376,7 @@ function LandingSettingsPanel() {
       <Card className="glass border-white/10 p-6 space-y-4">
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
-            <h2 className="font-display text-xl font-semibold">Features & FAQ</h2>
+            <h2 className="font-display text-xl font-semibold">Features, FAQ & testimonials</h2>
             <p className="text-sm text-muted-foreground mt-1">
               Editable lists rendered on the landing page. Empty rows are dropped on save.
             </p>
@@ -1386,7 +1402,7 @@ function LandingSettingsPanel() {
               onChange={setFeatures}
               fields={[
                 { key: "title", label: "Title", placeholder: "Multi-format uploads" },
-                { key: "body", label: "Description", placeholder: "PDF, DOCX, images, or plain text — we handle all of it.", textarea: true },
+                { key: "body", label: "Description", placeholder: "PDF, DOCX, images, or plain text.", textarea: true },
               ]}
               addLabel="Add feature"
             />
@@ -1400,6 +1416,19 @@ function LandingSettingsPanel() {
               ]}
               addLabel="Add question"
             />
+            <div className="lg:col-span-2">
+              <ListEditor
+                heading="Testimonials"
+                items={testimonials}
+                onChange={setTestimonials}
+                fields={[
+                  { key: "name", label: "Name", placeholder: "Priya S." },
+                  { key: "role", label: "Role", placeholder: "MSc student, IIT Delhi" },
+                  { key: "quote", label: "Quote", placeholder: "Assignmate saved me hours every week.", textarea: true },
+                ]}
+                addLabel="Add testimonial"
+              />
+            </div>
           </div>
         )}
         {listsDirty && (
@@ -1409,6 +1438,7 @@ function LandingSettingsPanel() {
     </div>
   );
 }
+
 
 function ListEditor({
   heading,
