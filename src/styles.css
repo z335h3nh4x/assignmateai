@@ -67,8 +67,9 @@
   --brand-blue: oklch(0.65 0.22 250);
   --brand-purple-foreground: oklch(0.98 0.005 265);
 
-  --glass: oklch(1 0 0 / 0.06);
-  --glass-border: oklch(1 0 0 / 0.12);
+  --surface-opacity: 0.97;
+  --glass: oklch(0.22 0.05 275 / var(--surface-opacity));
+  --glass-border: oklch(1 0 0 / 0.14);
 
   --gradient-primary: linear-gradient(135deg, oklch(0.68 0.22 295), oklch(0.65 0.22 245));
   --gradient-radial: radial-gradient(circle at 30% 20%, oklch(0.68 0.22 295 / 0.4), transparent 60%),
