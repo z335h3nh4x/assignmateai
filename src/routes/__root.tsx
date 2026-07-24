@@ -178,11 +178,8 @@ function MaintenanceGate({ children }: { children: ReactNode }) {
 
 
 function SiteHeadSync() {
-  const { data: site } = useQuery({
-    queryKey: ["site-settings"],
-    queryFn: () => getSiteSettings(),
-    staleTime: 30_000,
-  });
+  const site = useSiteSettings();
+
   useEffect(() => {
     if (typeof document === "undefined" || !site) return;
     const name = site.general.platform_name || "Assignmate";
