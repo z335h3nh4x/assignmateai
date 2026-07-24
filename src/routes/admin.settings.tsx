@@ -64,10 +64,14 @@ import {
   deleteAnnouncement,
   listAuditLogs,
   exportAuditLogsCsv,
+  listPlatformSettings,
+  upsertPlatformSettings,
   type FeatureFlag,
   type Announcement,
   type AuditLogRow,
+  type PlatformSetting,
 } from "@/lib/admin-settings.functions";
+
 
 export const Route = createFileRoute("/admin/settings")({
   head: () => ({ meta: [{ title: "Platform Settings — Admin" }] }),
