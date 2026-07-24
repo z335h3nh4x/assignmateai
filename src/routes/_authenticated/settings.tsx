@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { useSiteSettings, supportEmail as siteSupportEmail } from "@/hooks/use-site-settings";
+
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({ meta: [{ title: "Settings" }] }),
@@ -21,6 +23,9 @@ function SettingsPage() {
   const [displayName, setDisplayName] = useState("");
   const [darkMode, setDarkMode] = useState(true);
   const [saving, setSaving] = useState(false);
+  const site = useSiteSettings();
+  const supportEmail = siteSupportEmail(site);
+
 
   const { data: profile } = useQuery({
     queryKey: ["profile"],
