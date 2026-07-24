@@ -1041,6 +1041,8 @@ function SettingsPanelShell({
   onReset,
   isLoading,
   rightActions,
+  saveDisabled,
+  saveDisabledReason,
 }: {
   title: string;
   description: string;
@@ -1051,6 +1053,8 @@ function SettingsPanelShell({
   onReset: () => void;
   isLoading: boolean;
   rightActions?: React.ReactNode;
+  saveDisabled?: boolean;
+  saveDisabledReason?: string;
 }) {
   return (
     <Card className="glass border-white/10 p-6 space-y-5">
@@ -1066,7 +1070,9 @@ function SettingsPanelShell({
           <Button
             size="sm"
             onClick={onSave}
-            disabled={!dirty || saving}
+            disabled={!dirty || saving || !!saveDisabled}
+            title={saveDisabled ? saveDisabledReason : undefined}
+
             className="gradient-bg text-white border-0"
           >
             {saving ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1.5" />}
