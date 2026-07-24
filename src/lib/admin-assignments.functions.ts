@@ -198,5 +198,11 @@ export const deleteAdminAssignments = createServerFn({ method: "POST" })
     await supabaseAdmin.from("assignment_messages").delete().in("assignment_id", data.ids);
     const { error } = await supabaseAdmin.from("assignments").delete().in("id", data.ids);
     if (error) throw new Error(error.message);
+    await logAudit(context, {
+      action: "assignment.delete",
+      entityType: "assignment",
+      metadata: { ids: data.ids, count: data.ids.length },
+    });
     return { ok: true, deleted: data.ids.length };
   });
+

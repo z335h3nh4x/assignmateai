@@ -374,8 +374,16 @@ export const adjustCredits = createServerFn({ method: "POST" })
 
       if (error) throw new Error(error.message);
     }
+    await logAudit(context, {
+      action: `credits.${data.mode}`,
+      entityType: "user",
+      entityId: data.userId,
+      targetUserId: data.userId,
+      metadata: { amount: data.amount },
+    });
     return { ok: true };
   });
+
 
 // -------- OVERVIEW & ANALYTICS --------
 
