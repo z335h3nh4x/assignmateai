@@ -153,6 +153,12 @@ export const duplicatePlan = createServerFn({ method: "POST" })
     copy.is_recommended = false;
     const { error: iErr } = await supabaseAdmin.from("plans").insert(copy);
     if (iErr) throw new Error(iErr.message);
+    await logAudit(context, {
+      action: "plan.duplicate",
+      entityType: "plan",
+      entityId: data.id,
+      metadata: { new_slug: copy.slug },
+    });
     return { ok: true };
   });
 
@@ -170,6 +176,12 @@ export const setPlanFlag = createServerFn({ method: "POST" })
       .update({ [data.field]: data.value } as any)
       .eq("id", data.id);
     if (error) throw new Error(error.message);
+    await logAudit(context, {
+      action: "plan.flag",
+      entityType: "plan",
+      entityId: data.id,
+      metadata: { field: data.field, value: data.value },
+    });
     return { ok: true };
   });
 
@@ -181,6 +193,11 @@ export const deletePlan = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("plans").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
+    await logAudit(context, {
+      action: "plan.delete",
+      entityType: "plan",
+      entityId: data.id,
+    });
     return { ok: true };
   });
 
@@ -197,8 +214,14 @@ export const reorderPlans = createServerFn({ method: "POST" })
         .eq("id", row.id);
       if (error) throw new Error(error.message);
     }
+    await logAudit(context, {
+      action: "plan.reorder",
+      entityType: "plan",
+      metadata: { count: data.order.length },
+    });
     return { ok: true };
   });
+
 
 // -------- SUBSCRIBERS --------
 
@@ -270,6 +293,13 @@ export const changeSubscriberPlan = createServerFn({ method: "POST" })
     if (data.billing_interval !== undefined) patch.billing_interval = data.billing_interval;
     const { error } = await supabaseAdmin.from("subscriptions").upsert({ user_id: data.userId, ...patch });
     if (error) throw new Error(error.message);
+    await logAudit(context, {
+      action: "subscription.change_plan",
+      entityType: "subscription",
+      entityId: data.userId,
+      targetUserId: data.userId,
+      metadata: { plan_id: data.planId, billing_interval: data.billing_interval ?? null },
+    });
     return { ok: true };
   });
 
@@ -285,6 +315,12 @@ export const setSubscriptionStatus = createServerFn({ method: "POST" })
         : { status: "active", cancelled_at: null };
     const { error } = await supabaseAdmin.from("subscriptions").update(patch).eq("user_id", data.userId);
     if (error) throw new Error(error.message);
+    await logAudit(context, {
+      action: `subscription.${data.action}`,
+      entityType: "subscription",
+      entityId: data.userId,
+      targetUserId: data.userId,
+    });
     return { ok: true };
   });
 
@@ -306,6 +342,13 @@ export const extendSubscription = createServerFn({ method: "POST" })
       .update({ renewal_at: next, current_period_end: next, status: "active" })
       .eq("user_id", data.userId);
     if (error) throw new Error(error.message);
+    await logAudit(context, {
+      action: "subscription.extend",
+      entityType: "subscription",
+      entityId: data.userId,
+      targetUserId: data.userId,
+      metadata: { days: data.days, renewal_at: next },
+    });
     return { ok: true };
   });
 
@@ -328,6 +371,7 @@ export const adjustCredits = createServerFn({ method: "POST" })
         .maybeSingle();
       const balance = ((cur as any)?.balance ?? 0) + data.amount;
       const { error } = await supabaseAdmin.from("tokens").upsert({ user_id: data.userId, balance });
+
       if (error) throw new Error(error.message);
     }
     return { ok: true };
