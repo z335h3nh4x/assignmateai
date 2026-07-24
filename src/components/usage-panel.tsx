@@ -10,12 +10,14 @@ function formatResetDate(iso: string): string {
   return d.toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
 }
 
-function formatResetIn(iso: string): string {
+export function daysUntil(iso: string): number {
   const diffMs = new Date(iso).getTime() - Date.now();
-  const hours = Math.max(0, Math.round(diffMs / 3_600_000));
-  if (hours < 24) return `in ${hours}h`;
-  const days = Math.round(hours / 24);
-  return `in ${days} day${days === 1 ? "" : "s"}`;
+  return Math.max(0, Math.ceil(diffMs / 86_400_000));
+}
+
+function formatResetIn(iso: string): string {
+  const d = daysUntil(iso);
+  return `${d} day${d === 1 ? "" : "s"} remaining`;
 }
 
 function MetricBlock({
