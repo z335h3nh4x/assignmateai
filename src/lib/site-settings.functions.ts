@@ -171,7 +171,7 @@ export const getSiteSettings = createServerFn({ method: "GET" }).handler(
     const { data, error } = await sb
       .from("platform_settings")
       .select("key, value")
-      .or("key.like.general.%,key.like.branding.%,key.like.landing.%");
+      .or("key.like.general.%,key.like.branding.%,key.like.landing.%,key.like.monetization.%");
     if (error || !data) return merged;
     for (const row of data as Array<{ key: string; value: unknown }>) {
       apply(merged, row.key, row.value);
