@@ -133,6 +133,7 @@ const DEFAULTS: SiteSettings = {
     testimonials: [],
   },
   monetization: {
+    id: "default",
     enabled: false,
     audience: "free",
     placements: ["dashboard"],
@@ -141,13 +142,20 @@ const DEFAULTS: SiteSettings = {
     description: "",
     button_text: "Learn more",
     button_url: "",
+    button_variant: "primary",
     image_url: "",
+    icon_emoji: "",
     bg_color: "#0f172a",
     text_color: "#f8fafc",
     accent_color: "#8b5cf6",
+    theme_mode: "auto",
     open_new_tab: true,
+    start_date: "",
+    end_date: "",
+    frequency: "always",
   },
 };
+
 
 function serverClient() {
   const url = process.env.SUPABASE_URL!;
