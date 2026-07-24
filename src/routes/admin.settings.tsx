@@ -1324,7 +1324,34 @@ const LANDING_FIELDS: FieldDef[] = [
   { key: "faq_heading", label: "FAQ title", type: "text", default: "Frequently asked", placeholder: "Frequently asked" },
 ];
 
-type ListItem = { question?: string; answer?: string; title?: string; body?: string; name?: string; role?: string; quote?: string };
+type ListItem = {
+  question?: string;
+  answer?: string;
+  title?: string;
+  body?: string;
+  name?: string;
+  role?: string;
+  quote?: string;
+  icon?: string;
+  avatar?: string;
+  rating?: number;
+  hidden?: boolean;
+};
+
+const FEATURE_ICON_CHOICES = [
+  "Sparkles", "Upload", "GraduationCap", "PenLine", "BookOpen", "ShieldCheck",
+  "Zap", "Rocket", "Star", "Wand2", "Brain", "FileText", "MessageSquare",
+  "CheckCircle2", "Layers", "Bot", "Cpu", "Globe", "Lock", "Heart",
+] as const;
+
+type ListFieldType = "text" | "textarea" | "icon" | "image" | "rating";
+type ListFieldDef = {
+  key: keyof ListItem;
+  label: string;
+  placeholder?: string;
+  type?: ListFieldType;
+  required?: boolean;
+};
 
 function LandingSettingsPanel() {
   const s = useSettingsDraft("landing", LANDING_FIELDS);
@@ -1358,13 +1385,42 @@ function LandingSettingsPanel() {
   useUnsavedChanges(listsDirty);
 
   async function saveLists() {
+    // Validate required fields on visible items
+    for (const it of features) {
+      if (it.hidden) continue;
+      if (!(it.title || "").trim() || !(it.body || "").trim()) {
+        toast.error("Each visible feature needs a title and description");
+        return;
+      }
+    }
+    for (const it of faq) {
+      if (it.hidden) continue;
+      if (!(it.question || "").trim() || !(it.answer || "").trim()) {
+        toast.error("Each visible FAQ needs a question and answer");
+        return;
+      }
+    }
+    for (const it of testimonials) {
+      if (it.hidden) continue;
+      if (!(it.name || "").trim() || !(it.quote || "").trim()) {
+        toast.error("Each visible testimonial needs a name and quote");
+        return;
+      }
+    }
+
     setListSaving(true);
     try {
       await upsertPlatformSettings({
         data: {
           entries: [
-            { key: "landing.faq", value: faq.filter((i) => (i.question || "").trim() || (i.answer || "").trim()) },
-            { key: "landing.features", value: features.filter((i) => (i.title || "").trim() || (i.body || "").trim()) },
+            {
+              key: "landing.faq",
+              value: faq.filter((i) => (i.question || "").trim() || (i.answer || "").trim()),
+            },
+            {
+              key: "landing.features",
+              value: features.filter((i) => (i.title || "").trim() || (i.body || "").trim()),
+            },
             {
               key: "landing.testimonials",
               value: testimonials.filter((i) => (i.name || "").trim() || (i.quote || "").trim()),
@@ -1374,6 +1430,7 @@ function LandingSettingsPanel() {
       });
       toast.success("Landing content saved");
       qc.invalidateQueries({ queryKey: ["admin", "platform-settings"] });
+      qc.invalidateQueries({ queryKey: ["site-settings"] });
     } catch (e: any) {
       toast.error(e?.message ?? "Save failed");
     } finally {
@@ -1404,7 +1461,8 @@ function LandingSettingsPanel() {
           <div>
             <h2 className="font-display text-xl font-semibold">Features, FAQ & testimonials</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Editable lists rendered on the landing page. Empty rows are dropped on save.
+              Add, edit, reorder, hide or delete items. Sections with no visible items are hidden
+              on the landing page.
             </p>
           </div>
           <Button
@@ -1427,18 +1485,20 @@ function LandingSettingsPanel() {
               items={features}
               onChange={setFeatures}
               fields={[
-                { key: "title", label: "Title", placeholder: "Multi-format uploads" },
-                { key: "body", label: "Description", placeholder: "PDF, DOCX, images, or plain text.", textarea: true },
+                { key: "icon", label: "Icon", type: "icon" },
+                { key: "title", label: "Title", placeholder: "Multi-format uploads", required: true },
+                { key: "body", label: "Description", placeholder: "PDF, DOCX, images, or plain text.", type: "textarea", required: true },
               ]}
               addLabel="Add feature"
+              newItem={{ icon: "Sparkles" }}
             />
             <ListEditor
               heading="FAQ"
               items={faq}
               onChange={setFaq}
               fields={[
-                { key: "question", label: "Question", placeholder: "Is my data private?" },
-                { key: "answer", label: "Answer", placeholder: "Yes — assignments and files stay in your account.", textarea: true },
+                { key: "question", label: "Question", placeholder: "Is my data private?", required: true },
+                { key: "answer", label: "Answer", placeholder: "Yes — assignments and files stay in your account.", type: "textarea", required: true },
               ]}
               addLabel="Add question"
             />
@@ -1448,11 +1508,14 @@ function LandingSettingsPanel() {
                 items={testimonials}
                 onChange={setTestimonials}
                 fields={[
-                  { key: "name", label: "Name", placeholder: "Priya S." },
-                  { key: "role", label: "Role", placeholder: "MSc student, IIT Delhi" },
-                  { key: "quote", label: "Quote", placeholder: "Assignmate saved me hours every week.", textarea: true },
+                  { key: "avatar", label: "Avatar image URL (optional)", type: "image", placeholder: "https://…" },
+                  { key: "name", label: "Name", placeholder: "Priya S.", required: true },
+                  { key: "role", label: "Role / Company (optional)", placeholder: "MSc student, IIT Delhi" },
+                  { key: "rating", label: "Rating (1–5)", type: "rating" },
+                  { key: "quote", label: "Review", placeholder: "Assignmate saved me hours every week.", type: "textarea", required: true },
                 ]}
                 addLabel="Add testimonial"
+                newItem={{ rating: 5 }}
               />
             </div>
           </div>
@@ -1465,57 +1528,108 @@ function LandingSettingsPanel() {
   );
 }
 
-
 function ListEditor({
   heading,
   items,
   onChange,
   fields,
   addLabel,
+  newItem,
 }: {
   heading: string;
   items: ListItem[];
   onChange: (v: ListItem[]) => void;
-  fields: { key: keyof ListItem; label: string; placeholder?: string; textarea?: boolean }[];
+  fields: ListFieldDef[];
   addLabel: string;
+  newItem?: Partial<ListItem>;
 }) {
-  function update(i: number, key: keyof ListItem, value: string) {
+  function update(i: number, key: keyof ListItem, value: any) {
     onChange(items.map((it, idx) => (idx === i ? { ...it, [key]: value } : it)));
   }
   function remove(i: number) {
     onChange(items.filter((_, idx) => idx !== i));
   }
   function add() {
-    onChange([...items, {}]);
+    onChange([...items, { ...(newItem ?? {}) }]);
+  }
+  function move(i: number, dir: -1 | 1) {
+    const j = i + dir;
+    if (j < 0 || j >= items.length) return;
+    const next = items.slice();
+    [next[i], next[j]] = [next[j], next[i]];
+    onChange(next);
   }
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-sm">{heading}</h3>
+        <h3 className="font-semibold text-sm">
+          {heading}{" "}
+          <span className="text-xs text-muted-foreground font-normal">({items.length})</span>
+        </h3>
         <Button variant="outline" size="sm" onClick={add}>
           <Plus className="h-3.5 w-3.5 mr-1.5" /> {addLabel}
         </Button>
       </div>
       {items.length === 0 ? (
         <div className="rounded-lg border border-dashed border-white/10 p-6 text-center text-xs text-muted-foreground">
-          Nothing here yet.
+          Nothing here yet. This section will be hidden on the landing page until you add an item.
         </div>
       ) : (
         <div className="space-y-3">
           {items.map((it, i) => (
-            <div key={i} className="rounded-lg border border-white/10 bg-white/5 p-3 space-y-2 relative">
-              <button
-                type="button"
-                onClick={() => remove(i)}
-                className="absolute top-2 right-2 h-6 w-6 rounded hover:bg-white/10 flex items-center justify-center text-muted-foreground hover:text-destructive"
-                aria-label="Remove"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
+            <div
+              key={i}
+              className={`rounded-lg border border-white/10 bg-white/5 p-3 space-y-2 ${it.hidden ? "opacity-60" : ""}`}
+            >
+              <div className="flex items-center justify-between gap-2 pb-1 border-b border-white/5">
+                <span className="text-[11px] text-muted-foreground">#{i + 1}</span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => move(i, -1)}
+                    disabled={i === 0}
+                    className="h-7 w-7 rounded hover:bg-white/10 disabled:opacity-30 flex items-center justify-center text-xs"
+                    aria-label="Move up"
+                    title="Move up"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => move(i, 1)}
+                    disabled={i === items.length - 1}
+                    className="h-7 w-7 rounded hover:bg-white/10 disabled:opacity-30 flex items-center justify-center text-xs"
+                    aria-label="Move down"
+                    title="Move down"
+                  >
+                    ↓
+                  </button>
+                  <div className="flex items-center gap-1.5 px-2 border-l border-white/10 ml-1">
+                    <Switch
+                      checked={!it.hidden}
+                      onCheckedChange={(v) => update(i, "hidden", !v)}
+                      aria-label="Visible on landing page"
+                    />
+                    <span className="text-[11px] text-muted-foreground">{it.hidden ? "Hidden" : "Visible"}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => remove(i)}
+                    className="h-7 w-7 rounded hover:bg-white/10 flex items-center justify-center text-muted-foreground hover:text-destructive ml-1"
+                    aria-label="Remove"
+                    title="Remove"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
               {fields.map((f) => (
                 <div key={String(f.key)}>
-                  <Label className="text-xs">{f.label}</Label>
-                  {f.textarea ? (
+                  <Label className="text-xs">
+                    {f.label}
+                    {f.required && <span className="text-destructive ml-0.5">*</span>}
+                  </Label>
+                  {f.type === "textarea" ? (
                     <Textarea
                       value={(it[f.key] as string) ?? ""}
                       onChange={(e) => update(i, f.key, e.target.value)}
@@ -1523,6 +1637,53 @@ function ListEditor({
                       rows={2}
                       className="mt-1"
                     />
+                  ) : f.type === "icon" ? (
+                    <Select
+                      value={(it[f.key] as string) || "Sparkles"}
+                      onValueChange={(v) => update(i, f.key, v)}
+                    >
+                      <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                      <SelectContent className="max-h-64">
+                        {FEATURE_ICON_CHOICES.map((n) => (
+                          <SelectItem key={n} value={n}>{n}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : f.type === "rating" ? (
+                    <div className="mt-1 flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((n) => {
+                        const v = (it[f.key] as number) ?? 5;
+                        return (
+                          <button
+                            key={n}
+                            type="button"
+                            onClick={() => update(i, f.key, n)}
+                            className={`h-7 w-7 rounded text-lg leading-none ${n <= v ? "text-amber-400" : "text-muted-foreground/40"}`}
+                            aria-label={`${n} star${n > 1 ? "s" : ""}`}
+                          >
+                            ★
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : f.type === "image" ? (
+                    <div className="mt-1 flex items-center gap-3">
+                      {(it[f.key] as string) ? (
+                        <img
+                          src={it[f.key] as string}
+                          alt=""
+                          className="h-10 w-10 rounded-full object-cover border border-white/10"
+                        />
+                      ) : (
+                        <div className="h-10 w-10 rounded-full bg-white/5 border border-white/10" />
+                      )}
+                      <Input
+                        value={(it[f.key] as string) ?? ""}
+                        onChange={(e) => update(i, f.key, e.target.value)}
+                        placeholder={f.placeholder}
+                        className="flex-1"
+                      />
+                    </div>
                   ) : (
                     <Input
                       value={(it[f.key] as string) ?? ""}
@@ -1540,4 +1701,5 @@ function ListEditor({
     </div>
   );
 }
+
 

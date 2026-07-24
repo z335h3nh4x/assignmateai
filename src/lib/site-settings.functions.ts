@@ -10,7 +10,12 @@ export type ListItem = {
   name?: string | null;
   role?: string | null;
   quote?: string | null;
+  icon?: string | null;
+  avatar?: string | null;
+  rating?: number | null;
+  hidden?: boolean | null;
 };
+
 
 export type SiteSettings = {
   general: {
