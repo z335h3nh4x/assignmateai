@@ -5,6 +5,7 @@ import { LayoutDashboard, Clock, Settings, LogOut, Menu, X } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/brand-logo";
+import { PromoCard } from "@/components/promo-card";
 
 
 export const Route = createFileRoute("/_authenticated")({
