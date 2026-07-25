@@ -148,6 +148,14 @@ function AuthPage() {
           </Button>
         </form>
 
+        {mode === "login" && (
+          <div className="mt-3 text-right">
+            <Link to="/forgot-password" className="text-xs text-primary hover:underline">
+              Forgot password?
+            </Link>
+          </div>
+        )}
+
         <p className="text-center text-sm text-muted-foreground mt-6">
           {mode === "login" ? "Don't have an account?" : "Already have an account?"}{" "}
           <button
