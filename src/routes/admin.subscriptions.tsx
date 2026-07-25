@@ -310,7 +310,8 @@ function PlansTab({ plans, loading, refresh }: { plans: AdminPlan[]; loading: bo
               </div>
 
               <div className="flex flex-wrap gap-1">
-                {FEATURE_KEYS.filter((f) => p.features?.[f.key]).map((f) => (
+                <Badge variant="outline" className="text-[10px]">{adsChip(p.features)}</Badge>
+                {FEATURE_KEYS.filter((f) => f.key !== "ad_free" && p.features?.[f.key]).map((f) => (
                   <Badge key={f.key} variant="outline" className="text-[10px]">{f.label}</Badge>
                 ))}
               </div>
