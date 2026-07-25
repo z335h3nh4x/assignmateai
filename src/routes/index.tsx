@@ -257,15 +257,25 @@ function planFeatureLines(p: PublicPlan): string[] {
     pdf_export: "Academic PDF export",
     docx_export: "DOCX export",
     notebook_export: "Notebook-style PDF export",
+    notebook_pdf: "Notebook-style PDF export",
     grammar_check: "Grammar & quality score",
+    grammar_checker: "Grammar & quality score",
     priority_speed: "Priority generation speed",
+    priority_queue: "Priority generation speed",
+    faster_generation: "Faster generation",
     references: "Auto references & citations",
+    citation_generator: "Auto references & citations",
     all_styles: "All writing styles",
+    premium_templates: "Premium templates",
+    api_access: "API access",
     team_seats: "Team seats",
     early_features: "Early access to new features",
+    future_features: "Early access to new features",
     priority_support: "Priority support",
   };
+  lines.push(p.features?.ad_free ? "🚫 Ad-Free Experience" : "📢 Contains Ads");
   for (const [key, on] of Object.entries(p.features || {})) {
+    if (key === "ad_free") continue;
     if (on && featureLabels[key]) lines.push(featureLabels[key]);
   }
   return lines;

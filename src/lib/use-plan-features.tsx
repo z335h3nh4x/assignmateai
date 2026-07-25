@@ -24,6 +24,7 @@ export const FEATURE_LABELS: Record<string, string> = {
   faster_generation: "Faster Generation",
   premium_templates: "Premium Templates",
   api_access: "API Access",
+  ad_free: "🚫 Ad-Free Experience",
   future_features: "Future Features",
 };
 

@@ -122,10 +122,15 @@ export function PromoCard({
 
   let audienceOk = true;
   if (enabled && m) {
-    const isFree = !plan?.planSlug || plan.planSlug === "free";
-    if (m.audience === "free" && !isFree) audienceOk = false;
-    if (m.audience === "premium" && isFree) audienceOk = false;
-    if ((m.audience === "free" || m.audience === "premium") && !plan) audienceOk = false; // wait for plan
+    // Paid plans (or any plan with the ad_free capability) never see promos.
+    if (!plan) audienceOk = false; // wait for plan to load
+    else {
+      const isFree = !plan.planSlug || plan.planSlug === "free";
+      const adFree = !!plan.features?.ad_free;
+      if (adFree) audienceOk = false;
+      else if (m.audience === "free" && !isFree) audienceOk = false;
+      else if (m.audience === "premium" && isFree) audienceOk = false;
+    }
   }
   const visible = enabled && audienceOk && !suppressed;
 
