@@ -319,7 +319,7 @@ function Pricing({ site }: { site?: SiteSettings }) {
             return (
               <div
                 key={p.id}
-                className={`glass rounded-2xl p-8 relative ${p.is_recommended ? "ring-1 ring-primary glow" : ""}`}
+                className={`glass rounded-2xl p-8 relative flex flex-col ${p.is_recommended ? "ring-1 ring-primary glow" : ""}`}
               >
                 {p.is_recommended && (
                   <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-xs px-3 py-1 rounded-full gradient-bg text-white font-medium">
@@ -334,7 +334,7 @@ function Pricing({ site }: { site?: SiteSettings }) {
                 {p.description && (
                   <p className="mt-2 text-sm text-muted-foreground">{p.description}</p>
                 )}
-                <ul className="mt-6 space-y-3 text-sm">
+                <ul className="mt-6 space-y-3 text-sm flex-1">
                   {features.map((f) => (
                     <li key={f} className="flex items-start gap-2">
                       <div className="h-5 w-5 rounded-full gradient-bg grid place-items-center mt-0.5 flex-shrink-0">
@@ -346,7 +346,7 @@ function Pricing({ site }: { site?: SiteSettings }) {
                 </ul>
                 <Link
                   to="/auth"
-                  className={`mt-8 block text-center rounded-xl px-4 py-3 font-medium transition ${
+                  className={`mt-auto block text-center rounded-xl px-4 py-3 font-medium transition ${
                     p.is_recommended ? "gradient-bg text-white glow" : "glass hover:bg-white/10"
                   }`}
                 >
