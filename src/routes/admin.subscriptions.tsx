@@ -57,8 +57,13 @@ const FEATURE_KEYS: { key: string; label: string }[] = [
   { key: "faster_generation", label: "Faster Generation" },
   { key: "premium_templates", label: "Premium Templates" },
   { key: "api_access", label: "API Access" },
+  { key: "ad_free", label: "🚫 Ad-Free Experience" },
   { key: "future_features", label: "Future Features" },
 ];
+
+function adsChip(features?: Record<string, boolean> | null) {
+  return features?.ad_free ? "🚫 Ad-Free Experience" : "📢 Contains Ads";
+}
 
 const EMPTY_PLAN: PlanInput = {
   slug: "",
