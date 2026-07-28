@@ -396,10 +396,12 @@ function Pricing({ site }: { site?: SiteSettings }) {
             );
           })}
         </div>
+        <TrustBadges className="mt-10" />
       </div>
     </section>
   );
 }
+
 
 function Testimonials({ site }: { site?: SiteSettings }) {
   const items = (site?.landing.testimonials || []).filter(
