@@ -14,9 +14,15 @@ import {
 import { listPublicPlans, type PublicPlan } from "@/lib/plans.functions";
 import { getSiteSettings, type SiteSettings } from "@/lib/site-settings.functions";
 import { BrandLogo } from "@/components/brand-logo";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { RazorpayCheckoutButton } from "@/components/razorpay-checkout-button";
+import { useState } from "react";
+import { useAuthSession } from "@/hooks/use-auth-session";
+import { planFeatureLines } from "@/lib/plan-lines";
+import { UpgradePlansDialog } from "@/components/upgrade-plans-dialog";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+
 
 const FEATURE_ICON_MAP: Record<string, LucideIcon> = {
   Sparkles, Upload, GraduationCap, PenLine, BookOpen, ShieldCheck, Zap,
@@ -45,7 +51,33 @@ function useSite() {
   });
 }
 
+function UserMenu({ email }: { email: string }) {
+  const initials = (email || "?").slice(0, 2).toUpperCase();
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger className="rounded-full outline-none" aria-label="Account menu">
+        <Avatar className="h-9 w-9 border border-white/10">
+          <AvatarFallback className="text-xs bg-white/10">{initials}</AvatarFallback>
+        </Avatar>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="glass border-white/10">
+        <DropdownMenuItem asChild>
+          <Link to="/dashboard">Dashboard</Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/history">History</Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/settings">Settings</Link>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function Nav({ site }: { site?: SiteSettings }) {
+  const { user, signedIn } = useAuthSession();
+
   return (
     <header className="fixed top-0 inset-x-0 z-40">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-4">
@@ -63,13 +95,25 @@ function Nav({ site }: { site?: SiteSettings }) {
             )}
           </nav>
           <div className="flex items-center gap-2">
-            <Link to="/auth" className="text-sm px-4 py-2 rounded-lg hover:bg-white/5 transition">
-              Login
-            </Link>
-            <Link to="/auth" className="text-sm px-4 py-2 rounded-lg gradient-bg text-white font-medium glow">
-              {site?.landing.hero_cta_text || "Try Free"}
-            </Link>
+            {signedIn ? (
+              <>
+                <Link to="/dashboard" className="text-sm px-4 py-2 rounded-lg gradient-bg text-white font-medium glow">
+                  Dashboard
+                </Link>
+                <UserMenu email={user?.email ?? ""} />
+              </>
+            ) : (
+              <>
+                <Link to="/auth" className="text-sm px-4 py-2 rounded-lg hover:bg-white/5 transition">
+                  Login
+                </Link>
+                <Link to="/auth" className="text-sm px-4 py-2 rounded-lg gradient-bg text-white font-medium glow">
+                  {site?.landing.hero_cta_text || "Try Free"}
+                </Link>
+              </>
+            )}
           </div>
+
         </div>
       </div>
     </header>
@@ -248,63 +292,14 @@ function formatPrice(cents: number, currency: string) {
   return `${symbol}${amount}`;
 }
 
-function planFeatureLines(p: PublicPlan): string[] {
-  const lines: string[] = [];
-  lines.push(p.credits ? `${p.credits.toLocaleString()} credits` : "Pay-as-you-go credits");
-  if (p.monthly_limit) lines.push(`${p.monthly_limit.toLocaleString()} assignments / month`);
-  if (p.max_upload_mb) lines.push(`${p.max_upload_mb} MB uploads · ${p.max_upload_pages || "∞"} pages`);
-  const featureLabels: Record<string, string> = {
-    humanized_writing: "Humanized writing engine",
-    ocr: "OCR for images & scans",
-    ai_chat: "AI assignment chat",
-    pdf_export: "Academic PDF export",
-    docx_export: "DOCX export",
-    notebook_export: "Notebook-style PDF export",
-    notebook_pdf: "Notebook-style PDF export",
-    grammar_check: "Grammar & quality score",
-    grammar_checker: "Grammar & quality score",
-    priority_speed: "Priority generation speed",
-    priority_queue: "Priority generation speed",
-    faster_generation: "Faster generation",
-    references: "Auto references & citations",
-    citation_generator: "Auto references & citations",
-    all_styles: "All writing styles",
-    premium_templates: "Premium templates",
-    api_access: "API access",
-    team_seats: "Team seats",
-    early_features: "Early access to new features",
-    future_features: "Early access to new features",
-    priority_support: "Priority support",
-  };
-  lines.push(p.features?.ad_free ? "🚫 Ad-Free Experience" : "📢 Contains Ads");
-  for (const [key, on] of Object.entries(p.features || {})) {
-    if (key === "ad_free") continue;
-    if (on && featureLabels[key]) lines.push(featureLabels[key]);
-  }
-  return lines;
-}
-
 function PlanCta({ plan, isFree }: { plan: PublicPlan; isFree: boolean }) {
-  const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  const { signedIn, loading } = useAuthSession();
+  const [openUpgrade, setOpenUpgrade] = useState(false);
   const cls = `mt-auto w-full block text-center rounded-xl px-4 py-3 font-medium transition h-auto ${
     plan.is_recommended ? "gradient-bg text-white glow border-0" : "glass hover:bg-white/10"
   }`;
 
-  useEffect(() => {
-    let active = true;
-    supabase.auth.getSession().then(({ data }) => {
-      if (active) setSignedIn(!!data.session);
-    });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      setSignedIn(!!session);
-    });
-    return () => {
-      active = false;
-      sub.subscription.unsubscribe();
-    };
-  }, []);
-
-  if (isFree || signedIn === false || signedIn === null) {
+  if (isFree || !signedIn || loading) {
     return (
       <Link to="/auth" search={isFree ? undefined : { next: "/settings" }} className={cls}>
         {isFree ? "Start free" : `Get ${plan.name}`}
@@ -313,9 +308,19 @@ function PlanCta({ plan, isFree }: { plan: PublicPlan; isFree: boolean }) {
   }
 
   return (
-    <RazorpayCheckoutButton planId={plan.id} label={`Get ${plan.name}`} className={cls} />
+    <>
+      <button type="button" onClick={() => setOpenUpgrade(true)} className={cls}>
+        Get {plan.name}
+      </button>
+      <UpgradePlansDialog
+        open={openUpgrade}
+        onOpenChange={setOpenUpgrade}
+        highlightPlanId={plan.id}
+      />
+    </>
   );
 }
+
 
 function Pricing({ site }: { site?: SiteSettings }) {
   const { data, isLoading } = useQuery({
