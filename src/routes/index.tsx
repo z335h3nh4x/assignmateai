@@ -14,6 +14,9 @@ import {
 import { listPublicPlans, type PublicPlan } from "@/lib/plans.functions";
 import { getSiteSettings, type SiteSettings } from "@/lib/site-settings.functions";
 import { BrandLogo } from "@/components/brand-logo";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { RazorpayCheckoutButton } from "@/components/razorpay-checkout-button";
 
 const FEATURE_ICON_MAP: Record<string, LucideIcon> = {
   Sparkles, Upload, GraduationCap, PenLine, BookOpen, ShieldCheck, Zap,
