@@ -1336,7 +1336,7 @@ const LANDING_FIELDS: FieldDef[] = [
   { key: "features_heading", label: "Features title", type: "text", placeholder: "Everything you need to ship the assignment" },
   { key: "features_subheading", label: "Features subtitle", type: "textarea", rows: 2, placeholder: "Built for real student workflows." },
   { key: "pricing_heading", label: "Pricing title", type: "text", placeholder: "Simple, student-friendly pricing" },
-  { key: "pricing_subheading", label: "Pricing subtitle", type: "textarea", rows: 2, placeholder: "Cancel anytime. No credit card required to start." },
+  { key: "pricing_subheading", label: "Pricing subtitle", type: "textarea", rows: 2, placeholder: "Start free, upgrade when you need more. Instant activation, secure Razorpay checkout." },
   { key: "testimonials_heading", label: "Testimonials title", type: "text", placeholder: "Loved by students" },
   { key: "faq_heading", label: "FAQ title", type: "text", default: "Frequently asked", placeholder: "Frequently asked" },
 ];
