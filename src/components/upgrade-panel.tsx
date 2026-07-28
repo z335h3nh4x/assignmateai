@@ -4,15 +4,12 @@ import { CreditCard } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { listPublicPlans } from "@/lib/plans.functions";
 import { useMyEntitlements } from "@/lib/use-plan-features";
+import { useBillingCurrency } from "@/hooks/use-site-settings";
 import { RazorpayCheckoutButton } from "@/components/razorpay-checkout-button";
-
-function formatAmount(minorUnits: number, currency: string) {
-  const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₹";
-  return `${symbol}${(minorUnits / 100).toFixed(2)}`;
-}
 
 export function UpgradePanel() {
   const ent = useMyEntitlements();
+  const { formatCents } = useBillingCurrency();
   const { data } = useQuery({
     queryKey: ["public-plans"],
     queryFn: () => listPublicPlans(),
@@ -23,6 +20,7 @@ export function UpgradePanel() {
     (p) => p.monthly_price_cents >= 100 && p.slug !== ent?.plan.slug,
   );
   if (paidPlans.length === 0) return null;
+
 
   return (
     <Card className="glass border-white/10 p-6">
