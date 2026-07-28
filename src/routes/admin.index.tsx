@@ -11,9 +11,6 @@ export const Route = createFileRoute("/admin/")({
   component: AdminHome,
 });
 
-function formatMoney(cents: number) {
-  return `$${(cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
 
 function relTime(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
