@@ -285,11 +285,9 @@ function Features({ site }: { site?: SiteSettings }) {
   );
 }
 
-function formatPrice(cents: number, currency: string) {
+function formatPrice(cents: number, currency: string, locale?: string) {
   if (!cents) return "Free";
-  const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "";
-  const amount = cents % 100 === 0 ? String(cents / 100) : (cents / 100).toFixed(2);
-  return `${symbol}${amount}`;
+  return formatMoneyCents(cents, currency, { locale, compactDecimals: true });
 }
 
 function PlanCta({ plan, isFree }: { plan: PublicPlan; isFree: boolean }) {
