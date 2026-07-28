@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useSiteSettings, supportEmail as siteSupportEmail } from "@/hooks/use-site-settings";
 import { UsagePanel } from "@/components/usage-panel";
+import { UpgradePanel } from "@/components/upgrade-panel";
 
 
 export const Route = createFileRoute("/_authenticated/settings")({
@@ -122,6 +123,8 @@ function SettingsPage() {
       </Card>
 
       <UsagePanel />
+
+      <UpgradePanel />
 
       {supportEmail && (
         <Card className="glass border-white/10 p-6 text-sm text-muted-foreground">
