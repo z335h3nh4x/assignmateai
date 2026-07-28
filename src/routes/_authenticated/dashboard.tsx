@@ -30,6 +30,7 @@ import {
   TEMPLATES, CITATION_STYLES, type TemplateId, type CitationStyleId, type SourceItem,
 } from "@/lib/templates";
 import { UsagePanel } from "@/components/usage-panel";
+import { LimitReachedDialog } from "@/components/upgrade-limit-dialog";
 import { useMyEntitlements } from "@/lib/use-plan-features";
 
 
@@ -299,6 +300,7 @@ function Dashboard() {
     || pastedAssignmentText.trim().length >= 20;
 
   const entitlements = useMyEntitlements();
+  const [limitDialogOpen, setLimitDialogOpen] = useState(false);
   const monthlyOut = entitlements?.remaining.monthly === 0;
   const creditsOut = entitlements?.remaining.credits === 0;
   const quotaBlocked = monthlyOut || creditsOut;
@@ -322,6 +324,12 @@ function Dashboard() {
       </div>
 
       <UsagePanel />
+
+      <LimitReachedDialog
+        open={limitDialogOpen}
+        onOpenChange={setLimitDialogOpen}
+        reason={monthlyOut ? "monthly" : "credits"}
+      />
 
       <PromoCard placement="dashboard" />
 

@@ -20,6 +20,7 @@ import { planFeatureLines } from "@/lib/plan-lines";
 import { formatMoneyCents } from "@/lib/currency";
 import { useBillingCurrency } from "@/hooks/use-site-settings";
 import { UpgradePlansDialog } from "@/components/upgrade-plans-dialog";
+import { PlanBadge } from "@/components/plan-badge";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -99,6 +100,7 @@ function Nav({ site }: { site?: SiteSettings }) {
           <div className="flex items-center gap-2">
             {signedIn ? (
               <>
+                <PlanBadge className="hidden sm:inline-flex" />
                 <Link to="/dashboard" className="text-sm px-4 py-2 rounded-lg gradient-bg text-white font-medium glow">
                   Dashboard
                 </Link>
