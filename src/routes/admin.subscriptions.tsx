@@ -9,6 +9,9 @@ import {
   ArrowUp, ArrowDown, Sparkles, GitBranch,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { formatMoneyCents, SUPPORTED_CURRENCIES, GATEWAY_CURRENCY } from "@/lib/currency";
+import { useBillingCurrency } from "@/hooks/use-site-settings";
+import { upsertPlatformSettings } from "@/lib/admin-settings.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -85,12 +88,53 @@ const EMPTY_PLAN: PlanInput = {
   sort_order: 0,
 };
 
-function money(cents: number, currency = "USD") {
-  return new Intl.NumberFormat(undefined, { style: "currency", currency }).format((cents ?? 0) / 100);
+function money(cents: number, currency?: string | null, locale?: string) {
+  return formatMoneyCents(cents, currency, { locale });
 }
 function initials(n?: string | null, e?: string | null) {
   const s = (n || e || "?").trim();
   return s.split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? "").join("") || "?";
+}
+
+function BillingCurrencyCard() {
+  const qc = useQueryClient();
+  const { currency } = useBillingCurrency();
+  const save = useServerFn(upsertPlatformSettings);
+  const [saving, setSaving] = useState(false);
+
+  async function onChange(next: string) {
+    setSaving(true);
+    try {
+      await save({ data: { entries: [{ key: "billing.currency", value: next }] } });
+      await qc.invalidateQueries({ queryKey: ["site-settings"] });
+      toast.success(`Billing currency set to ${next}`);
+    } catch {
+      toast.error("Could not update billing currency");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Card className="glass border-white/10 rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <div className="text-sm font-semibold">Billing currency</div>
+        <p className="text-xs text-muted-foreground mt-1 max-w-xl">
+          Single source of truth for every money value shown across the app — pricing, dashboards,
+          revenue analytics, invoices and reports. Payments are still processed by the gateway in
+          {" "}{GATEWAY_CURRENCY}.
+        </p>
+      </div>
+      <Select value={currency} onValueChange={onChange} disabled={saving}>
+        <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {SUPPORTED_CURRENCIES.map((c) => (
+            <SelectItem key={c} value={c}>{c}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </Card>
+  );
 }
 
 function StatCard({ icon: Icon, label, value, hint }: { icon: any; label: string; value: string; hint?: string }) {
@@ -117,6 +161,7 @@ function AdminSubscriptions() {
   const subsFn = useServerFn(listSubscribers);
   const analyticsFn = useServerFn(getSubscriptionAnalytics);
 
+  const { currency, locale } = useBillingCurrency();
   const overviewQ = useQuery({ queryKey: ["adm-sub-overview"], queryFn: () => overviewFn() });
   const plansQ = useQuery({ queryKey: ["adm-plans"], queryFn: () => plansFn() });
   const subsQ = useQuery({ queryKey: ["adm-subs"], queryFn: () => subsFn() });
@@ -138,13 +183,15 @@ function AdminSubscriptions() {
         </div>
       </div>
 
+      <BillingCurrencyCard />
+
       {/* Top stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         <StatCard icon={Users} label="Active" value={String(overviewQ.data?.totalActive ?? 0)} />
         <StatCard icon={Sparkles} label="Free" value={String(overviewQ.data?.freeUsers ?? 0)} />
         <StatCard icon={CreditCard} label="Paid" value={String(overviewQ.data?.paidUsers ?? 0)} />
-        <StatCard icon={DollarSign} label="MRR" value={money(overviewQ.data?.mrrCents ?? 0)} />
-        <StatCard icon={TrendingUp} label="ARR" value={money(overviewQ.data?.arrCents ?? 0)} />
+        <StatCard icon={DollarSign} label="MRR" value={money(overviewQ.data?.mrrCents ?? 0, currency, locale)} />
+        <StatCard icon={TrendingUp} label="ARR" value={money(overviewQ.data?.arrCents ?? 0, currency, locale)} />
         <StatCard icon={TrendingDown} label="Churn" value={`${overviewQ.data?.churnRate ?? 0}%`} />
         <StatCard icon={Percent} label="Free → Paid" value={`${overviewQ.data?.conversionRate ?? 0}%`} />
         <StatCard icon={GitBranch} label="Plans" value={String((plansQ.data ?? []).length)} />
@@ -179,6 +226,7 @@ function AdminSubscriptions() {
 // ================== PLANS TAB ==================
 
 function PlansTab({ plans, loading, refresh }: { plans: AdminPlan[]; loading: boolean; refresh: () => void }) {
+  const { currency, locale } = useBillingCurrency();
   const [editing, setEditing] = useState<PlanInput | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<AdminPlan | null>(null);
   const upsertFn = useServerFn(upsertPlan);
@@ -293,11 +341,11 @@ function PlansTab({ plans, loading, refresh }: { plans: AdminPlan[]; loading: bo
               {p.description && <p className="text-sm text-muted-foreground">{p.description}</p>}
 
               <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-display font-bold">{money(p.monthly_price_cents, p.currency)}</span>
+                <span className="text-3xl font-display font-bold">{money(p.monthly_price_cents, currency, locale)}</span>
                 <span className="text-sm text-muted-foreground">/mo</span>
                 {p.yearly_price_cents > 0 && (
                   <span className="text-xs text-muted-foreground ml-2">
-                    {money(p.yearly_price_cents, p.currency)}/yr
+                    {money(p.yearly_price_cents, currency, locale)}/yr
                   </span>
                 )}
               </div>
@@ -377,6 +425,7 @@ function Metric({ label, value }: { label: string; value: string }) {
 function PlanEditor({
   plan, onClose, onSave,
 }: { plan: PlanInput | null; onClose: () => void; onSave: (p: PlanInput) => void }) {
+  const { currency: globalCurrency } = useBillingCurrency();
   const [draft, setDraft] = useState<PlanInput | null>(plan);
   if (plan && (!draft || draft !== plan)) {
     // hydrate whenever a new plan is opened
@@ -407,7 +456,10 @@ function PlanEditor({
             <Textarea rows={2} value={draft.description ?? ""} onChange={(e) => setField("description", e.target.value)} />
           </Field>
           <Field label="Currency">
-            <Input value={draft.currency} onChange={(e) => setField("currency", e.target.value.toUpperCase())} />
+            <Input value={globalCurrency} readOnly disabled />
+            <p className="text-xs text-muted-foreground mt-1">
+              Set globally in Billing currency above.
+            </p>
           </Field>
           <Field label="Sort order">
             <Input type="number" value={draft.sort_order} onChange={(e) => setField("sort_order", Number(e.target.value))} />
@@ -454,7 +506,7 @@ function PlanEditor({
 
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => onSave(draft)} disabled={!draft.name || !draft.slug}>Save plan</Button>
+          <Button onClick={() => onSave({ ...draft, currency: globalCurrency })} disabled={!draft.name || !draft.slug}>Save plan</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -486,6 +538,7 @@ function Field({ label, children, className }: { label: string; children: React.
 function SubscribersTab({
   subscribers, plans, loading, refresh,
 }: { subscribers: SubscriberRow[]; plans: AdminPlan[]; loading: boolean; refresh: () => void }) {
+  const { currency, locale } = useBillingCurrency();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<string>("all");
   const [changePlanFor, setChangePlanFor] = useState<SubscriberRow | null>(null);
@@ -575,7 +628,7 @@ function SubscribersTab({
                     <TableCell className="text-xs">{s.started_at ? new Date(s.started_at).toLocaleDateString() : "—"}</TableCell>
                     <TableCell className="text-xs">{s.renewal_at ? new Date(s.renewal_at).toLocaleDateString() : "—"}</TableCell>
                     <TableCell className="text-xs">{s.payment_method ?? "—"}</TableCell>
-                    <TableCell className="text-right tabular-nums">{money(s.lifetime_spending_cents)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{money(s.lifetime_spending_cents, currency, locale)}</TableCell>
                     <TableCell className="text-right tabular-nums">{s.credits.toLocaleString()}</TableCell>
                     <TableCell className="text-right tabular-nums">{s.used.toLocaleString()}</TableCell>
                     <TableCell>
@@ -645,6 +698,7 @@ function SubscribersTab({
 function ChangePlanDialog({
   open, user, plans, onClose, onSave,
 }: { open: boolean; user: SubscriberRow | null; plans: AdminPlan[]; onClose: () => void; onSave: (planId: string, interval: "monthly" | "yearly") => void }) {
+  const { currency, locale } = useBillingCurrency();
   const [planId, setPlanId] = useState<string>("");
   const [interval, setInterval] = useState<"monthly" | "yearly">("monthly");
   useEffect(() => { if (user) { setPlanId(user.plan_id ?? ""); setInterval((user.billing_interval as any) ?? "monthly"); } }, [user]);
@@ -658,7 +712,7 @@ function ChangePlanDialog({
               <SelectTrigger><SelectValue placeholder="Choose a plan" /></SelectTrigger>
               <SelectContent>
                 {plans.filter((p) => !p.is_archived).map((p) => (
-                  <SelectItem key={p.id} value={p.id}>{p.name} — {money(p.monthly_price_cents, p.currency)}/mo</SelectItem>
+                  <SelectItem key={p.id} value={p.id}>{p.name} — {money(p.monthly_price_cents, currency, locale)}/mo</SelectItem>
                 ))}
               </SelectContent>
             </Select>

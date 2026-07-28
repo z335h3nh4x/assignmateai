@@ -6,6 +6,7 @@ import {
 } from "@/components/ui/dialog";
 import { listPublicPlans } from "@/lib/plans.functions";
 import { planFeatureLines, formatPlanPrice } from "@/lib/plan-lines";
+import { useBillingCurrency } from "@/hooks/use-site-settings";
 import { RazorpayCheckoutButton } from "@/components/razorpay-checkout-button";
 
 export function UpgradePlansDialog({
@@ -17,6 +18,7 @@ export function UpgradePlansDialog({
   onOpenChange: (open: boolean) => void;
   highlightPlanId?: string;
 }) {
+  const { currency, locale } = useBillingCurrency();
   const { data, isLoading } = useQuery({
     queryKey: ["public-plans"],
     queryFn: () => listPublicPlans(),
@@ -52,7 +54,7 @@ export function UpgradePlansDialog({
               <p className="text-sm text-muted-foreground">{p.name}</p>
               <div className="mt-1 flex items-baseline gap-1">
                 <span className="text-3xl font-bold font-display">
-                  {formatPlanPrice(p.monthly_price_cents, p.currency)}
+                  {formatPlanPrice(p.monthly_price_cents, currency, locale)}
                 </span>
                 <span className="text-sm text-muted-foreground">/month</span>
               </div>

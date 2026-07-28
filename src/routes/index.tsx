@@ -17,6 +17,8 @@ import { BrandLogo } from "@/components/brand-logo";
 import { useState } from "react";
 import { useAuthSession } from "@/hooks/use-auth-session";
 import { planFeatureLines } from "@/lib/plan-lines";
+import { formatMoneyCents } from "@/lib/currency";
+import { useBillingCurrency } from "@/hooks/use-site-settings";
 import { UpgradePlansDialog } from "@/components/upgrade-plans-dialog";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -285,11 +287,9 @@ function Features({ site }: { site?: SiteSettings }) {
   );
 }
 
-function formatPrice(cents: number, currency: string) {
+function formatPrice(cents: number, currency: string, locale?: string) {
   if (!cents) return "Free";
-  const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "";
-  const amount = cents % 100 === 0 ? String(cents / 100) : (cents / 100).toFixed(2);
-  return `${symbol}${amount}`;
+  return formatMoneyCents(cents, currency, { locale, compactDecimals: true });
 }
 
 function PlanCta({ plan, isFree }: { plan: PublicPlan; isFree: boolean }) {
@@ -328,6 +328,7 @@ function Pricing({ site }: { site?: SiteSettings }) {
     queryFn: () => listPublicPlans(),
     staleTime: 60_000,
   });
+  const { currency, locale } = useBillingCurrency();
   const plans = (data ?? []).filter((p) => p.sort_order >= 0);
   const heading = site?.landing.pricing_heading;
   const subheading =
@@ -355,7 +356,7 @@ function Pricing({ site }: { site?: SiteSettings }) {
         <div className="grid md:grid-cols-3 gap-5">
           {plans.map((p) => {
             const features = planFeatureLines(p);
-            const price = formatPrice(p.monthly_price_cents, p.currency);
+            const price = formatPrice(p.monthly_price_cents, currency, locale);
             const isFree = p.monthly_price_cents === 0;
             return (
               <div

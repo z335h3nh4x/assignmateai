@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { DEFAULT_CURRENCY } from "@/lib/currency";
 
 export type ListItem = {
   question?: string | null;
@@ -88,6 +89,12 @@ export type SiteSettings = {
     faq: ListItem[];
     testimonials: ListItem[];
   };
+  billing: {
+    /** ISO-4217 code used for every money value shown in the app. */
+    currency: string;
+    /** Optional BCP-47 locale used for number formatting ("" = visitor locale). */
+    locale: string;
+  };
   monetization: MonetizationSettings;
 };
 
@@ -132,7 +139,12 @@ const DEFAULTS: SiteSettings = {
     faq: [],
     testimonials: [],
   },
+  billing: {
+    currency: DEFAULT_CURRENCY,
+    locale: "",
+  },
   monetization: {
+
     id: "default",
     enabled: false,
     audience: "free",
@@ -190,7 +202,9 @@ export const getSiteSettings = createServerFn({ method: "GET" }).handler(
     const { data, error } = await sb
       .from("platform_settings")
       .select("key, value")
-      .or("key.like.general.%,key.like.branding.%,key.like.landing.%,key.like.monetization.%");
+      .or(
+        "key.like.general.%,key.like.branding.%,key.like.landing.%,key.like.monetization.%,key.like.billing.%",
+      );
     if (error || !data) return merged;
     for (const row of data as Array<{ key: string; value: unknown }>) {
       apply(merged, row.key, row.value);

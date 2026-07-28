@@ -1,6 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getSiteSettings, type SiteSettings } from "@/lib/site-settings.functions";
+import {
+  DEFAULT_CURRENCY,
+  formatMoney,
+  formatMoneyCents,
+  normalizeCurrency,
+} from "@/lib/currency";
 
 export function useSiteSettings() {
   const { data } = useQuery({
@@ -10,6 +16,28 @@ export function useSiteSettings() {
   });
   return data;
 }
+
+/**
+ * Global billing currency, configured in Admin → Subscriptions.
+ * Use this for every money value rendered in the app.
+ */
+export function useBillingCurrency() {
+  const site = useSiteSettings();
+  const currency = normalizeCurrency(site?.billing?.currency || DEFAULT_CURRENCY);
+  const locale = site?.billing?.locale?.trim() || undefined;
+  return useMemo(
+    () => ({
+      currency,
+      locale,
+      formatCents: (cents: number, compactDecimals = false) =>
+        formatMoneyCents(cents, currency, { locale, compactDecimals }),
+      formatAmount: (amount: number, compactDecimals = false) =>
+        formatMoney(amount, currency, { locale, compactDecimals }),
+    }),
+    [currency, locale],
+  );
+}
+
 
 export function platformName(site?: SiteSettings) {
   return site?.general.platform_name?.trim() || "Assignmate";
