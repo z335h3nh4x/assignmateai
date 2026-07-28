@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import { getAdminAnalytics } from "@/lib/admin.functions";
 import { getPromoStats } from "@/lib/promo-events.functions";
+import { useBillingCurrency } from "@/hooks/use-site-settings";
 
 export const Route = createFileRoute("/admin/analytics")({
   head: () => ({ meta: [{ title: "Analytics — Admin" }] }),
@@ -72,6 +73,7 @@ function Chart({ data, color, label, formatter }: {
 
 function AdminAnalytics() {
   const fetchAnalytics = useServerFn(getAdminAnalytics);
+  const { formatAmount } = useBillingCurrency();
   const fetchPromo = useServerFn(getPromoStats);
   const { data, isLoading } = useQuery({
     queryKey: ["admin", "analytics"],
@@ -105,7 +107,7 @@ function AdminAnalytics() {
             data={data.revenue}
             color="#f59e0b"
             label="Revenue / day"
-            formatter={(v) => `$${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            formatter={(v) => formatAmount(v)}
           />
         </div>
       )}
