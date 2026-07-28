@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -7,6 +7,7 @@ import { Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { createPlanOrder, verifyPlanPayment } from "@/lib/razorpay.functions";
+import { PaymentSuccessDialog, type PaymentSuccessInfo } from "@/components/payment-success-dialog";
 
 declare global {
   interface Window {
@@ -64,15 +65,28 @@ export function RazorpayCheckoutButton({
   onPaid?: (paymentId: string) => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const [creatingOrder, setCreatingOrder] = useState(false);
+  const [success, setSuccess] = useState<PaymentSuccessInfo | null>(null);
+  const inFlight = useRef(false);
   const queryClient = useQueryClient();
   const createOrder = useServerFn(createPlanOrder);
   const verifyPayment = useServerFn(verifyPlanPayment);
 
+  function release() {
+    inFlight.current = false;
+    setBusy(false);
+    setCreatingOrder(false);
+  }
+
   async function handleClick() {
+    if (inFlight.current) return;
+    inFlight.current = true;
     setBusy(true);
+    setCreatingOrder(true);
     try {
       await loadCheckoutScript();
       const order = await createOrder({ data: { planId } });
+      setCreatingOrder(false);
       const { data: userData } = await supabase.auth.getUser();
 
       if (!window.Razorpay) throw new Error("Razorpay checkout unavailable");
@@ -91,7 +105,7 @@ export function RazorpayCheckoutButton({
         theme: { color: "#7c3aed" },
         modal: {
           ondismiss: () => {
-            setBusy(false);
+            release();
             toast.info("Payment cancelled");
           },
         },
@@ -103,16 +117,15 @@ export function RazorpayCheckoutButton({
           try {
             const result = await verifyPayment({ data: response });
             await queryClient.invalidateQueries();
-            toast.success(
-              result.already_processed
-                ? "This payment was already applied to your account."
-                : `${result.plan_name ?? "Your"} plan is now active 🎉`,
-            );
+            setSuccess({
+              planName: result.plan_name ?? "your new",
+              alreadyProcessed: result.already_processed,
+            });
             onPaid?.(result.payment_id);
           } catch (err) {
             toast.error(await readError(err, "Payment verification failed"));
           } finally {
-            setBusy(false);
+            release();
           }
         },
 
@@ -123,24 +136,35 @@ export function RazorpayCheckoutButton({
           (response as { error?: { description?: string } })?.error?.description ??
           "Payment failed. Please try again.";
         toast.error(description);
-        setBusy(false);
+        release();
       });
 
       rzp.open();
     } catch (err) {
-      toast.error(await readError(err, "Could not start checkout"));
-      setBusy(false);
+      const detail = await readError(err, "");
+      toast.error("Unable to start payment.", {
+        description: detail || "Please try again.",
+      });
+      release();
     }
   }
 
   return (
-    <Button onClick={handleClick} disabled={busy} className={className}>
-      {busy ? (
-        <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-      ) : (
-        <Sparkles className="h-3.5 w-3.5 mr-1" />
-      )}
-      {busy ? "Processing…" : label}
-    </Button>
+    <>
+      <Button
+        onClick={handleClick}
+        disabled={busy}
+        aria-busy={busy}
+        className={`${className ?? ""} transition-all duration-200`}
+      >
+        {busy ? (
+          <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+        ) : (
+          <Sparkles className="h-3.5 w-3.5 mr-1" />
+        )}
+        {creatingOrder ? "Creating secure payment…" : busy ? "Processing…" : label}
+      </Button>
+      <PaymentSuccessDialog info={success} onClose={() => setSuccess(null)} />
+    </>
   );
 }

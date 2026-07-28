@@ -30,6 +30,7 @@ import {
   TEMPLATES, CITATION_STYLES, type TemplateId, type CitationStyleId, type SourceItem,
 } from "@/lib/templates";
 import { UsagePanel } from "@/components/usage-panel";
+import { LimitReachedDialog } from "@/components/upgrade-limit-dialog";
 import { useMyEntitlements } from "@/lib/use-plan-features";
 
 
@@ -299,6 +300,7 @@ function Dashboard() {
     || pastedAssignmentText.trim().length >= 20;
 
   const entitlements = useMyEntitlements();
+  const [limitDialogOpen, setLimitDialogOpen] = useState(false);
   const monthlyOut = entitlements?.remaining.monthly === 0;
   const creditsOut = entitlements?.remaining.credits === 0;
   const quotaBlocked = monthlyOut || creditsOut;
@@ -322,6 +324,12 @@ function Dashboard() {
       </div>
 
       <UsagePanel />
+
+      <LimitReachedDialog
+        open={limitDialogOpen}
+        onOpenChange={setLimitDialogOpen}
+        reason={monthlyOut ? "monthly" : "credits"}
+      />
 
       <PromoCard placement="dashboard" />
 
@@ -679,13 +687,14 @@ function Dashboard() {
         )}
 
         <Button
-          onClick={() => mutation.mutate()}
-          disabled={!canGenerate}
-          className="w-full h-12 gradient-bg text-white glow border-0 text-base font-medium"
+          onClick={() => (quotaBlocked ? setLimitDialogOpen(true) : mutation.mutate())}
+          disabled={!canGenerate && !quotaBlocked}
+          className="w-full h-12 gradient-bg text-white glow border-0 text-base font-medium transition-transform duration-200 hover:scale-[1.01]"
         >
           <Wand2 className="h-5 w-5 mr-2" />
-          Generate assignment
+          {quotaBlocked ? "Upgrade to continue" : "Generate assignment"}
         </Button>
+
       </Card>
     </div>
   );
