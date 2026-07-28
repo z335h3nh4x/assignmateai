@@ -687,13 +687,14 @@ function Dashboard() {
         )}
 
         <Button
-          onClick={() => mutation.mutate()}
-          disabled={!canGenerate}
-          className="w-full h-12 gradient-bg text-white glow border-0 text-base font-medium"
+          onClick={() => (quotaBlocked ? setLimitDialogOpen(true) : mutation.mutate())}
+          disabled={!canGenerate && !quotaBlocked}
+          className="w-full h-12 gradient-bg text-white glow border-0 text-base font-medium transition-transform duration-200 hover:scale-[1.01]"
         >
           <Wand2 className="h-5 w-5 mr-2" />
-          Generate assignment
+          {quotaBlocked ? "Upgrade to continue" : "Generate assignment"}
         </Button>
+
       </Card>
     </div>
   );
