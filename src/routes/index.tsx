@@ -51,7 +51,33 @@ function useSite() {
   });
 }
 
+function UserMenu({ email }: { email: string }) {
+  const initials = (email || "?").slice(0, 2).toUpperCase();
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger className="rounded-full outline-none" aria-label="Account menu">
+        <Avatar className="h-9 w-9 border border-white/10">
+          <AvatarFallback className="text-xs bg-white/10">{initials}</AvatarFallback>
+        </Avatar>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="glass border-white/10">
+        <DropdownMenuItem asChild>
+          <Link to="/dashboard">Dashboard</Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/history">History</Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/settings">Settings</Link>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function Nav({ site }: { site?: SiteSettings }) {
+  const { user, signedIn } = useAuthSession();
+
   return (
     <header className="fixed top-0 inset-x-0 z-40">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-4">
