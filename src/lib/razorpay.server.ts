@@ -106,3 +106,19 @@ export async function fetchRazorpayPayment(paymentId: string) {
   if (!res.ok) return null;
   return (await res.json()) as { id: string; status: string; amount: number; currency: string; order_id: string };
 }
+
+export type RazorpayOrderDetails = RazorpayOrder & {
+  notes?: Record<string, string> | null;
+};
+
+export async function fetchRazorpayOrder(orderId: string): Promise<RazorpayOrderDetails | null> {
+  const creds = getRazorpayCreds();
+  const res = await fetch(`${API_BASE}/orders/${encodeURIComponent(orderId)}`, {
+    headers: { authorization: basicAuth(creds) },
+  });
+  if (!res.ok) {
+    console.error("[razorpay] order fetch failed", res.status);
+    return null;
+  }
+  return (await res.json()) as RazorpayOrderDetails;
+}
