@@ -411,7 +411,10 @@ function PlanEditor({
             <Textarea rows={2} value={draft.description ?? ""} onChange={(e) => setField("description", e.target.value)} />
           </Field>
           <Field label="Currency">
-            <Input value={draft.currency} onChange={(e) => setField("currency", e.target.value.toUpperCase())} />
+            <Input value={globalCurrency} readOnly disabled />
+            <p className="text-xs text-muted-foreground mt-1">
+              Set globally in Billing currency above.
+            </p>
           </Field>
           <Field label="Sort order">
             <Input type="number" value={draft.sort_order} onChange={(e) => setField("sort_order", Number(e.target.value))} />
@@ -490,6 +493,7 @@ function Field({ label, children, className }: { label: string; children: React.
 function SubscribersTab({
   subscribers, plans, loading, refresh,
 }: { subscribers: SubscriberRow[]; plans: AdminPlan[]; loading: boolean; refresh: () => void }) {
+  const { currency, locale } = useBillingCurrency();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<string>("all");
   const [changePlanFor, setChangePlanFor] = useState<SubscriberRow | null>(null);
@@ -649,6 +653,7 @@ function SubscribersTab({
 function ChangePlanDialog({
   open, user, plans, onClose, onSave,
 }: { open: boolean; user: SubscriberRow | null; plans: AdminPlan[]; onClose: () => void; onSave: (planId: string, interval: "monthly" | "yearly") => void }) {
+  const { currency, locale } = useBillingCurrency();
   const [planId, setPlanId] = useState<string>("");
   const [interval, setInterval] = useState<"monthly" | "yearly">("monthly");
   useEffect(() => { if (user) { setPlanId(user.plan_id ?? ""); setInterval((user.billing_interval as any) ?? "monthly"); } }, [user]);
