@@ -356,7 +356,7 @@ function Pricing({ site }: { site?: SiteSettings }) {
         <div className="grid md:grid-cols-3 gap-5">
           {plans.map((p) => {
             const features = planFeatureLines(p);
-            const price = formatPrice(p.monthly_price_cents, p.currency);
+            const price = formatPrice(p.monthly_price_cents, currency, locale);
             const isFree = p.monthly_price_cents === 0;
             return (
               <div
