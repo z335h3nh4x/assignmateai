@@ -9,11 +9,16 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as SubscriptionPolicyRouteImport } from './routes/subscription-policy'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as ContactRouteImport } from './routes/contact'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
@@ -32,9 +37,24 @@ import { Route as AuthenticatedAssignmentIdRouteImport } from './routes/_authent
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SubscriptionPolicyRoute = SubscriptionPolicyRouteImport.update({
+  id: '/subscription-policy',
+  path: '/subscription-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
+  id: '/privacy-policy',
+  path: '/privacy-policy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const McpRoute = McpRouteImport.update({
@@ -47,6 +67,11 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -55,6 +80,11 @@ const AuthRoute = AuthRouteImport.update({
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -149,11 +179,16 @@ const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
+  '/contact': typeof ContactRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/mcp': typeof McpRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/subscription-policy': typeof SubscriptionPolicyRoute
+  '/terms': typeof TermsRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -172,10 +207,15 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
+  '/contact': typeof ContactRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/mcp': typeof McpRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/subscription-policy': typeof SubscriptionPolicyRoute
+  '/terms': typeof TermsRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -196,11 +236,16 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/about': typeof AboutRoute
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
+  '/contact': typeof ContactRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/mcp': typeof McpRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/subscription-policy': typeof SubscriptionPolicyRoute
+  '/terms': typeof TermsRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
@@ -221,11 +266,16 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about'
     | '/admin'
     | '/auth'
+    | '/contact'
     | '/forgot-password'
     | '/mcp'
+    | '/privacy-policy'
     | '/reset-password'
+    | '/subscription-policy'
+    | '/terms'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/dashboard'
@@ -244,10 +294,15 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about'
     | '/auth'
+    | '/contact'
     | '/forgot-password'
     | '/mcp'
+    | '/privacy-policy'
     | '/reset-password'
+    | '/subscription-policy'
+    | '/terms'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/dashboard'
@@ -267,11 +322,16 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/about'
     | '/admin'
     | '/auth'
+    | '/contact'
     | '/forgot-password'
     | '/mcp'
+    | '/privacy-policy'
     | '/reset-password'
+    | '/subscription-policy'
+    | '/terms'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/_authenticated/dashboard'
@@ -292,11 +352,16 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AboutRoute: typeof AboutRoute
   AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ContactRoute: typeof ContactRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   McpRoute: typeof McpRoute
+  PrivacyPolicyRoute: typeof PrivacyPolicyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  SubscriptionPolicyRoute: typeof SubscriptionPolicyRoute
+  TermsRoute: typeof TermsRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
@@ -306,11 +371,32 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/subscription-policy': {
+      id: '/subscription-policy'
+      path: '/subscription-policy'
+      fullPath: '/subscription-policy'
+      preLoaderRoute: typeof SubscriptionPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy-policy': {
+      id: '/privacy-policy'
+      path: '/privacy-policy'
+      fullPath: '/privacy-policy'
+      preLoaderRoute: typeof PrivacyPolicyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/mcp': {
@@ -327,6 +413,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -339,6 +432,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -503,11 +603,16 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AboutRoute: AboutRoute,
   AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
+  ContactRoute: ContactRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   McpRoute: McpRoute,
+  PrivacyPolicyRoute: PrivacyPolicyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  SubscriptionPolicyRoute: SubscriptionPolicyRoute,
+  TermsRoute: TermsRoute,
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,

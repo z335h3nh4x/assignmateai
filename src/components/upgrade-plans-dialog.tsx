@@ -10,6 +10,8 @@ import { planFeatureLines, formatPlanPrice } from "@/lib/plan-lines";
 import { useBillingCurrency } from "@/hooks/use-site-settings";
 import { useMyEntitlements } from "@/lib/use-plan-features";
 import { RazorpayCheckoutButton } from "@/components/razorpay-checkout-button";
+import { TrustBadges } from "@/components/trust-badges";
+import { Link } from "@tanstack/react-router";
 
 export function UpgradePlansDialog({
   open,
@@ -124,6 +126,17 @@ export function UpgradePlansDialog({
               </div>
             );
           })}
+        </div>
+
+        <div className="mt-6 space-y-3">
+          <TrustBadges compact />
+          <p className="text-center text-[11px] text-muted-foreground">
+            Subscriptions activate instantly and are non-refundable once active. See our{" "}
+            <Link to="/subscription-policy" className="underline underline-offset-2 hover:text-foreground">
+              Subscription Policy
+            </Link>
+            .
+          </p>
         </div>
       </DialogContent>
     </Dialog>

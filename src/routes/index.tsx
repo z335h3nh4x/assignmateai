@@ -25,6 +25,8 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { TrustBadges } from "@/components/trust-badges";
+import { LegalLinks } from "@/components/legal-links";
 
 
 const FEATURE_ICON_MAP: Record<string, LucideIcon> = {
@@ -334,7 +336,8 @@ function Pricing({ site }: { site?: SiteSettings }) {
   const plans = (data ?? []).filter((p) => p.sort_order >= 0);
   const heading = site?.landing.pricing_heading;
   const subheading =
-    site?.landing.pricing_subheading || "Cancel anytime. No credit card required to start.";
+    site?.landing.pricing_subheading ||
+    "Start free, upgrade when you need more. Instant activation, secure Razorpay checkout.";
 
   return (
     <section id="pricing" className="py-24 px-4">
@@ -393,10 +396,12 @@ function Pricing({ site }: { site?: SiteSettings }) {
             );
           })}
         </div>
+        <TrustBadges className="mt-10" />
       </div>
     </section>
   );
 }
+
 
 function Testimonials({ site }: { site?: SiteSettings }) {
   const items = (site?.landing.testimonials || []).filter(
@@ -532,10 +537,12 @@ function Footer({ site }: { site?: SiteSettings }) {
             )}
           </div>
         </div>
+        <LegalLinks className="justify-center md:justify-start" />
         <div className="flex flex-col items-center md:items-start gap-1 border-t border-white/5 pt-6">
           <span className="text-sm text-muted-foreground">{copyright}</span>
           <span className="text-xs text-muted-foreground">{tagline}</span>
         </div>
+
       </div>
     </footer>
   );
