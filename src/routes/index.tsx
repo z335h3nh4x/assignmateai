@@ -95,13 +95,25 @@ function Nav({ site }: { site?: SiteSettings }) {
             )}
           </nav>
           <div className="flex items-center gap-2">
-            <Link to="/auth" className="text-sm px-4 py-2 rounded-lg hover:bg-white/5 transition">
-              Login
-            </Link>
-            <Link to="/auth" className="text-sm px-4 py-2 rounded-lg gradient-bg text-white font-medium glow">
-              {site?.landing.hero_cta_text || "Try Free"}
-            </Link>
+            {signedIn ? (
+              <>
+                <Link to="/dashboard" className="text-sm px-4 py-2 rounded-lg gradient-bg text-white font-medium glow">
+                  Dashboard
+                </Link>
+                <UserMenu email={user?.email ?? ""} />
+              </>
+            ) : (
+              <>
+                <Link to="/auth" className="text-sm px-4 py-2 rounded-lg hover:bg-white/5 transition">
+                  Login
+                </Link>
+                <Link to="/auth" className="text-sm px-4 py-2 rounded-lg gradient-bg text-white font-medium glow">
+                  {site?.landing.hero_cta_text || "Try Free"}
+                </Link>
+              </>
+            )}
           </div>
+
         </div>
       </div>
     </header>
