@@ -248,63 +248,14 @@ function formatPrice(cents: number, currency: string) {
   return `${symbol}${amount}`;
 }
 
-function planFeatureLines(p: PublicPlan): string[] {
-  const lines: string[] = [];
-  lines.push(p.credits ? `${p.credits.toLocaleString()} credits` : "Pay-as-you-go credits");
-  if (p.monthly_limit) lines.push(`${p.monthly_limit.toLocaleString()} assignments / month`);
-  if (p.max_upload_mb) lines.push(`${p.max_upload_mb} MB uploads · ${p.max_upload_pages || "∞"} pages`);
-  const featureLabels: Record<string, string> = {
-    humanized_writing: "Humanized writing engine",
-    ocr: "OCR for images & scans",
-    ai_chat: "AI assignment chat",
-    pdf_export: "Academic PDF export",
-    docx_export: "DOCX export",
-    notebook_export: "Notebook-style PDF export",
-    notebook_pdf: "Notebook-style PDF export",
-    grammar_check: "Grammar & quality score",
-    grammar_checker: "Grammar & quality score",
-    priority_speed: "Priority generation speed",
-    priority_queue: "Priority generation speed",
-    faster_generation: "Faster generation",
-    references: "Auto references & citations",
-    citation_generator: "Auto references & citations",
-    all_styles: "All writing styles",
-    premium_templates: "Premium templates",
-    api_access: "API access",
-    team_seats: "Team seats",
-    early_features: "Early access to new features",
-    future_features: "Early access to new features",
-    priority_support: "Priority support",
-  };
-  lines.push(p.features?.ad_free ? "🚫 Ad-Free Experience" : "📢 Contains Ads");
-  for (const [key, on] of Object.entries(p.features || {})) {
-    if (key === "ad_free") continue;
-    if (on && featureLabels[key]) lines.push(featureLabels[key]);
-  }
-  return lines;
-}
-
 function PlanCta({ plan, isFree }: { plan: PublicPlan; isFree: boolean }) {
-  const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  const { signedIn, loading } = useAuthSession();
+  const [openUpgrade, setOpenUpgrade] = useState(false);
   const cls = `mt-auto w-full block text-center rounded-xl px-4 py-3 font-medium transition h-auto ${
     plan.is_recommended ? "gradient-bg text-white glow border-0" : "glass hover:bg-white/10"
   }`;
 
-  useEffect(() => {
-    let active = true;
-    supabase.auth.getSession().then(({ data }) => {
-      if (active) setSignedIn(!!data.session);
-    });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      setSignedIn(!!session);
-    });
-    return () => {
-      active = false;
-      sub.subscription.unsubscribe();
-    };
-  }, []);
-
-  if (isFree || signedIn === false || signedIn === null) {
+  if (isFree || !signedIn || loading) {
     return (
       <Link to="/auth" search={isFree ? undefined : { next: "/settings" }} className={cls}>
         {isFree ? "Start free" : `Get ${plan.name}`}
@@ -313,9 +264,19 @@ function PlanCta({ plan, isFree }: { plan: PublicPlan; isFree: boolean }) {
   }
 
   return (
-    <RazorpayCheckoutButton planId={plan.id} label={`Get ${plan.name}`} className={cls} />
+    <>
+      <button type="button" onClick={() => setOpenUpgrade(true)} className={cls}>
+        Get {plan.name}
+      </button>
+      <UpgradePlansDialog
+        open={openUpgrade}
+        onOpenChange={setOpenUpgrade}
+        highlightPlanId={plan.id}
+      />
+    </>
   );
 }
+
 
 function Pricing({ site }: { site?: SiteSettings }) {
   const { data, isLoading } = useQuery({
