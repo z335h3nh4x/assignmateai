@@ -9,8 +9,9 @@ import {
   ArrowUp, ArrowDown, Sparkles, GitBranch,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { formatMoneyCents, SUPPORTED_CURRENCIES } from "@/lib/currency";
+import { formatMoneyCents, SUPPORTED_CURRENCIES, GATEWAY_CURRENCY } from "@/lib/currency";
 import { useBillingCurrency } from "@/hooks/use-site-settings";
+import { upsertPlatformSettings } from "@/lib/admin-settings.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -95,6 +96,47 @@ function initials(n?: string | null, e?: string | null) {
   return s.split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? "").join("") || "?";
 }
 
+function BillingCurrencyCard() {
+  const qc = useQueryClient();
+  const { currency } = useBillingCurrency();
+  const save = useServerFn(upsertPlatformSettings);
+  const [saving, setSaving] = useState(false);
+
+  async function onChange(next: string) {
+    setSaving(true);
+    try {
+      await save({ data: { entries: [{ key: "billing.currency", value: next }] } });
+      await qc.invalidateQueries({ queryKey: ["site-settings"] });
+      toast.success(`Billing currency set to ${next}`);
+    } catch {
+      toast.error("Could not update billing currency");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Card className="glass border-white/10 rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <div className="text-sm font-semibold">Billing currency</div>
+        <p className="text-xs text-muted-foreground mt-1 max-w-xl">
+          Single source of truth for every money value shown across the app — pricing, dashboards,
+          revenue analytics, invoices and reports. Payments are still processed by the gateway in
+          {" "}{GATEWAY_CURRENCY}.
+        </p>
+      </div>
+      <Select value={currency} onValueChange={onChange} disabled={saving}>
+        <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {SUPPORTED_CURRENCIES.map((c) => (
+            <SelectItem key={c} value={c}>{c}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </Card>
+  );
+}
+
 function StatCard({ icon: Icon, label, value, hint }: { icon: any; label: string; value: string; hint?: string }) {
   return (
     <Card className="glass border-white/10 rounded-2xl p-5">
@@ -140,6 +182,8 @@ function AdminSubscriptions() {
           <p className="text-muted-foreground mt-1">Manage pricing, plans, subscribers, and billing analytics.</p>
         </div>
       </div>
+
+      <BillingCurrencyCard />
 
       {/* Top stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -462,7 +506,7 @@ function PlanEditor({
 
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => onSave(draft)} disabled={!draft.name || !draft.slug}>Save plan</Button>
+          <Button onClick={() => onSave({ ...draft, currency: globalCurrency })} disabled={!draft.name || !draft.slug}>Save plan</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
