@@ -40,13 +40,13 @@ export function UpgradePanel() {
             <div>
               <p className="font-medium">{p.name}</p>
               <p className="text-sm text-muted-foreground">
-                {formatAmount(p.monthly_price_cents, p.currency)} / month
+                {formatCents(p.monthly_price_cents)} / month
                 {p.monthly_limit ? ` · ${p.monthly_limit} assignments` : ""}
               </p>
             </div>
             <RazorpayCheckoutButton
               planId={p.id}
-              label={`Pay ${formatAmount(p.monthly_price_cents, p.currency)}`}
+              label={`Pay ${formatCents(p.monthly_price_cents)}`}
               className="gradient-bg text-white border-0"
             />
           </div>
