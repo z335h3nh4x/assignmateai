@@ -37,8 +37,7 @@ export function planFeatureLines(p: PublicPlan): string[] {
   return lines;
 }
 
-export function formatPlanPrice(cents: number, currency: string): string {
-  const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₹";
+export function formatPlanPrice(cents: number, currency?: string | null, locale?: string): string {
   if (!cents) return "Free";
-  return `${symbol}${Math.round(cents / 100).toLocaleString()}`;
+  return formatMoneyCents(cents, currency, { locale, compactDecimals: true });
 }
