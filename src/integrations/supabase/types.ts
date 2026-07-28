@@ -235,35 +235,58 @@ export type Database = {
       payments: {
         Row: {
           amount_cents: number
+          billing_interval: string | null
           created_at: string
           currency: string
           description: string | null
           id: string
+          plan_id: string | null
           provider: string
+          provider_order_id: string | null
+          provider_payment_id: string | null
+          provider_signature: string | null
           status: string
           user_id: string | null
         }
         Insert: {
           amount_cents: number
+          billing_interval?: string | null
           created_at?: string
           currency?: string
           description?: string | null
           id?: string
+          plan_id?: string | null
           provider?: string
+          provider_order_id?: string | null
+          provider_payment_id?: string | null
+          provider_signature?: string | null
           status?: string
           user_id?: string | null
         }
         Update: {
           amount_cents?: number
+          billing_interval?: string | null
           created_at?: string
           currency?: string
           description?: string | null
           id?: string
+          plan_id?: string | null
           provider?: string
+          provider_order_id?: string | null
+          provider_payment_id?: string | null
+          provider_signature?: string | null
           status?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "payments_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       plans: {
         Row: {
@@ -574,6 +597,20 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      activate_paid_subscription: {
+        Args: {
+          _amount_cents: number
+          _billing_interval?: string
+          _currency: string
+          _order_id: string
+          _payment_id: string
+          _plan_id: string
+          _provider: string
+          _signature: string
+          _user_id: string
+        }
+        Returns: Json
       }
       get_entitlements: { Args: { _user_id: string }; Returns: Json }
       has_role: {
