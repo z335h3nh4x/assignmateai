@@ -138,7 +138,12 @@ const DEFAULTS: SiteSettings = {
     faq: [],
     testimonials: [],
   },
+  billing: {
+    currency: DEFAULT_CURRENCY,
+    locale: "",
+  },
   monetization: {
+
     id: "default",
     enabled: false,
     audience: "free",
