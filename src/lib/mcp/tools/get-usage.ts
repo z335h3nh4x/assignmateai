@@ -15,8 +15,12 @@ export default defineTool({
     // We read it through trusted server code, scoped to the verified caller id.
     const { getEntitlements } = await import("@/lib/entitlements.server");
 
+    const userId = ctx.getUserId();
+    if (!userId) return unauthenticated();
+
     try {
-      const data = await getEntitlements(ctx.getUserId());
+      const data = await getEntitlements(userId);
+
       return {
         content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
         structuredContent: { entitlements: data as unknown },
