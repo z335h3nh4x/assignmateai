@@ -344,14 +344,7 @@ function Pricing({ site }: { site?: SiteSettings }) {
                     </li>
                   ))}
                 </ul>
-                <Link
-                  to="/auth"
-                  className={`mt-auto block text-center rounded-xl px-4 py-3 font-medium transition ${
-                    p.is_recommended ? "gradient-bg text-white glow" : "glass hover:bg-white/10"
-                  }`}
-                >
-                  {isFree ? "Start free" : `Get ${p.name}`}
-                </Link>
+                <PlanCta plan={p} isFree={isFree} />
               </div>
             );
           })}
