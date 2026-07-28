@@ -281,6 +281,39 @@ function planFeatureLines(p: PublicPlan): string[] {
   return lines;
 }
 
+function PlanCta({ plan, isFree }: { plan: PublicPlan; isFree: boolean }) {
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  const cls = `mt-auto w-full block text-center rounded-xl px-4 py-3 font-medium transition h-auto ${
+    plan.is_recommended ? "gradient-bg text-white glow border-0" : "glass hover:bg-white/10"
+  }`;
+
+  useEffect(() => {
+    let active = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (active) setSignedIn(!!data.session);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      setSignedIn(!!session);
+    });
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+
+  if (isFree || signedIn === false || signedIn === null) {
+    return (
+      <Link to="/auth" search={isFree ? undefined : { next: "/settings" }} className={cls}>
+        {isFree ? "Start free" : `Get ${plan.name}`}
+      </Link>
+    );
+  }
+
+  return (
+    <RazorpayCheckoutButton planId={plan.id} label={`Get ${plan.name}`} className={cls} />
+  );
+}
+
 function Pricing({ site }: { site?: SiteSettings }) {
   const { data, isLoading } = useQuery({
     queryKey: ["public-plans"],
