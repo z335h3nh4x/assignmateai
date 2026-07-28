@@ -11,6 +11,7 @@
 import { Marked } from "marked";
 import markedKatex from "marked-katex-extension";
 import hljs from "highlight.js";
+import DOMPurify from "dompurify";
 
 const marked = new Marked({
   gfm: true,
@@ -303,10 +304,30 @@ export function preprocessMathLayout(md: string): string {
   return serializeMathTokens(transformed);
 }
 
+// Assignment content originates from an LLM whose prompt includes user text,
+// uploaded files and fetched URLs, so the generated HTML is untrusted and is
+// always sanitised before it reaches dangerouslySetInnerHTML / print windows.
+function sanitizeHtml(html: string): string {
+  if (typeof window === "undefined" || !DOMPurify.isSupported) {
+    // SSR / non-DOM fallback: strip the executable surface conservatively.
+    return html
+      .replace(/<\s*(script|iframe|object|embed|link|meta)\b[\s\S]*?<\/\s*\1\s*>/gi, "")
+      .replace(/<\s*(script|iframe|object|embed|link|meta)\b[^>]*\/?>/gi, "")
+      .replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+      .replace(/(href|src|xlink:href)\s*=\s*("\s*javascript:[^"]*"|'\s*javascript:[^']*')/gi, "");
+  }
+  return DOMPurify.sanitize(html, {
+    USE_PROFILES: { html: true, svg: true, svgFilters: true, mathMl: true },
+    ADD_ATTR: ["class", "style", "colspan", "rowspan", "target", "rel"],
+    FORBID_TAGS: ["script", "iframe", "object", "embed", "form", "link", "meta", "base"],
+    FORBID_ATTR: ["srcdoc", "formaction"],
+  });
+}
+
 export function renderRichMarkdown(md: string): string {
   if (!md) return "";
   const normalised = preprocessMathLayout(md);
-  return marked.parse(normalised) as string;
+  return sanitizeHtml(marked.parse(normalised) as string);
 }
 
 // CDN assets to inject into a fresh print window so KaTeX / highlight.js /
