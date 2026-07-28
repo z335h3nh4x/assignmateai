@@ -9,6 +9,8 @@ import {
   ArrowUp, ArrowDown, Sparkles, GitBranch,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { formatMoneyCents, SUPPORTED_CURRENCIES } from "@/lib/currency";
+import { useBillingCurrency } from "@/hooks/use-site-settings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -85,8 +87,8 @@ const EMPTY_PLAN: PlanInput = {
   sort_order: 0,
 };
 
-function money(cents: number, currency = "USD") {
-  return new Intl.NumberFormat(undefined, { style: "currency", currency }).format((cents ?? 0) / 100);
+function money(cents: number, currency?: string | null, locale?: string) {
+  return formatMoneyCents(cents, currency, { locale });
 }
 function initials(n?: string | null, e?: string | null) {
   const s = (n || e || "?").trim();
@@ -117,6 +119,7 @@ function AdminSubscriptions() {
   const subsFn = useServerFn(listSubscribers);
   const analyticsFn = useServerFn(getSubscriptionAnalytics);
 
+  const { currency, locale } = useBillingCurrency();
   const overviewQ = useQuery({ queryKey: ["adm-sub-overview"], queryFn: () => overviewFn() });
   const plansQ = useQuery({ queryKey: ["adm-plans"], queryFn: () => plansFn() });
   const subsQ = useQuery({ queryKey: ["adm-subs"], queryFn: () => subsFn() });
@@ -143,8 +146,8 @@ function AdminSubscriptions() {
         <StatCard icon={Users} label="Active" value={String(overviewQ.data?.totalActive ?? 0)} />
         <StatCard icon={Sparkles} label="Free" value={String(overviewQ.data?.freeUsers ?? 0)} />
         <StatCard icon={CreditCard} label="Paid" value={String(overviewQ.data?.paidUsers ?? 0)} />
-        <StatCard icon={DollarSign} label="MRR" value={money(overviewQ.data?.mrrCents ?? 0)} />
-        <StatCard icon={TrendingUp} label="ARR" value={money(overviewQ.data?.arrCents ?? 0)} />
+        <StatCard icon={DollarSign} label="MRR" value={money(overviewQ.data?.mrrCents ?? 0, currency, locale)} />
+        <StatCard icon={TrendingUp} label="ARR" value={money(overviewQ.data?.arrCents ?? 0, currency, locale)} />
         <StatCard icon={TrendingDown} label="Churn" value={`${overviewQ.data?.churnRate ?? 0}%`} />
         <StatCard icon={Percent} label="Free → Paid" value={`${overviewQ.data?.conversionRate ?? 0}%`} />
         <StatCard icon={GitBranch} label="Plans" value={String((plansQ.data ?? []).length)} />
@@ -179,6 +182,7 @@ function AdminSubscriptions() {
 // ================== PLANS TAB ==================
 
 function PlansTab({ plans, loading, refresh }: { plans: AdminPlan[]; loading: boolean; refresh: () => void }) {
+  const { currency, locale } = useBillingCurrency();
   const [editing, setEditing] = useState<PlanInput | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<AdminPlan | null>(null);
   const upsertFn = useServerFn(upsertPlan);
@@ -293,11 +297,11 @@ function PlansTab({ plans, loading, refresh }: { plans: AdminPlan[]; loading: bo
               {p.description && <p className="text-sm text-muted-foreground">{p.description}</p>}
 
               <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-display font-bold">{money(p.monthly_price_cents, p.currency)}</span>
+                <span className="text-3xl font-display font-bold">{money(p.monthly_price_cents, currency, locale)}</span>
                 <span className="text-sm text-muted-foreground">/mo</span>
                 {p.yearly_price_cents > 0 && (
                   <span className="text-xs text-muted-foreground ml-2">
-                    {money(p.yearly_price_cents, p.currency)}/yr
+                    {money(p.yearly_price_cents, currency, locale)}/yr
                   </span>
                 )}
               </div>
@@ -575,7 +579,7 @@ function SubscribersTab({
                     <TableCell className="text-xs">{s.started_at ? new Date(s.started_at).toLocaleDateString() : "—"}</TableCell>
                     <TableCell className="text-xs">{s.renewal_at ? new Date(s.renewal_at).toLocaleDateString() : "—"}</TableCell>
                     <TableCell className="text-xs">{s.payment_method ?? "—"}</TableCell>
-                    <TableCell className="text-right tabular-nums">{money(s.lifetime_spending_cents)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{money(s.lifetime_spending_cents, currency, locale)}</TableCell>
                     <TableCell className="text-right tabular-nums">{s.credits.toLocaleString()}</TableCell>
                     <TableCell className="text-right tabular-nums">{s.used.toLocaleString()}</TableCell>
                     <TableCell>
@@ -658,7 +662,7 @@ function ChangePlanDialog({
               <SelectTrigger><SelectValue placeholder="Choose a plan" /></SelectTrigger>
               <SelectContent>
                 {plans.filter((p) => !p.is_archived).map((p) => (
-                  <SelectItem key={p.id} value={p.id}>{p.name} — {money(p.monthly_price_cents, p.currency)}/mo</SelectItem>
+                  <SelectItem key={p.id} value={p.id}>{p.name} — {money(p.monthly_price_cents, currency, locale)}/mo</SelectItem>
                 ))}
               </SelectContent>
             </Select>
