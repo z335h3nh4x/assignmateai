@@ -1,5 +1,5 @@
 import { defineTool } from "@lovable.dev/mcp-js";
-import { supabaseForUser, unauthenticated } from "../supabase";
+import { unauthenticated } from "../supabase";
 
 export default defineTool({
   name: "get_usage",
@@ -11,15 +11,21 @@ export default defineTool({
   handler: async (_input, ctx) => {
     if (!ctx.isAuthenticated()) return unauthenticated();
 
-    const { data, error } = await supabaseForUser(ctx).rpc("get_entitlements", {
-      _user_id: ctx.getUserId(),
-    } as never);
+    // The entitlements routine is server-only (clients may not execute it).
+    // We read it through trusted server code, scoped to the verified caller id.
+    const { getEntitlements } = await import("@/lib/entitlements.server");
 
-    if (error) return { content: [{ type: "text", text: error.message }], isError: true };
-
-    return {
-      content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-      structuredContent: { entitlements: data as unknown },
-    };
+    try {
+      const data = await getEntitlements(ctx.getUserId());
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
+        structuredContent: { entitlements: data as unknown },
+      };
+    } catch (err) {
+      return {
+        content: [{ type: "text" as const, text: "Could not read plan usage." }],
+        isError: true,
+      };
+    }
   },
 });
