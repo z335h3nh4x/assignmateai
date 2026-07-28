@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Users, FileStack, Download, DollarSign, ArrowUpRight, UserPlus, FileText, CreditCard } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { getAdminOverview } from "@/lib/admin.functions";
+import { useBillingCurrency } from "@/hooks/use-site-settings";
 
 export const Route = createFileRoute("/admin/")({
   head: () => ({ meta: [{ title: "Admin Dashboard — Assignmate" }] }),
@@ -43,7 +44,7 @@ function AdminHome() {
     { label: "Total Users", value: data?.totals.users ?? 0, icon: Users, hint: "All registered accounts" },
     { label: "Total Assignments", value: data?.totals.assignments ?? 0, icon: FileStack, hint: "Generated to date" },
     { label: "Total Exports", value: data?.totals.exports ?? 0, icon: Download, hint: "PDF / DOCX downloads" },
-    { label: "Revenue", value: formatMoney(data?.totals.revenueCents ?? 0), icon: DollarSign, hint: "Completed payments" },
+    { label: "Revenue", value: formatCents(data?.totals.revenueCents ?? 0), icon: DollarSign, hint: "Completed payments" },
   ];
 
   return (
