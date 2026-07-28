@@ -537,10 +537,12 @@ function Footer({ site }: { site?: SiteSettings }) {
             )}
           </div>
         </div>
+        <LegalLinks className="justify-center md:justify-start" />
         <div className="flex flex-col items-center md:items-start gap-1 border-t border-white/5 pt-6">
           <span className="text-sm text-muted-foreground">{copyright}</span>
           <span className="text-xs text-muted-foreground">{tagline}</span>
         </div>
+
       </div>
     </footer>
   );
