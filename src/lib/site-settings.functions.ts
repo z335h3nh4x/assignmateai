@@ -88,6 +88,12 @@ export type SiteSettings = {
     faq: ListItem[];
     testimonials: ListItem[];
   };
+  billing: {
+    /** ISO-4217 code used for every money value shown in the app. */
+    currency: string;
+    /** Optional BCP-47 locale used for number formatting ("" = visitor locale). */
+    locale: string;
+  };
   monetization: MonetizationSettings;
 };
 
