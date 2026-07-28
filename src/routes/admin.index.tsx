@@ -34,6 +34,7 @@ const KIND_META = {
 
 function AdminHome() {
   const fetchOverview = useServerFn(getAdminOverview);
+  const { formatCents } = useBillingCurrency();
   const { data, isLoading } = useQuery({
     queryKey: ["admin", "overview"],
     queryFn: () => fetchOverview(),
