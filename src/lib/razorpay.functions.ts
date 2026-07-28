@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { GATEWAY_CURRENCY } from "@/lib/currency";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
@@ -40,7 +41,9 @@ export const createPlanOrder = createServerFn({ method: "POST" })
 
     const order = await createRazorpayOrder({
       amount,
-      currency: plan.currency || "INR",
+      // Payment processing currency is fixed to the gateway currency; the UI
+      // display currency is managed separately in Admin -> Subscriptions.
+      currency: GATEWAY_CURRENCY,
       receipt: `plan_${plan.slug}_${Date.now()}`.slice(0, 40),
       notes: { user_id: context.userId, plan_id: plan.id, plan_slug: plan.slug },
     });

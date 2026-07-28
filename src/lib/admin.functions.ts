@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { formatMoneyCents } from "@/lib/currency";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 async function assertAdmin(context: { supabase: any; userId: string }) {
@@ -87,7 +88,7 @@ export const getAdminOverview = createServerFn({ method: "GET" })
         kind: "payment",
         at: p.created_at,
         title: `Payment ${p.status}`,
-        subtitle: `${(p.amount_cents / 100).toFixed(2)} ${p.currency.toUpperCase()}`,
+        subtitle: formatMoneyCents(p.amount_cents, p.currency),
       });
     }
 
