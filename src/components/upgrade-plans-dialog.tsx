@@ -17,6 +17,7 @@ export function UpgradePlansDialog({
   onOpenChange: (open: boolean) => void;
   highlightPlanId?: string;
 }) {
+  const { currency, locale } = useBillingCurrency();
   const { data, isLoading } = useQuery({
     queryKey: ["public-plans"],
     queryFn: () => listPublicPlans(),
