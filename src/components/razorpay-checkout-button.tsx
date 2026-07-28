@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2, Sparkles } from "lucide-react";
 
@@ -63,6 +64,7 @@ export function RazorpayCheckoutButton({
   onPaid?: (paymentId: string) => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const queryClient = useQueryClient();
   const createOrder = useServerFn(createPlanOrder);
   const verifyPayment = useServerFn(verifyPlanPayment);
 
