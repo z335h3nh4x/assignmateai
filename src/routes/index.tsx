@@ -17,6 +17,8 @@ import { BrandLogo } from "@/components/brand-logo";
 import { useState } from "react";
 import { useAuthSession } from "@/hooks/use-auth-session";
 import { planFeatureLines } from "@/lib/plan-lines";
+import { formatMoneyCents } from "@/lib/currency";
+import { useBillingCurrency } from "@/hooks/use-site-settings";
 import { UpgradePlansDialog } from "@/components/upgrade-plans-dialog";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
