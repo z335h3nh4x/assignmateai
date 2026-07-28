@@ -381,6 +381,7 @@ function Metric({ label, value }: { label: string; value: string }) {
 function PlanEditor({
   plan, onClose, onSave,
 }: { plan: PlanInput | null; onClose: () => void; onSave: (p: PlanInput) => void }) {
+  const { currency: globalCurrency } = useBillingCurrency();
   const [draft, setDraft] = useState<PlanInput | null>(plan);
   if (plan && (!draft || draft !== plan)) {
     // hydrate whenever a new plan is opened
