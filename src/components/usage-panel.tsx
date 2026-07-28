@@ -67,7 +67,7 @@ function MetricBlock({
             className="h-1.5 [&>div]:transition-all [&>div]:duration-700 [&>div]:ease-out"
           />
           <div className={`text-xs ${exhausted ? "text-destructive" : "text-muted-foreground"}`}>
-            {remaining.toLocaleString()}{unit ? ` ${unit}` : ""} remaining
+            {(remaining ?? 0).toLocaleString()}{unit ? ` ${unit}` : ""} remaining
           </div>
         </>
       )}
