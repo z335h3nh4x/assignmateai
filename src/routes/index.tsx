@@ -328,6 +328,7 @@ function Pricing({ site }: { site?: SiteSettings }) {
     queryFn: () => listPublicPlans(),
     staleTime: 60_000,
   });
+  const { currency, locale } = useBillingCurrency();
   const plans = (data ?? []).filter((p) => p.sort_order >= 0);
   const heading = site?.landing.pricing_heading;
   const subheading =
