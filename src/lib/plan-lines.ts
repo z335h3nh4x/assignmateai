@@ -1,4 +1,5 @@
 import type { PublicPlan } from "@/lib/plans.functions";
+import { formatMoneyCents } from "@/lib/currency";
 
 export const PLAN_FEATURE_LABELS: Record<string, string> = {
   humanized_writing: "Humanized writing engine",
