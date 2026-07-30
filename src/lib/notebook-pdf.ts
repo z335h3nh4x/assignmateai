@@ -9,6 +9,7 @@ import {
 
 export type NotebookInk = "blue" | "black";
 export type NotebookStyle = "clean" | "natural" | "cursive" | "exam" | "neat";
+export type NotebookTemplate = "ruled" | "classic_school";
 
 type StyleProfile = {
   fontFamily: string;
@@ -90,7 +91,12 @@ export type NotebookMeta = {
   showDate: boolean;
   showStudentName: boolean;
   showPageNumbers: boolean;
+  /** Built-in paper template. Defaults to the CSS-drawn ruled paper. */
+  template?: NotebookTemplate;
+  /** Absolute URL of the template background image (used by image templates). */
+  backgroundUrl?: string;
 };
+
 
 
 const esc = (s: string) =>
@@ -111,6 +117,10 @@ export function buildNotebookDocument(markdown: string, meta: NotebookMeta): str
   const fontSize = profile.fontSize;
   // Line ruling height in px — text must sit on these lines.
   const RULE = 36;
+  // Built-in image-based paper templates keep every page independent: the
+  // image paints from the top-left of each .page box, never scrolls or tiles.
+  const paperUrl = meta.backgroundUrl ?? "";
+  const useImagePaper = meta.template === "classic_school" && !!paperUrl;
   
 
   const headerRow = `
@@ -190,6 +200,14 @@ ${PRINT_HEAD_ASSETS}
     min-height: 297mm;
     margin: 12mm auto;
     padding: ${RULE * 2}px 18mm ${RULE * 2}px 28mm;
+${useImagePaper ? `
+    background-color: #ffffff;
+    background-image: url("${paperUrl}");
+    background-repeat: no-repeat;
+    background-position: 0 0;
+    background-origin: border-box;
+    background-size: cover;
+` : `
     background-color: #fdfdf7;
     background-image:
       /* red left margin rule */
@@ -207,6 +225,7 @@ ${PRINT_HEAD_ASSETS}
         rgba(70, 130, 200, 0.42) ${RULE - 1}px,
         transparent ${RULE - 1}px);
     background-position: 0 0, 0 0;
+`}
 
     box-shadow: 0 4px 18px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.1);
     page-break-after: always;

@@ -26,7 +26,8 @@ import {
 import { AssignmentAssistant, AutosaveEditor } from "@/components/assignment-assistant";
 import { PromoCard } from "@/components/promo-card";
 import { incrementExport, saveAssignmentDraft } from "@/lib/assignments.functions";
-import { buildNotebookDocument, type NotebookInk, type NotebookStyle } from "@/lib/notebook-pdf";
+import { buildNotebookDocument, type NotebookInk, type NotebookStyle, type NotebookTemplate } from "@/lib/notebook-pdf";
+import classicSchoolPaper from "@/assets/classic-school-paper.png.asset.json";
 import {
   renderRichMarkdown,
   PRINT_HEAD_ASSETS,
@@ -259,6 +260,7 @@ function AssignmentView() {
     date: new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }),
     ink: "blue" as NotebookInk,
     style: "clean" as NotebookStyle,
+    template: "ruled" as NotebookTemplate,
     showDate: true,
     showStudentName: true,
     showPageNumbers: true,
@@ -375,6 +377,8 @@ function AssignmentView() {
       showDate: notebookMeta.showDate,
       showStudentName: notebookMeta.showStudentName,
       showPageNumbers: notebookMeta.showPageNumbers,
+      template: notebookMeta.template,
+      backgroundUrl: `${window.location.origin}${classicSchoolPaper.url}`,
     });
 
     w.document.open();
@@ -619,6 +623,17 @@ function AssignmentView() {
           </DialogHeader>
 
           <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label>Notebook template</Label>
+              <Select value={notebookMeta.template}
+                onValueChange={(v) => setNotebookMeta({ ...notebookMeta, template: v as NotebookTemplate })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ruled">Ruled Notebook</SelectItem>
+                  <SelectItem value="classic_school">Classic School</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Ink color</Label>
