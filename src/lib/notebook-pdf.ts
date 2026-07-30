@@ -91,7 +91,12 @@ export type NotebookMeta = {
   showDate: boolean;
   showStudentName: boolean;
   showPageNumbers: boolean;
+  /** Built-in paper template. Defaults to the CSS-drawn ruled paper. */
+  template?: NotebookTemplate;
+  /** Absolute URL of the template background image (used by image templates). */
+  backgroundUrl?: string;
 };
+
 
 
 const esc = (s: string) =>
