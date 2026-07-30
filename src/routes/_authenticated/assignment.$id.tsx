@@ -259,6 +259,7 @@ function AssignmentView() {
     date: new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }),
     ink: "blue" as NotebookInk,
     style: "clean" as NotebookStyle,
+    template: "ruled" as NotebookTemplate,
     showDate: true,
     showStudentName: true,
     showPageNumbers: true,
