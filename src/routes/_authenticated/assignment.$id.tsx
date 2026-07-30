@@ -27,7 +27,6 @@ import { AssignmentAssistant, AutosaveEditor } from "@/components/assignment-ass
 import { PromoCard } from "@/components/promo-card";
 import { incrementExport, saveAssignmentDraft } from "@/lib/assignments.functions";
 import { buildNotebookDocument, type NotebookInk, type NotebookStyle } from "@/lib/notebook-pdf";
-import { NotebookPreview } from "@/components/notebook-preview";
 import {
   renderRichMarkdown,
   PRINT_HEAD_ASSETS,
@@ -609,7 +608,7 @@ function AssignmentView() {
       </Dialog>
 
       <Dialog open={notebookOpen} onOpenChange={setNotebookOpen}>
-        <DialogContent className="glass border-white/10 sm:max-w-3xl max-h-[92vh] overflow-y-auto">
+        <DialogContent className="glass border-white/10 sm:max-w-lg max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Export notebook PDF</DialogTitle>
             <DialogDescription>
