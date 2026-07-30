@@ -8,7 +8,78 @@ import {
 } from "./render-markdown";
 
 export type NotebookInk = "blue" | "black";
-export type NotebookStyle = "clean" | "natural";
+export type NotebookStyle = "clean" | "natural" | "cursive" | "exam" | "neat";
+
+type StyleProfile = {
+  fontFamily: string;
+  fontSize: string;
+  headerSize: string;
+  titleSize: string;
+  h1: string;
+  h2: string;
+  h3: string;
+  tableSize: string;
+  jitter: boolean;
+};
+
+const STYLE_PROFILES: Record<NotebookStyle, StyleProfile> = {
+  clean: {
+    fontFamily: `'Patrick Hand', 'Kalam', cursive`,
+    fontSize: "22px",
+    headerSize: "18px",
+    titleSize: "28px",
+    h1: "26px",
+    h2: "24px",
+    h3: "22px",
+    tableSize: "18px",
+    jitter: false,
+  },
+  natural: {
+    fontFamily: `'Caveat', 'Patrick Hand', cursive`,
+    fontSize: "26px",
+    headerSize: "22px",
+    titleSize: "34px",
+    h1: "32px",
+    h2: "28px",
+    h3: "26px",
+    tableSize: "20px",
+    jitter: true,
+  },
+  cursive: {
+    fontFamily: `'Dancing Script', 'Caveat', cursive`,
+    fontSize: "26px",
+    headerSize: "21px",
+    titleSize: "33px",
+    h1: "31px",
+    h2: "28px",
+    h3: "26px",
+    tableSize: "20px",
+    jitter: false,
+  },
+  exam: {
+    fontFamily: `'Reenie Beanie', 'Caveat', cursive`,
+    fontSize: "27px",
+    headerSize: "22px",
+    titleSize: "34px",
+    h1: "32px",
+    h2: "29px",
+    h3: "27px",
+    tableSize: "21px",
+    jitter: true,
+  },
+  neat: {
+    fontFamily: `'Architects Daughter', 'Patrick Hand', cursive`,
+    fontSize: "20px",
+    headerSize: "17px",
+    titleSize: "26px",
+    h1: "24px",
+    h2: "22px",
+    h3: "20px",
+    tableSize: "17px",
+    jitter: false,
+  },
+};
+
 
 export type NotebookMeta = {
   title: string;
