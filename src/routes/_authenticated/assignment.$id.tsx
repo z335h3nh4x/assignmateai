@@ -27,6 +27,9 @@ import { AssignmentAssistant, AutosaveEditor } from "@/components/assignment-ass
 import { PromoCard } from "@/components/promo-card";
 import { incrementExport, saveAssignmentDraft } from "@/lib/assignments.functions";
 import { buildNotebookDocument, type NotebookInk, type NotebookStyle } from "@/lib/notebook-pdf";
+import { NotebookBackgroundManager } from "@/components/notebook-background-manager";
+import { useUserNotebook } from "@/hooks/use-user-notebook";
+import { toDataUrl, type NotebookInsets } from "@/lib/notebook-background";
 import {
   renderRichMarkdown,
   PRINT_HEAD_ASSETS,
@@ -266,6 +269,7 @@ function AssignmentView() {
 
   const pdfFeature = useFeature("pdf_export");
   const notebookFeature = useFeature("notebook_pdf");
+  const { notebook: userNotebook } = useUserNotebook();
   const docxFeature = useFeature("docx_export");
 
 
@@ -362,8 +366,19 @@ function AssignmentView() {
     void trackExport();
   }
 
-  function downloadNotebookPdf() {
+  async function downloadNotebookPdf() {
     if (!row?.result) return;
+    let background: { imageUrl: string; insets: NotebookInsets } | null = null;
+    if (userNotebook?.template === "custom" && userNotebook.signedUrl) {
+      try {
+        background = {
+          imageUrl: await toDataUrl(userNotebook.signedUrl),
+          insets: userNotebook.insets,
+        };
+      } catch {
+        toast.error("Could not load your notebook background — using the classic notebook");
+      }
+    }
     const w = window.open("", "_blank");
     if (!w) return toast.error("Popup blocked — allow popups to export PDF");
     const doc = buildNotebookDocument(row.result, {
@@ -375,6 +390,7 @@ function AssignmentView() {
       showDate: notebookMeta.showDate,
       showStudentName: notebookMeta.showStudentName,
       showPageNumbers: notebookMeta.showPageNumbers,
+      background,
     });
     w.document.open();
     w.document.write(doc);
@@ -618,6 +634,7 @@ function AssignmentView() {
           </DialogHeader>
 
           <div className="space-y-3">
+            <NotebookBackgroundManager />
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Ink color</Label>
