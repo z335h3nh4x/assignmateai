@@ -377,6 +377,8 @@ function AssignmentView() {
       showDate: notebookMeta.showDate,
       showStudentName: notebookMeta.showStudentName,
       showPageNumbers: notebookMeta.showPageNumbers,
+      template: notebookMeta.template,
+      backgroundUrl: `${window.location.origin}${classicSchoolPaper.url}`,
     });
 
     w.document.open();
