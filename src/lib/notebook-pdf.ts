@@ -117,6 +117,10 @@ export function buildNotebookDocument(markdown: string, meta: NotebookMeta): str
   const fontSize = profile.fontSize;
   // Line ruling height in px — text must sit on these lines.
   const RULE = 36;
+  // Built-in image-based paper templates keep every page independent: the
+  // image paints from the top-left of each .page box, never scrolls or tiles.
+  const paperUrl = meta.backgroundUrl ?? "";
+  const useImagePaper = meta.template === "classic_school" && !!paperUrl;
   
 
   const headerRow = `
