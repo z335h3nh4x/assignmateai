@@ -200,11 +200,7 @@ ${PRINT_HEAD_ASSETS}
     margin: 12mm auto;
     ${bg
       ? `padding: ${(bg.insets.top * 297).toFixed(1)}mm ${(bg.insets.right * 210).toFixed(1)}mm ${(bg.insets.bottom * 297).toFixed(1)}mm ${(bg.insets.left * 210).toFixed(1)}mm;
-    background-color: #ffffff;
-    background-image: url("${bg.imageUrl}");
-    background-size: 210mm 297mm;
-    background-repeat: no-repeat;
-    background-position: top center;`
+    background-color: #ffffff;`
       : `padding: ${RULE * 2}px 18mm ${RULE * 2}px 28mm;
     background-color: #fdfdf7;
     background-image:
@@ -226,8 +222,29 @@ ${PRINT_HEAD_ASSETS}
     box-shadow: 0 4px 18px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.1);
     page-break-after: always;
     overflow: hidden;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
   }
+  ${bg ? `
+  /* The uploaded notebook page is painted as its own full-bleed layer on every
+     sheet, so it repeats identically for page 2, 3, ... like a page template. */
+  .page::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0;
+    width: 210mm;
+    height: 297mm;
+    background-image: url("${bg.imageUrl}");
+    background-size: 210mm 297mm;
+    background-repeat: no-repeat;
+    background-position: top center;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .page > * { position: relative; z-index: 1; }
+  ` : ""}
   .page:last-child { page-break-after: auto; }
+
 
   .nb-header {
     display: flex;
@@ -345,7 +362,9 @@ ${PRINT_HEAD_ASSETS}
 
   @media print {
     html, body { background: #fff; }
-    .page { margin: 0 auto; box-shadow: none; }
+    /* Exact A4 height keeps each sheet a single unfragmented box, so its
+       background layer paints in full on every printed page. */
+    .page { margin: 0 auto; box-shadow: none; height: 297mm; min-height: 297mm; }
   }
 </style>
 </head>
