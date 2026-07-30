@@ -81,6 +81,15 @@ const STYLE_PROFILES: Record<NotebookStyle, StyleProfile> = {
 };
 
 
+/**
+ * Optional custom page background. Independent from the handwriting engine:
+ * only the paper changes, the text rendering pipeline is untouched.
+ */
+export type NotebookBackgroundSpec = {
+  imageUrl: string;
+  insets: { top: number; right: number; bottom: number; left: number };
+};
+
 export type NotebookMeta = {
   title: string;
   studentName: string;
@@ -90,6 +99,7 @@ export type NotebookMeta = {
   showDate: boolean;
   showStudentName: boolean;
   showPageNumbers: boolean;
+  background?: NotebookBackgroundSpec | null;
 };
 
 const esc = (s: string) =>
