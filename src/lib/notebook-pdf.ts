@@ -444,17 +444,84 @@ ${useImagePaper ? `
         });
       }
 
-      function ready() {
-        paginate();
-        // Give KaTeX/mermaid a moment to render before opening the print dialog.
-        setTimeout(function () { window.print(); }, 1200);
+      function raf() {
+        return new Promise(function (r) { requestAnimationFrame(function () { r(); }); });
       }
 
-      if (document.fonts && document.fonts.ready) {
-        document.fonts.ready.then(function () { setTimeout(ready, 100); });
-      } else {
-        window.addEventListener('load', ready);
+      function allImagesLoaded() {
+        var imgs = Array.prototype.slice.call(document.images);
+        return Promise.all(imgs.map(function (img) {
+          if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+          return new Promise(function (r) {
+            img.addEventListener('load', function () { r(); }, { once: true });
+            img.addEventListener('error', function () { r(); }, { once: true });
+          });
+        }));
       }
+
+      // Background images live in CSS, not the DOM — decode them explicitly.
+      function backgroundsPainted() {
+        var urls = [];
+        document.querySelectorAll('.page').forEach(function (el) {
+          var bg = getComputedStyle(el).backgroundImage || '';
+          var re = /url\\((['"]?)(.*?)\\1\\)/g, m;
+          while ((m = re.exec(bg))) { if (m[2]) urls.push(m[2]); }
+        });
+        return Promise.all(urls.map(function (u) {
+          return new Promise(function (r) {
+            var i = new Image();
+            i.onload = function () { r(); };
+            i.onerror = function () { r(); };
+            i.src = u;
+          });
+        }));
+      }
+
+      // Resolves once the DOM stops mutating for two consecutive frames —
+      // covers async KaTeX/mermaid rendering without a fixed delay.
+      function domSettled() {
+        return new Promise(function (resolve) {
+          var dirty = true;
+          var obs = new MutationObserver(function () { dirty = true; });
+          obs.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true });
+          (function tick() {
+            if (!dirty) { obs.disconnect(); resolve(); return; }
+            dirty = false;
+            requestAnimationFrame(function () { requestAnimationFrame(tick); });
+          })();
+        });
+      }
+
+      function pagesReady() {
+        var pages = document.querySelectorAll('.page');
+        if (!pages.length) return false;
+        for (var i = 0; i < pages.length; i++) {
+          if (!(pages[i].getBoundingClientRect().height > 0)) return false;
+        }
+        return true;
+      }
+
+      async function ready() {
+        if (document.fonts && document.fonts.ready) await document.fonts.ready;
+        await domSettled();
+        paginate();
+        await domSettled();
+        await allImagesLoaded();
+        await backgroundsPainted();
+        if (document.fonts && document.fonts.ready) await document.fonts.ready;
+        await raf();
+        await raf();
+        // Final guard: never print before every page has a real height.
+        for (var attempt = 0; attempt < 60 && !pagesReady(); attempt++) await raf();
+        window.print();
+      }
+
+      if (document.readyState === 'complete') {
+        ready();
+      } else {
+        window.addEventListener('load', function () { ready(); });
+      }
+
     })();
   </script>
   ${naturalScript}
