@@ -608,7 +608,7 @@ function AssignmentView() {
       </Dialog>
 
       <Dialog open={notebookOpen} onOpenChange={setNotebookOpen}>
-        <DialogContent className="glass border-white/10 sm:max-w-md">
+        <DialogContent className="glass border-white/10 sm:max-w-3xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Export notebook PDF</DialogTitle>
             <DialogDescription>
@@ -616,6 +616,7 @@ function AssignmentView() {
               A print dialog opens next — choose "Save as PDF" as the destination.
             </DialogDescription>
           </DialogHeader>
+
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
