@@ -362,7 +362,9 @@ ${PRINT_HEAD_ASSETS}
 
   @media print {
     html, body { background: #fff; }
-    .page { margin: 0 auto; box-shadow: none; }
+    /* Exact A4 height keeps each sheet a single unfragmented box, so its
+       background layer paints in full on every printed page. */
+    .page { margin: 0 auto; box-shadow: none; height: 297mm; min-height: 297mm; }
   }
 </style>
 </head>
