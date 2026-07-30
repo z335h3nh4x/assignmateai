@@ -634,6 +634,7 @@ function AssignmentView() {
           </DialogHeader>
 
           <div className="space-y-3">
+            <NotebookBackgroundManager />
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Ink color</Label>
