@@ -111,7 +111,7 @@ export function buildNotebookDocument(markdown: string, meta: NotebookMeta): str
   const fontSize = profile.fontSize;
   // Line ruling height in px — text must sit on these lines.
   const RULE = 36;
-  const bg = meta.background ?? null;
+  
 
   const headerRow = `
     <header class="nb-header">
