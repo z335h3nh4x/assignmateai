@@ -375,21 +375,42 @@ ${useImagePaper ? `
     // Split overflowing content across multiple notebook pages so each printed
     // page keeps the ruled background and header. Runs after fonts load.
     (function () {
+      // Measure the printable content height of ONE empty A4 notebook sheet.
+      // Must be done with a probe page that is NOT expanded by content.
+      function measurePrintableHeight(doc) {
+        var probe = document.createElement('section');
+        probe.className = 'page';
+        probe.style.position = 'absolute';
+        probe.style.visibility = 'hidden';
+        probe.style.left = '-10000px';
+        probe.style.top = '0';
+        probe.style.height = '297mm';
+        probe.style.minHeight = '297mm';
+        probe.style.maxHeight = '297mm';
+        probe.innerHTML = '';
+        doc.appendChild(probe);
+        // clientHeight excludes borders/scrollbars and includes padding, so
+        // subtract padding to get the usable content box.
+        var cs = getComputedStyle(probe);
+        var h = probe.clientHeight
+          - parseFloat(cs.paddingTop || '0')
+          - parseFloat(cs.paddingBottom || '0');
+        probe.remove();
+        return h;
+      }
+
       function paginate() {
         var doc = document.querySelector('.nb-doc');
         if (!doc) return;
         var first = doc.querySelector('.page');
         if (!first) return;
-        var PAGE_HEIGHT_PX = first.clientHeight;
-        // If content already fits, done.
-        if (first.scrollHeight <= PAGE_HEIGHT_PX + 2) return;
+
+        var LIMIT = measurePrintableHeight(doc);
+        if (!(LIMIT > 0)) return;
 
         var headerHTML = ${JSON.stringify(headerRow)};
         var showPageNumbers = ${meta.showPageNumbers ? "true" : "false"};
 
-        // Rich markdown is wrapped in a <div class="nb-body"> — paginate its
-        // children across additional pages, each with its own .nb-body wrapper
-        // so the descendant CSS selectors keep matching.
         var pgNumEl = first.querySelector('.nb-pgnum');
         if (pgNumEl) pgNumEl.remove();
         var firstBody = first.querySelector('.nb-body');
@@ -400,8 +421,6 @@ ${useImagePaper ? `
           if (n.nodeType === 1) contentNodes.push(n);
           firstBody.removeChild(n);
         }
-
-
 
         function newPage(pageNum) {
           var p = document.createElement('section');
@@ -417,32 +436,55 @@ ${useImagePaper ? `
           return p;
         }
 
-        function fits(page) {
-          return page.scrollHeight <= PAGE_HEIGHT_PX + 2;
+        function bodyOf(page) { return page.querySelector('.nb-body'); }
+
+        // Used height = sum of the page's direct children boxes (header, body,
+        // page number), compared against ONE sheet's printable area.
+        function usedHeight(page) {
+          var total = 0;
+          Array.prototype.forEach.call(page.children, function (c) {
+            var r = c.getBoundingClientRect();
+            var cs = getComputedStyle(c);
+            total += r.height
+              + parseFloat(cs.marginTop || '0')
+              + parseFloat(cs.marginBottom || '0');
+          });
+          return total;
         }
 
-        function bodyOf(page) { return page.querySelector('.nb-body'); }
+        function fits(page) { return usedHeight(page) <= LIMIT + 2; }
 
         var pageNum = 1;
         if (showPageNumbers) {
-          var n = document.createElement('div');
-          n.className = 'nb-pgnum';
-          n.textContent = 'Page 1';
-          first.appendChild(n);
+          var n0 = document.createElement('div');
+          n0.className = 'nb-pgnum';
+          n0.textContent = 'Page 1';
+          first.appendChild(n0);
         }
         var current = first;
 
         contentNodes.forEach(function (el) {
           var body = bodyOf(current);
           body.appendChild(el);
-          if (!fits(current)) {
+          if (!fits(current) && body.children.length > 1) {
             body.removeChild(el);
             pageNum += 1;
             current = newPage(pageNum);
             bodyOf(current).appendChild(el);
           }
         });
+
+        var totalContent = 0;
+        contentNodes.forEach(function (el) {
+          var r = el.getBoundingClientRect();
+          totalContent += r.height;
+        });
+        console.log('Printable height per sheet:', LIMIT);
+        console.log('Expected pages (approx):', Math.max(1, Math.ceil(totalContent / LIMIT)));
+        console.log('Created pages:', pageNum);
+        console.log('Final .page count:', document.querySelectorAll('.page').length);
       }
+
 
       function raf() {
         return new Promise(function (r) { requestAnimationFrame(function () { r(); }); });
