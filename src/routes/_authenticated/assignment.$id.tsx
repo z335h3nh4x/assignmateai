@@ -634,8 +634,11 @@ function AssignmentView() {
                 <Select value={notebookMeta.style} onValueChange={(v) => setNotebookMeta({ ...notebookMeta, style: v as NotebookStyle })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="clean">Clean notebook</SelectItem>
-                    <SelectItem value="natural">Natural handwriting</SelectItem>
+                    <SelectItem value="clean">Clean Notebook</SelectItem>
+                    <SelectItem value="natural">Natural Handwriting</SelectItem>
+                    <SelectItem value="cursive">Student Cursive</SelectItem>
+                    <SelectItem value="exam">Fast Exam Writing</SelectItem>
+                    <SelectItem value="neat">Neat School Notes</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
