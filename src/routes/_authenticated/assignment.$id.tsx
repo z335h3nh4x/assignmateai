@@ -269,6 +269,7 @@ function AssignmentView() {
 
   const pdfFeature = useFeature("pdf_export");
   const notebookFeature = useFeature("notebook_pdf");
+  const { notebook: userNotebook } = useUserNotebook();
   const docxFeature = useFeature("docx_export");
 
 
@@ -367,7 +368,7 @@ function AssignmentView() {
 
   async function downloadNotebookPdf() {
     if (!row?.result) return;
-    let background: { imageUrl: string; insets: typeof DEFAULT_INSETS } | null = null;
+    let background: { imageUrl: string; insets: NotebookInsets } | null = null;
     if (userNotebook?.template === "custom" && userNotebook.signedUrl) {
       try {
         background = {
