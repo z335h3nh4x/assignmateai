@@ -105,11 +105,9 @@ function mdToBlocks(md: string): string {
 export function buildNotebookDocument(markdown: string, meta: NotebookMeta): string {
   const bodyHtml = mdToBlocks(markdown);
   const inkColor = meta.ink === "black" ? "#111318" : "#0e2a6b";
-  const fontFamily =
-    meta.style === "natural"
-      ? `'Caveat', 'Patrick Hand', cursive`
-      : `'Patrick Hand', 'Kalam', cursive`;
-  const fontSize = meta.style === "natural" ? "26px" : "22px";
+  const profile = STYLE_PROFILES[meta.style] ?? STYLE_PROFILES.clean;
+  const fontFamily = profile.fontFamily;
+  const fontSize = profile.fontSize;
   // Line ruling height in px — text must sit on these lines.
   const RULE = 36;
 
