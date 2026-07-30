@@ -198,16 +198,7 @@ ${PRINT_HEAD_ASSETS}
     width: 210mm;
     min-height: 297mm;
     margin: 12mm auto;
-    ${bg
-      ? `padding: ${(bg.insets.top * 297).toFixed(1)}mm ${(bg.insets.right * 210).toFixed(1)}mm ${(bg.insets.bottom * 297).toFixed(1)}mm ${(bg.insets.left * 210).toFixed(1)}mm;
-    background-color: #ffffff;
-    background-image: url("${bg.imageUrl}");
-    background-size: 210mm 297mm;
-    background-repeat: no-repeat;
-    background-position: 0 0;
-    background-origin: border-box;
-    background-clip: border-box;`
-      : `padding: ${RULE * 2}px 18mm ${RULE * 2}px 28mm;
+    padding: ${RULE * 2}px 18mm ${RULE * 2}px 28mm;
     background-color: #fdfdf7;
     background-image:
       /* red left margin rule */
@@ -224,7 +215,8 @@ ${PRINT_HEAD_ASSETS}
         rgba(70, 130, 200, 0.42) ${RULE - 2}px,
         rgba(70, 130, 200, 0.42) ${RULE - 1}px,
         transparent ${RULE - 1}px);
-    background-position: 0 0, 0 0;`}
+    background-position: 0 0, 0 0;
+
     box-shadow: 0 4px 18px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.1);
     page-break-after: always;
     break-after: page;
