@@ -26,7 +26,8 @@ import {
 import { AssignmentAssistant, AutosaveEditor } from "@/components/assignment-assistant";
 import { PromoCard } from "@/components/promo-card";
 import { incrementExport, saveAssignmentDraft } from "@/lib/assignments.functions";
-import { buildNotebookDocument, type NotebookInk, type NotebookStyle } from "@/lib/notebook-pdf";
+import { buildNotebookDocument, type NotebookInk, type NotebookStyle, type NotebookTemplate } from "@/lib/notebook-pdf";
+import classicSchoolPaper from "@/assets/classic-school-paper.png.asset.json";
 import {
   renderRichMarkdown,
   PRINT_HEAD_ASSETS,
