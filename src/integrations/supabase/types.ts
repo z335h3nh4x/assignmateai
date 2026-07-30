@@ -581,39 +581,6 @@ export type Database = {
         }
         Relationships: []
       }
-      user_notebooks: {
-        Row: {
-          created_at: string
-          height: number | null
-          insets: Json
-          storage_path: string | null
-          template: string
-          updated_at: string
-          user_id: string
-          width: number | null
-        }
-        Insert: {
-          created_at?: string
-          height?: number | null
-          insets?: Json
-          storage_path?: string | null
-          template?: string
-          updated_at?: string
-          user_id: string
-          width?: number | null
-        }
-        Update: {
-          created_at?: string
-          height?: number | null
-          insets?: Json
-          storage_path?: string | null
-          template?: string
-          updated_at?: string
-          user_id?: string
-          width?: number | null
-        }
-        Relationships: []
-      }
       user_roles: {
         Row: {
           created_at: string
