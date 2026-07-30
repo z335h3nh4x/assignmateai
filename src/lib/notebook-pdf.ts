@@ -120,7 +120,7 @@ export function buildNotebookDocument(markdown: string, meta: NotebookMeta): str
 
   // Natural handwriting jitter — only applied to plain text nodes so KaTeX
   // formulas, tables and code blocks stay intact.
-  const naturalScript = meta.style === "natural" ? `
+  const naturalScript = profile.jitter ? `
     <script>
       (function () {
         function rand(a, b) { return a + Math.random() * (b - a); }
@@ -164,7 +164,7 @@ export function buildNotebookDocument(markdown: string, meta: NotebookMeta): str
 <title>${esc(meta.title)}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Patrick+Hand&family=Kalam:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Patrick+Hand&family=Kalam:wght@400;700&family=Dancing+Script:wght@400;600&family=Reenie+Beanie&family=Architects+Daughter&display=swap">
 ${PRINT_HEAD_ASSETS}
 <style>${PRINT_RICH_CSS}</style>
 <style>
@@ -218,13 +218,13 @@ ${PRINT_HEAD_ASSETS}
     margin: 0 0 ${RULE}px;
     height: ${RULE}px;
     line-height: ${RULE}px;
-    font-size: ${meta.style === "natural" ? "22px" : "18px"};
+    font-size: ${profile.headerSize};
   }
   .nb-header-left, .nb-header-right { min-height: ${RULE}px; }
 
   .nb-title {
     text-align: center;
-    font-size: ${meta.style === "natural" ? "34px" : "28px"};
+    font-size: ${profile.titleSize};
     line-height: ${RULE * 2}px;
     height: ${RULE * 2}px;
     margin: 0 0 ${RULE}px;
@@ -249,9 +249,9 @@ ${PRINT_HEAD_ASSETS}
     text-decoration: underline;
     text-underline-offset: 5px;
   }
-  .nb-body h1 { font-size: ${meta.style === "natural" ? "32px" : "26px"}; line-height: ${RULE * 2}px; }
-  .nb-body h2 { font-size: ${meta.style === "natural" ? "28px" : "24px"}; }
-  .nb-body h3 { font-size: ${meta.style === "natural" ? "26px" : "22px"}; font-style: italic; }
+  .nb-body h1 { font-size: ${profile.h1}; line-height: ${RULE * 2}px; }
+  .nb-body h2 { font-size: ${profile.h2}; }
+  .nb-body h3 { font-size: ${profile.h3}; font-style: italic; }
   .nb-body ul, .nb-body ol { margin: 0 0 ${RULE}px; padding-left: 30px; }
   .nb-body li { line-height: ${RULE}px; margin: 0; }
 
@@ -261,7 +261,7 @@ ${PRINT_HEAD_ASSETS}
     width: 100%;
     border-collapse: collapse;
     font-family: 'Kalam', 'Patrick Hand', cursive;
-    font-size: ${meta.style === "natural" ? "20px" : "18px"};
+    font-size: ${profile.tableSize};
     page-break-inside: avoid;
     break-inside: avoid;
   }
