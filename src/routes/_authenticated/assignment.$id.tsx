@@ -27,7 +27,6 @@ import { AssignmentAssistant, AutosaveEditor } from "@/components/assignment-ass
 import { PromoCard } from "@/components/promo-card";
 import { incrementExport, saveAssignmentDraft } from "@/lib/assignments.functions";
 import { buildNotebookDocument, type NotebookInk, type NotebookStyle } from "@/lib/notebook-pdf";
-import { NotebookPreview } from "@/components/notebook-preview";
 import {
   renderRichMarkdown,
   PRINT_HEAD_ASSETS,
@@ -609,7 +608,7 @@ function AssignmentView() {
       </Dialog>
 
       <Dialog open={notebookOpen} onOpenChange={setNotebookOpen}>
-        <DialogContent className="glass border-white/10 sm:max-w-3xl max-h-[92vh] overflow-y-auto">
+        <DialogContent className="glass border-white/10 sm:max-w-lg max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Export notebook PDF</DialogTitle>
             <DialogDescription>
@@ -667,31 +666,16 @@ function AssignmentView() {
                 <Label htmlFor="nb-show-pg" className="cursor-pointer">Show page numbers</Label>
                 <Switch id="nb-show-pg" checked={notebookMeta.showPageNumbers}
                   onCheckedChange={(v) => setNotebookMeta({ ...notebookMeta, showPageNumbers: v })} />
+              </div>
             </div>
-          </div>
-          {row?.result && (
-            <NotebookPreview
-              markdown={row.result}
-              meta={{
-                title: row.title,
-                studentName: notebookMeta.studentName.trim(),
-                date: notebookMeta.date.trim() || new Date().toLocaleDateString(),
-                ink: notebookMeta.ink,
-                style: notebookMeta.style,
-                showDate: notebookMeta.showDate,
-                showStudentName: notebookMeta.showStudentName,
-                showPageNumbers: notebookMeta.showPageNumbers,
-              }}
-            />
-          )}
-
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setNotebookOpen(false)}>Cancel</Button>
             <Button onClick={downloadNotebookPdf} className="gradient-bg text-white border-0">
-              <BookOpen className="h-4 w-4 mr-1.5" />Generate notebook PDF
+              <BookOpen className="h-4 w-4 mr-1.5" />Generate Notebook PDF
             </Button>
           </DialogFooter>
+
         </DialogContent>
       </Dialog>
     </div>
