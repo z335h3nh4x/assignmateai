@@ -9,6 +9,7 @@ import {
 
 export type NotebookInk = "blue" | "black";
 export type NotebookStyle = "clean" | "natural" | "cursive" | "exam" | "neat";
+export type NotebookTemplate = "ruled" | "classic_school";
 
 type StyleProfile = {
   fontFamily: string;
