@@ -619,6 +619,17 @@ function AssignmentView() {
           </DialogHeader>
 
           <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label>Notebook template</Label>
+              <Select value={notebookMeta.template}
+                onValueChange={(v) => setNotebookMeta({ ...notebookMeta, template: v as NotebookTemplate })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ruled">Ruled Notebook</SelectItem>
+                  <SelectItem value="classic_school">Classic School</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Ink color</Label>
