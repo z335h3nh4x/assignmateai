@@ -266,7 +266,6 @@ function AssignmentView() {
 
   const pdfFeature = useFeature("pdf_export");
   const notebookFeature = useFeature("notebook_pdf");
-  const { notebook: userNotebook } = useUserNotebook();
   const docxFeature = useFeature("docx_export");
 
 
