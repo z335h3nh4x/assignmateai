@@ -81,10 +81,12 @@ export function NotebookPreview({ markdown, meta }: { markdown: string; meta: No
     }
   }, []);
 
+  const metaKey = JSON.stringify(meta);
   const srcDoc = useMemo(
-    () => toPreviewDocument(buildNotebookDocument(markdown, meta), mode),
-    [markdown, meta, mode],
+    () => toPreviewDocument(buildNotebookDocument(markdown, JSON.parse(metaKey) as NotebookMeta), mode),
+    [markdown, metaKey, mode],
   );
+
 
   // Fit the A4 sheet into the available width.
   useEffect(() => {
