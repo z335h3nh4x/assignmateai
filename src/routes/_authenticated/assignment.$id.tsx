@@ -368,17 +368,6 @@ function AssignmentView() {
 
   async function downloadNotebookPdf() {
     if (!row?.result) return;
-    let background: { imageUrl: string; insets: NotebookInsets } | null = null;
-    if (userNotebook?.template === "custom" && userNotebook.signedUrl) {
-      try {
-        background = {
-          imageUrl: await toDataUrl(userNotebook.signedUrl),
-          insets: userNotebook.insets,
-        };
-      } catch {
-        toast.error("Could not load your notebook background — using the classic notebook");
-      }
-    }
     const w = window.open("", "_blank");
     if (!w) return toast.error("Popup blocked — allow popups to export PDF");
     const doc = buildNotebookDocument(row.result, {
@@ -390,8 +379,8 @@ function AssignmentView() {
       showDate: notebookMeta.showDate,
       showStudentName: notebookMeta.showStudentName,
       showPageNumbers: notebookMeta.showPageNumbers,
-      background,
     });
+
     w.document.open();
     w.document.write(doc);
     w.document.close();
