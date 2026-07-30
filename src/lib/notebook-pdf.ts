@@ -196,6 +196,14 @@ ${PRINT_HEAD_ASSETS}
     min-height: 297mm;
     margin: 12mm auto;
     padding: ${RULE * 2}px 18mm ${RULE * 2}px 28mm;
+${useImagePaper ? `
+    background-color: #ffffff;
+    background-image: url("${paperUrl}");
+    background-repeat: no-repeat;
+    background-position: 0 0;
+    background-origin: border-box;
+    background-size: cover;
+` : `
     background-color: #fdfdf7;
     background-image:
       /* red left margin rule */
@@ -213,6 +221,7 @@ ${PRINT_HEAD_ASSETS}
         rgba(70, 130, 200, 0.42) ${RULE - 1}px,
         transparent ${RULE - 1}px);
     background-position: 0 0, 0 0;
+`}
 
     box-shadow: 0 4px 18px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.1);
     page-break-after: always;
