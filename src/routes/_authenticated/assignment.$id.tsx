@@ -287,6 +287,11 @@ function AssignmentView() {
   const hasMissing = missingQuestions.length > 0;
   const canExport = !!row?.result && !hasMissing;
 
+  const maxRegenerations = row?.max_regenerations ?? 1;
+  const regenerationsUsed = row?.regeneration_count ?? 0;
+  const regenerationsLeft = Math.max(0, maxRegenerations - regenerationsUsed);
+  const regenBlocked = regenerationsLeft <= 0;
+
   function guardExport(fn: () => void) {
     if (!canExport) {
       toast.error(
@@ -411,6 +416,10 @@ function AssignmentView() {
 
   async function regenerate() {
     if (!row) return;
+    if (regenerationsLeft <= 0) {
+      toast.error("Regeneration limit reached.");
+      return;
+    }
     setRegenerating(true);
     try {
       const { generateAssignment } = await import("@/lib/assignments.functions");
@@ -423,6 +432,7 @@ function AssignmentView() {
           title: row.title,
           template: (row.template ?? "essay") as "essay" | "case_study" | "lab_report" | "research_paper" | "presentation" | "business_report",
           citationStyle: (row.citation_style ?? "none") as "none" | "apa7" | "mla9" | "harvard" | "chicago" | "ieee",
+          regenerateOf: row.id,
         },
       });
       toast.success("Regenerated");
@@ -491,7 +501,7 @@ function AssignmentView() {
                   PDF, Notebook and DOCX export are disabled until every detected question has a completed answer.
                 </p>
               </div>
-              <Button size="sm" onClick={regenerate} disabled={regenerating} className="gradient-bg text-white border-0 shrink-0">
+              <Button size="sm" onClick={regenerate} disabled={regenerating || regenBlocked} title={regenBlocked ? "Regeneration limit reached." : undefined} className={`gradient-bg text-white border-0 shrink-0 ${regenBlocked ? "opacity-50 cursor-not-allowed" : ""}`}>
                 <RefreshCw className={`h-4 w-4 mr-1.5 ${regenerating ? "animate-spin" : ""}`} />
                 Retry
               </Button>
@@ -546,10 +556,22 @@ function AssignmentView() {
               {editing ? <><Eye className="h-4 w-4 mr-1.5" />View</> : <><Pencil className="h-4 w-4 mr-1.5" />Edit</>}
             </Button>
             <div className="flex-1" />
-            <Button size="sm" onClick={regenerate} disabled={regenerating} className="gradient-bg text-white border-0">
-              <RefreshCw className={`h-4 w-4 mr-1.5 ${regenerating ? "animate-spin" : ""}`} />
-              Regenerate
-            </Button>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                Regenerations Remaining: {regenerationsLeft}/{maxRegenerations}
+              </span>
+              <span title={regenBlocked ? "Regeneration limit reached." : undefined} className={regenBlocked ? "cursor-not-allowed" : ""}>
+                <Button
+                  size="sm"
+                  onClick={regenerate}
+                  disabled={regenerating || regenBlocked}
+                  className={`gradient-bg text-white border-0 ${regenBlocked ? "opacity-50 cursor-not-allowed pointer-events-none" : ""}`}
+                >
+                  <RefreshCw className={`h-4 w-4 mr-1.5 ${regenerating ? "animate-spin" : ""}`} />
+                  Regenerate
+                </Button>
+              </span>
+            </div>
           </Card>
 
           <Card className="glass border-white/10 p-8">
