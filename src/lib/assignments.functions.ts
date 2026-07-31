@@ -31,6 +31,7 @@ const GenerateInput = z.object({
   citationStyle: z.enum(["none", "apa7", "mla9", "harvard", "chicago", "ieee"]).default("none"),
   sources: z.array(SourceSchema).max(8).default([]),
   attachments: z.array(AttachmentSchema).max(6).optional(),
+  regenerateOf: z.string().uuid().optional(),
 });
 
 
@@ -54,6 +55,33 @@ export const generateAssignment = createServerFn({ method: "POST" })
     if (hasImageAttachments) await assertFeature(userId, "ocr");
     if (data.citationStyle && data.citationStyle !== "none") await assertFeature(userId, "citation_generator");
     if (data.template && data.template !== "essay") await assertFeature(userId, "premium_templates");
+
+    // ---- Regeneration limit enforcement (plan-based, backend authoritative) ----
+    const { maxRegenerationsForPlan } = await import("./regeneration-limits");
+    const { getEntitlements } = await import("./entitlements.server");
+    const planSlug = (await getEntitlements(userId)).plan.slug;
+    let regenerationCount = 0;
+    let maxRegenerations = maxRegenerationsForPlan(planSlug);
+
+    if (data.regenerateOf) {
+      const { data: parent, error: parentErr } = await supabase
+        .from("assignments")
+        .select("id, regeneration_count, max_regenerations")
+        .eq("id", data.regenerateOf)
+        .maybeSingle();
+      if (parentErr || !parent) throw new Error("Original assignment not found");
+      const used = parent.regeneration_count ?? 0;
+      const cap = parent.max_regenerations ?? maxRegenerations;
+      if (used >= cap) {
+        throw new Error("Regeneration limit reached.");
+      }
+      regenerationCount = used + 1;
+      maxRegenerations = cap;
+      await supabase
+        .from("assignments")
+        .update({ regeneration_count: regenerationCount })
+        .eq("id", parent.id);
+    }
 
     // ---- Upload size / page limits ----
     const uploadItems = [
@@ -215,6 +243,8 @@ ${sourcesBlock ? `\n${sourcesBlock}` : ""}${instructionsBlock}${marksBlock}${dia
         sources: data.sources,
         status: "generating",
         question_statuses: initialStatuses.length ? initialStatuses : null,
+        regeneration_count: regenerationCount,
+        max_regenerations: maxRegenerations,
       })
       .select("id")
       .single();
