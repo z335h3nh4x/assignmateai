@@ -105,10 +105,12 @@ export type Database = {
           exports_count: number
           grammar_report: Json | null
           id: string
+          max_regenerations: number
           output_style: string
           prompt: string
           quality_score: Json | null
           question_statuses: Json | null
+          regeneration_count: number
           result: string | null
           sources: Json
           status: string
@@ -126,10 +128,12 @@ export type Database = {
           exports_count?: number
           grammar_report?: Json | null
           id?: string
+          max_regenerations?: number
           output_style: string
           prompt: string
           quality_score?: Json | null
           question_statuses?: Json | null
+          regeneration_count?: number
           result?: string | null
           sources?: Json
           status?: string
@@ -147,10 +151,12 @@ export type Database = {
           exports_count?: number
           grammar_report?: Json | null
           id?: string
+          max_regenerations?: number
           output_style?: string
           prompt?: string
           quality_score?: Json | null
           question_statuses?: Json | null
+          regeneration_count?: number
           result?: string | null
           sources?: Json
           status?: string
