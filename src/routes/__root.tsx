@@ -12,6 +12,8 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { completeOAuthRedirect } from "@/lib/oauth-callback";
+
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { PlanFeaturesProvider } from "@/lib/use-plan-features";
 import { useSiteSettings, platformName, supportEmail, websiteUrl } from "@/hooks/use-site-settings";
@@ -120,13 +122,31 @@ function RootComponent() {
     else document.documentElement.classList.remove("light");
   }, []);
 
+  // Full-page OAuth return: the broker sends tokens back on the URL and the
+  // app must install the session before anything reads it.
+  useEffect(() => {
+    let cancelled = false;
+    completeOAuthRedirect()
+      .then((to) => {
+        if (!to || cancelled) return;
+        console.info("[oauth-callback] navigating to", to);
+        router.navigate({ to, replace: true });
+      })
+      .catch((e) => console.error("[oauth-callback] failed", e));
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
+
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      console.info("[auth] onAuthStateChange:", event);
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       router.invalidate();
       if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
     });
     return () => sub.subscription.unsubscribe();
+
   }, [router, queryClient]);
 
   return (
