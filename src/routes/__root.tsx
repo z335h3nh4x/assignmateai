@@ -155,7 +155,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <PlanFeaturesProvider>
         <SiteHeadSync />
-        {oauthError && <OAuthDebugBanner info={oauthError} />}
+        
         <MaintenanceGate>
           <Outlet />
         </MaintenanceGate>
