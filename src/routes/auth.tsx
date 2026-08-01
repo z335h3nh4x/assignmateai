@@ -74,8 +74,11 @@ function AuthPage() {
 
   async function handleGoogle() {
     setLoading(true);
+    // Full-page redirects must return to a PUBLIC origin URL; the intended
+    // destination is stored separately and applied after the session exists.
+    rememberPostAuthRedirect(next ?? "/dashboard");
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: next ? `${window.location.origin}${next}` : window.location.origin,
+      redirect_uri: window.location.origin,
     });
     if (result.error) {
       toast.error(result.error.message ?? "Google sign-in failed");
@@ -85,6 +88,7 @@ function AuthPage() {
     if (result.redirected) return;
     afterAuth();
   }
+
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
