@@ -73,24 +73,68 @@ function stripAuthParamsFromUrl() {
   window.history.replaceState({}, "", url.pathname + url.search + url.hash);
 }
 
+export type OAuthCallbackResult =
+  | { kind: "none" }
+  | { kind: "error"; error: string; description?: string; hash: string; search: string; href: string }
+  | { kind: "session"; redirectTo: string };
+
 /**
- * Returns the path the app should navigate to once the session is installed,
- * or `null` when this page load is not an OAuth return.
+ * DEBUG MODE: when the URL carries an OAuth error we do NOT redirect and do NOT
+ * clean the URL — the error is surfaced on screen instead.
  */
-export async function completeOAuthRedirect(): Promise<string | null> {
-  if (typeof window === "undefined") return null;
+export async function completeOAuthRedirect(): Promise<OAuthCallbackResult> {
+  if (typeof window === "undefined") return { kind: "none" };
+
+  const hash = window.location.hash;
+  const search = window.location.search;
+  const href = window.location.href;
 
   const { tokens, from } = readTokensFromUrl();
-  if (!from) return null;
 
-  if (tokens.error || !tokens.access_token || !tokens.refresh_token) {
-    console.error(`${LOG} OAuth return had no usable tokens`, {
-      from,
-      error: tokens.error,
-      description: tokens.error_description,
+  const hasError =
+    Boolean(tokens.error) || hash.includes("error") || search.includes("error=");
+
+  if (hasError) {
+    const params = new URLSearchParams(
+      hash.startsWith("#") ? hash.slice(1) : hash,
+    );
+    const qs = new URLSearchParams(search);
+    const error =
+      tokens.error ?? params.get("error") ?? qs.get("error") ?? "unknown_error";
+    const description =
+      tokens.error_description ??
+      params.get("error_description") ??
+      qs.get("error_description") ??
+      params.get("error_code") ??
+      qs.get("error_code") ??
+      undefined;
+
+    console.error(`${LOG} OAuth returned an error — redirect suppressed`, {
+      error,
+      description,
+      hash,
+      search,
+      href,
     });
-    stripAuthParamsFromUrl();
-    return null;
+    console.error(`${LOG} window.location.hash =`, hash);
+    console.error(`${LOG} window.location.search =`, search);
+    console.error(`${LOG} window.location.href =`, href);
+
+    return { kind: "error", error, description, hash, search, href };
+  }
+
+  if (!from) return { kind: "none" };
+
+  if (!tokens.access_token || !tokens.refresh_token) {
+    console.error(`${LOG} OAuth return had no usable tokens`, { from, hash, search, href });
+    return {
+      kind: "error",
+      error: "missing_tokens",
+      description: "OAuth return contained no access_token/refresh_token.",
+      hash,
+      search,
+      href,
+    };
   }
 
   console.info(`${LOG} tokens found on ${from} — installing session`);
@@ -102,9 +146,17 @@ export async function completeOAuthRedirect(): Promise<string | null> {
 
   if (error || !data.session) {
     console.error(`${LOG} setSession failed`, error);
-    return null;
+    return {
+      kind: "error",
+      error: "set_session_failed",
+      description: error?.message,
+      hash,
+      search,
+      href,
+    };
   }
 
   console.info(`${LOG} session installed for`, data.session.user.email);
-  return takePostAuthRedirect() ?? "/dashboard";
+  return { kind: "session", redirectTo: takePostAuthRedirect() ?? "/dashboard" };
 }
+

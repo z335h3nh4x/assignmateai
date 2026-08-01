@@ -7,7 +7,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
@@ -112,9 +112,33 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+function OAuthDebugBanner({
+  info,
+}: {
+  info: { error: string; description?: string; hash: string; search: string; href: string };
+}) {
+  return (
+    <div className="fixed inset-x-0 top-0 z-[9999] p-4">
+      <div className="glass mx-auto max-w-3xl rounded-xl border border-destructive/50 p-4 text-left">
+        <h2 className="text-base font-semibold text-destructive">OAuth error (redirect disabled for debugging)</h2>
+        <dl className="mt-3 space-y-2 text-xs font-mono break-all">
+          <div><dt className="text-muted-foreground">error</dt><dd>{info.error}</dd></div>
+          <div><dt className="text-muted-foreground">error_description</dt><dd>{info.description ?? "(none)"}</dd></div>
+          <div><dt className="text-muted-foreground">window.location.hash</dt><dd>{info.hash || "(empty)"}</dd></div>
+          <div><dt className="text-muted-foreground">window.location.search</dt><dd>{info.search || "(empty)"}</dd></div>
+          <div><dt className="text-muted-foreground">window.location.href</dt><dd>{info.href}</dd></div>
+        </dl>
+      </div>
+    </div>
+  );
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
+  const [oauthError, setOauthError] = useState<
+    { error: string; description?: string; hash: string; search: string; href: string } | null
+  >(null);
 
   useEffect(() => {
     const theme = typeof window !== "undefined" ? localStorage.getItem("theme") : null;
@@ -124,13 +148,19 @@ function RootComponent() {
 
   // Full-page OAuth return: the broker sends tokens back on the URL and the
   // app must install the session before anything reads it.
+  // DEBUG: navigation is suppressed whenever the URL carries an OAuth error.
   useEffect(() => {
     let cancelled = false;
     completeOAuthRedirect()
-      .then((to) => {
-        if (!to || cancelled) return;
-        console.info("[oauth-callback] navigating to", to);
-        router.navigate({ to, replace: true });
+      .then((res) => {
+        if (cancelled) return;
+        if (res.kind === "error") {
+          setOauthError(res);
+          return;
+        }
+        if (res.kind !== "session") return;
+        console.info("[oauth-callback] navigating to", res.redirectTo);
+        router.navigate({ to: res.redirectTo, replace: true });
       })
       .catch((e) => console.error("[oauth-callback] failed", e));
     return () => {
@@ -153,6 +183,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <PlanFeaturesProvider>
         <SiteHeadSync />
+        {oauthError && <OAuthDebugBanner info={oauthError} />}
         <MaintenanceGate>
           <Outlet />
         </MaintenanceGate>
@@ -161,6 +192,7 @@ function RootComponent() {
     </QueryClientProvider>
   );
 }
+
 
 function MaintenanceGate({ children }: { children: ReactNode }) {
   const site = useSiteSettings();
