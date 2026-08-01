@@ -79,8 +79,7 @@ export type OAuthCallbackResult =
   | { kind: "session"; redirectTo: string };
 
 /**
- * DEBUG MODE: when the URL carries an OAuth error we do NOT redirect and do NOT
- * clean the URL — the error is surfaced on screen instead.
+ * Reads OAuth tokens/errors off the URL, installs the session, cleans the URL.
  */
 export async function completeOAuthRedirect(): Promise<OAuthCallbackResult> {
   if (typeof window === "undefined") return { kind: "none" };
@@ -109,16 +108,8 @@ export async function completeOAuthRedirect(): Promise<OAuthCallbackResult> {
       qs.get("error_code") ??
       undefined;
 
-    console.error(`${LOG} OAuth returned an error — redirect suppressed`, {
-      error,
-      description,
-      hash,
-      search,
-      href,
-    });
-    console.error(`${LOG} window.location.hash =`, hash);
-    console.error(`${LOG} window.location.search =`, search);
-    console.error(`${LOG} window.location.href =`, href);
+    console.error(`${LOG} OAuth returned an error`, { error, description, href });
+    stripAuthParamsFromUrl();
 
     return { kind: "error", error, description, hash, search, href };
   }
