@@ -91,7 +91,7 @@ function UserMenu({ email }: { email: string }) {
 }
 
 function Nav({ site }: { site?: SiteSettings }) {
-  const { user, signedIn } = useAuthSession();
+  const { user, signedIn, loading: sessionLoading } = useAuthSession();
 
   return (
     <header className="fixed top-0 inset-x-0 z-40">
@@ -110,7 +110,9 @@ function Nav({ site }: { site?: SiteSettings }) {
             )}
           </nav>
           <div className="flex items-center gap-2">
-            {signedIn ? (
+            {sessionLoading ? (
+              <div className="h-9 w-28 rounded-lg bg-white/5 animate-pulse" aria-hidden="true" />
+            ) : signedIn ? (
               <>
                 <PlanBadge className="hidden sm:inline-flex" />
                 <Link to="/dashboard" className="text-sm px-4 py-2 rounded-lg gradient-bg text-white font-medium glow">
