@@ -91,7 +91,7 @@ function UserMenu({ email }: { email: string }) {
 }
 
 function Nav({ site }: { site?: SiteSettings }) {
-  const { user, signedIn } = useAuthSession();
+  const { user, signedIn, loading: sessionLoading } = useAuthSession();
 
   return (
     <header className="fixed top-0 inset-x-0 z-40">
