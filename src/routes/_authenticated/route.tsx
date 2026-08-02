@@ -36,8 +36,21 @@ function AuthedLayout() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const sendWelcome = useServerFn(sendWelcomeEmailOnce);
 
   useEffect(() => setOpen(false), [pathname]);
+
+  // Fires once per browser session; the server side is idempotent per user.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.sessionStorage.getItem("welcome-email-checked")) return;
+    window.sessionStorage.setItem("welcome-email-checked", "1");
+    void sendWelcome({ data: undefined }).catch((error) => {
+      console.error("[welcome-email]", error);
+    });
+  }, [sendWelcome]);
+
+
 
 
   async function signOut() {
