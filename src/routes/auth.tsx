@@ -227,36 +227,110 @@ function AuthPage() {
           <div className="h-px bg-white/10 flex-1" />
         </div>
 
-        <form onSubmit={handleEmail} className="space-y-4">
-          <div>
-            <Label htmlFor="email">Email</Label>
-            <div className="relative mt-1.5">
-              <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+        {method === "otp" ? (
+          otpSent ? (
+            <form onSubmit={verifyOtp} className="space-y-4">
+              <p className="text-sm text-muted-foreground text-center">
+                Enter the 6-digit code sent to <span className="text-foreground font-medium">{email}</span>
+              </p>
               <Input
-                id="email" type="email" required value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="pl-9 h-11 bg-white/5 border-white/10"
-                placeholder="you@school.edu"
+                id="otp"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                className="h-12 text-center text-2xl tracking-[0.5em] bg-white/5 border-white/10"
+                placeholder="••••••"
+                aria-label="6-digit verification code"
               />
+              <Button type="submit" disabled={loading} className="w-full h-11 gradient-bg text-white glow border-0">
+                {loading ? "Verifying..." : "Verify & continue"}
+              </Button>
+              <div className="flex items-center justify-between text-xs">
+                <button
+                  type="button"
+                  onClick={() => { setOtpSent(false); setOtp(""); }}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  Change email
+                </button>
+                <button
+                  type="button"
+                  disabled={loading || resendIn > 0}
+                  onClick={() => sendOtp(true)}
+                  className="text-primary hover:underline disabled:opacity-50 disabled:no-underline"
+                >
+                  {resendIn > 0 ? `Resend in ${resendIn}s` : "Resend code"}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <form onSubmit={(e) => { e.preventDefault(); sendOtp(); }} className="space-y-4">
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <div className="relative mt-1.5">
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="email" type="email" required value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-9 h-11 bg-white/5 border-white/10"
+                    placeholder="you@gmail.com"
+                  />
+                </div>
+              </div>
+              <Button type="submit" disabled={loading} className="w-full h-11 gradient-bg text-white glow border-0">
+                {loading ? "Sending code..." : "Send login code"}
+              </Button>
+              <button
+                type="button"
+                onClick={() => setMethod("password")}
+                className="w-full text-xs text-muted-foreground hover:text-foreground"
+              >
+                Use password instead
+              </button>
+            </form>
+          )
+        ) : (
+          <form onSubmit={handleEmail} className="space-y-4">
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <div className="relative mt-1.5">
+                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="email" type="email" required value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="pl-9 h-11 bg-white/5 border-white/10"
+                  placeholder="you@school.edu"
+                />
+              </div>
             </div>
-          </div>
-          <div>
-            <Label htmlFor="password">Password</Label>
-            <div className="relative mt-1.5">
-              <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="password" type="password" required minLength={6}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="pl-9 h-11 bg-white/5 border-white/10"
-                placeholder="••••••••"
-              />
+            <div>
+              <Label htmlFor="password">Password</Label>
+              <div className="relative mt-1.5">
+                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="password" type="password" required minLength={6}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-9 h-11 bg-white/5 border-white/10"
+                  placeholder="••••••••"
+                />
+              </div>
             </div>
-          </div>
-          <Button type="submit" disabled={loading} className="w-full h-11 gradient-bg text-white glow border-0">
-            {loading ? "Please wait..." : mode === "login" ? "Sign in" : "Create account"}
-          </Button>
-        </form>
+            <Button type="submit" disabled={loading} className="w-full h-11 gradient-bg text-white glow border-0">
+              {loading ? "Please wait..." : mode === "login" ? "Sign in" : "Create account"}
+            </Button>
+            <button
+              type="button"
+              onClick={() => { setMethod("otp"); setOtpSent(false); }}
+              className="w-full text-xs text-muted-foreground hover:text-foreground"
+            >
+              Email me a login code instead
+            </button>
+          </form>
+        )}
+
 
         {mode === "login" && (
           <div className="mt-3 text-right">
