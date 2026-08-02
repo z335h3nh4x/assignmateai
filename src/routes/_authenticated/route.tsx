@@ -1,4 +1,5 @@
 import { createFileRoute, Outlet, redirect, Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { LayoutDashboard, Clock, Settings, LogOut, Menu, X, Pencil } from "lucide-react";
 
@@ -6,6 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/brand-logo";
 import { PromoCard } from "@/components/promo-card";
+import { sendWelcomeEmailOnce } from "@/lib/welcome-email.functions";
+
 
 
 export const Route = createFileRoute("/_authenticated")({
@@ -33,8 +36,21 @@ function AuthedLayout() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const sendWelcome = useServerFn(sendWelcomeEmailOnce);
 
   useEffect(() => setOpen(false), [pathname]);
+
+  // Fires once per browser session; the server side is idempotent per user.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.sessionStorage.getItem("welcome-email-checked")) return;
+    window.sessionStorage.setItem("welcome-email-checked", "1");
+    void sendWelcome({ data: undefined }).catch((error) => {
+      console.error("[welcome-email]", error);
+    });
+  }, [sendWelcome]);
+
+
 
 
   async function signOut() {
