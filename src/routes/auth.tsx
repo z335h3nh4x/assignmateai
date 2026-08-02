@@ -59,13 +59,31 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
 
   useEffect(() => {
+    let active = true;
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) afterAuth();
+      if (!active) return;
+      if (data.session) {
+        afterAuth();
+        return;
+      }
+      setCheckingSession(false);
     });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) afterAuth();
+    });
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate, next]);
+
+  if (checkingSession) {
+    return <div className="min-h-screen" aria-busy="true" />;
+  }
 
   async function handleEmail(e: React.FormEvent) {
     e.preventDefault();
