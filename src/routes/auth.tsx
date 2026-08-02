@@ -332,7 +332,7 @@ function AuthPage() {
         )}
 
 
-        {mode === "login" && (
+        {mode === "login" && method === "password" && (
           <div className="mt-3 text-right">
             <Link to="/forgot-password" className="text-xs text-primary hover:underline">
               Forgot password?
@@ -340,16 +340,18 @@ function AuthPage() {
           </div>
         )}
 
-        <p className="text-center text-sm text-muted-foreground mt-6">
-          {mode === "login" ? "Don't have an account?" : "Already have an account?"}{" "}
-          <button
-            type="button"
-            onClick={() => setMode(mode === "login" ? "signup" : "login")}
-            className="text-primary hover:underline font-medium"
-          >
-            {mode === "login" ? "Sign up" : "Sign in"}
-          </button>
-        </p>
+        {method === "password" && (
+          <p className="text-center text-sm text-muted-foreground mt-6">
+            {mode === "login" ? "Don't have an account?" : "Already have an account?"}{" "}
+            <button
+              type="button"
+              onClick={() => setMode(mode === "login" ? "signup" : "login")}
+              className="text-primary hover:underline font-medium"
+            >
+              {mode === "login" ? "Sign up" : "Sign in"}
+            </button>
+          </p>
+        )}
       </motion.div>
     </div>
   );
