@@ -4,3 +4,5 @@ Disallow: /dashboard
 Disallow: /history
 Disallow: /settings
 Disallow: /assignment
+
+Sitemap: https://assignmateai.in/sitemap.xml
