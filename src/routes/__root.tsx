@@ -16,6 +16,7 @@ import { completeOAuthRedirect } from "@/lib/oauth-callback";
 
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { PlanFeaturesProvider } from "@/lib/use-plan-features";
+import { useNativeShell } from "@/lib/native-shell";
 import { useSiteSettings, platformName, supportEmail, websiteUrl } from "@/hooks/use-site-settings";
 import { BrandLogo } from "@/components/brand-logo";
 
@@ -81,7 +82,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      { name: "theme-color", content: "#0b0b16" },
+      { name: "mobile-web-app-capable", content: "yes" },
       { property: "og:site_name", content: "Assignmate" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
