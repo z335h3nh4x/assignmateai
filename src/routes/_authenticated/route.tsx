@@ -19,12 +19,15 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 const NAV = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/handwriting", label: "My Handwriting", icon: Pencil },
-  { to: "/history", label: "History", icon: Clock },
-  { to: "/settings", label: "Settings", icon: Settings },
+  { to: "/dashboard", label: "Dashboard", shortLabel: "Home", icon: LayoutDashboard },
+  { to: "/handwriting", label: "My Handwriting", shortLabel: "Writing", icon: Pencil },
+  { to: "/history", label: "History", shortLabel: "History", icon: Clock },
+  { to: "/settings", label: "Settings", shortLabel: "Settings", icon: Settings },
 ] as const;
 
+function isActive(pathname: string, to: string) {
+  return pathname === to || (to !== "/dashboard" && pathname.startsWith(to));
+}
 
 function AuthedLayout() {
   const navigate = useNavigate();
@@ -41,8 +44,8 @@ function AuthedLayout() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Sidebar */}
-      <aside className={`fixed lg:sticky top-0 h-screen z-40 w-64 shrink-0 p-4 transition-transform ${open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
+      {/* Desktop sidebar */}
+      <aside className="hidden lg:block sticky top-0 h-screen shrink-0 w-64 p-4">
         <div className="glass rounded-2xl h-full p-4 flex flex-col">
           <Link to="/dashboard" className="flex items-center gap-2 px-2 py-2">
             <BrandLogo />
@@ -50,7 +53,7 @@ function AuthedLayout() {
 
           <nav className="mt-6 space-y-1">
             {NAV.map((item) => {
-              const active = pathname === item.to || (item.to !== "/dashboard" && pathname.startsWith(item.to));
+              const active = isActive(pathname, item.to);
               return (
                 <Link
                   key={item.to} to={item.to}
@@ -73,21 +76,76 @@ function AuthedLayout() {
         </div>
       </aside>
 
-      {/* Mobile toggle */}
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="lg:hidden fixed top-4 right-4 z-50 glass rounded-lg p-2.5"
-        aria-label="Toggle menu"
-      >
-        {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-      </button>
+      {/* Mobile top bar */}
+      <header className="lg:hidden fixed inset-x-0 top-0 z-40 pt-safe">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 glass px-4 py-3">
+          <Link to="/dashboard" className="flex min-w-0 items-center gap-2">
+            <BrandLogo />
+          </Link>
+          <button
+            onClick={() => setOpen((v) => !v)}
+            className="shrink-0 grid h-11 w-11 place-items-center rounded-xl hover:bg-white/5"
+            aria-label={open ? "Close menu" : "Open menu"}
+            aria-expanded={open}
+          >
+            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
+      </header>
 
-      <main className="flex-1 min-w-0 p-4 lg:p-8">
+      {/* Mobile slide-over menu */}
+      {open ? (
+        <div className="lg:hidden fixed inset-0 z-40" role="dialog" aria-modal="true">
+          <button
+            className="absolute inset-0 bg-background/70 backdrop-blur-sm"
+            aria-label="Close menu"
+            onClick={() => setOpen(false)}
+          />
+          <div className="absolute inset-x-3 top-20 pt-safe glass rounded-2xl p-3 space-y-2">
+            <PromoCard placement="sidebar" />
+            <Button
+              variant="ghost"
+              onClick={signOut}
+              className="w-full justify-start h-12 text-muted-foreground hover:text-foreground"
+            >
+              <LogOut className="h-4 w-4 mr-2" /> Sign out
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      <main className="flex-1 min-w-0 p-4 pt-20 pb-28 lg:p-8 lg:pt-8 lg:pb-8">
         <Outlet />
         <div className="mt-8">
           <PromoCard placement="bottom" />
         </div>
       </main>
+
+      {/* Mobile bottom tab bar */}
+      <nav
+        className="lg:hidden fixed inset-x-0 bottom-0 z-40 glass border-t border-white/10 pb-safe"
+        aria-label="Primary"
+      >
+        <ul className="grid grid-cols-4">
+          {NAV.map((item) => {
+            const active = isActive(pathname, item.to);
+            return (
+              <li key={item.to}>
+                <Link
+                  to={item.to}
+                  aria-current={active ? "page" : undefined}
+                  className={`flex h-16 flex-col items-center justify-center gap-1 text-[11px] transition ${
+                    active ? "text-primary" : "text-muted-foreground"
+                  }`}
+                >
+                  <item.icon className="h-5 w-5 shrink-0" />
+                  <span className="truncate px-1">{item.shortLabel}</span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
     </div>
   );
 }

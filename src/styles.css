@@ -208,3 +208,24 @@
   text-align: center;
 }
 .assignment-preview .mermaid svg { max-width: 100%; height: auto; }
+
+/* ---- Native / mobile app shell ---- */
+@utility pt-safe { padding-top: env(safe-area-inset-top, 0px); }
+@utility pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+html.is-native, html.is-native body {
+  overscroll-behavior-y: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+html.is-native input,
+html.is-native textarea,
+html.is-native [contenteditable="true"],
+html.is-native .assignment-preview {
+  -webkit-user-select: text;
+  user-select: text;
+}
+/* iOS/Android: prevent zoom-on-focus by keeping inputs at 16px on small screens */
+@media (max-width: 767px) {
+  input, textarea, select { font-size: 16px; }
+}
