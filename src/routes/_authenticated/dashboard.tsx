@@ -386,7 +386,7 @@ function Dashboard() {
                   <FileText className="h-4 w-4 text-primary" />
                   <span className="truncate flex-1">{a.name}</span>
                   <span className="text-xs text-muted-foreground">{Math.round(a.size / 1024)}kb</span>
-                  <button onClick={() => {
+                  <button aria-label={`Remove ${a.name}`} onClick={() => {
                     setAttachments((c) => c.filter((_, j) => j !== i));
                     setDetection(null); setSelectedQ(new Set());
                   }}>
@@ -664,7 +664,7 @@ function Dashboard() {
                             : src.kind === "text" ? (src.text.slice(0, 80) + (src.text.length > 80 ? "..." : ""))
                             : src.name}
                         </span>
-                        <button onClick={() => removeSource(i)}>
+                        <button aria-label="Remove source" onClick={() => removeSource(i)}>
                           <X className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
                         </button>
                       </div>
