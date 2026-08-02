@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SubscriptionPolicyRouteImport } from './routes/subscription-policy'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as McpRouteImport } from './routes/mcp'
@@ -46,6 +47,11 @@ const TermsRoute = TermsRouteImport.update({
 const SubscriptionPolicyRoute = SubscriptionPolicyRouteImport.update({
   id: '/subscription-policy',
   path: '/subscription-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -194,6 +200,7 @@ export interface FileRoutesByFullPath {
   '/mcp': typeof McpRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/subscription-policy': typeof SubscriptionPolicyRoute
   '/terms': typeof TermsRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
@@ -222,6 +229,7 @@ export interface FileRoutesByTo {
   '/mcp': typeof McpRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/subscription-policy': typeof SubscriptionPolicyRoute
   '/terms': typeof TermsRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
@@ -253,6 +261,7 @@ export interface FileRoutesById {
   '/mcp': typeof McpRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/subscription-policy': typeof SubscriptionPolicyRoute
   '/terms': typeof TermsRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
@@ -284,6 +293,7 @@ export interface FileRouteTypes {
     | '/mcp'
     | '/privacy-policy'
     | '/reset-password'
+    | '/sitemap.xml'
     | '/subscription-policy'
     | '/terms'
     | '/.mcp/list-tools'
@@ -312,6 +322,7 @@ export interface FileRouteTypes {
     | '/mcp'
     | '/privacy-policy'
     | '/reset-password'
+    | '/sitemap.xml'
     | '/subscription-policy'
     | '/terms'
     | '/.mcp/list-tools'
@@ -342,6 +353,7 @@ export interface FileRouteTypes {
     | '/mcp'
     | '/privacy-policy'
     | '/reset-password'
+    | '/sitemap.xml'
     | '/subscription-policy'
     | '/terms'
     | '/.mcp/list-tools'
@@ -373,6 +385,7 @@ export interface RootRouteChildren {
   McpRoute: typeof McpRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SubscriptionPolicyRoute: typeof SubscriptionPolicyRoute
   TermsRoute: typeof TermsRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
@@ -396,6 +409,13 @@ declare module '@tanstack/react-router' {
       path: '/subscription-policy'
       fullPath: '/subscription-policy'
       preLoaderRoute: typeof SubscriptionPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -633,6 +653,7 @@ const rootRouteChildren: RootRouteChildren = {
   McpRoute: McpRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   SubscriptionPolicyRoute: SubscriptionPolicyRoute,
   TermsRoute: TermsRoute,
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
