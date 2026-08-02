@@ -1,4 +1,5 @@
 import { createFileRoute, Outlet, redirect, Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { LayoutDashboard, Clock, Settings, LogOut, Menu, X, Pencil } from "lucide-react";
 
@@ -6,6 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/brand-logo";
 import { PromoCard } from "@/components/promo-card";
+import { sendWelcomeEmailOnce } from "@/lib/welcome-email.functions";
+
 
 
 export const Route = createFileRoute("/_authenticated")({
