@@ -12,9 +12,21 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/forgot-password")({
   head: () => ({
     meta: [
-      { title: "Forgot password" },
-      { name: "description", content: "Reset your Assignmate account password." },
+      { title: "Reset Your Password — Assignmate" },
+      {
+        name: "description",
+        content:
+          "Reset your Assignmate account password to regain access to your AI-powered assignment workspace, saved assignments and exports.",
+      },
+      { property: "og:title", content: "Reset Your Password — Assignmate" },
+      {
+        property: "og:description",
+        content:
+          "Request a password reset link and get back into your Assignmate account.",
+      },
+      { property: "og:url", content: "https://assignmateai.in/forgot-password" },
     ],
+    links: [{ rel: "canonical", href: "https://assignmateai.in/forgot-password" }],
   }),
   component: ForgotPasswordPage,
 });
