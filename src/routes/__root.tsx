@@ -119,6 +119,10 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
 
+  useNativeShell();
+
+
+
   useEffect(() => {
     const theme = typeof window !== "undefined" ? localStorage.getItem("theme") : null;
     if (theme === "light") document.documentElement.classList.add("light");
