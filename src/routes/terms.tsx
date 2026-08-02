@@ -15,7 +15,9 @@ export const Route = createFileRoute("/terms")({
       { property: "og:description", content: DESCRIPTION },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:url", content: "https://assignmateai.in/terms" },
     ],
+    links: [{ rel: "canonical", href: "https://assignmateai.in/terms" }],
   }),
   component: TermsPage,
 });
