@@ -15,7 +15,9 @@ export const Route = createFileRoute("/about")({
       { property: "og:description", content: DESCRIPTION },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:url", content: "https://assignmateai.in/about" },
     ],
+    links: [{ rel: "canonical", href: "https://assignmateai.in/about" }],
   }),
   component: AboutPage,
 });

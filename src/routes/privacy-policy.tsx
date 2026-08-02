@@ -14,7 +14,9 @@ export const Route = createFileRoute("/privacy-policy")({
       { property: "og:description", content: DESCRIPTION },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:url", content: "https://assignmateai.in/privacy-policy" },
     ],
+    links: [{ rel: "canonical", href: "https://assignmateai.in/privacy-policy" }],
   }),
   component: PrivacyPage,
 });
