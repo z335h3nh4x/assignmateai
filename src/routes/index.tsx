@@ -39,11 +39,21 @@ const FEATURE_ICON_MAP: Record<string, LucideIcon> = {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Assignmate — AI-powered assignment workspace for students" },
-      { name: "description", content: "AI-powered assignment workspace for students." },
-      { property: "og:title", content: "Assignmate — AI assignment workspace" },
-      { property: "og:description", content: "AI-powered assignment workspace for students." },
+      { title: "Assignmate — AI Assignment Workspace for Students" },
+      {
+        name: "description",
+        content:
+          "Assignmate is an AI-powered assignment workspace for students: upload your paper, get worked solutions, and export submission-ready PDF or notebook-style documents.",
+      },
+      { property: "og:title", content: "Assignmate — AI Assignment Workspace for Students" },
+      {
+        property: "og:description",
+        content:
+          "Upload your assignment, let AI solve it step by step, and export a submission-ready document in seconds.",
+      },
+      { property: "og:url", content: "https://assignmateai.in/" },
     ],
+    links: [{ rel: "canonical", href: "https://assignmateai.in/" }],
   }),
   component: Landing,
 });
