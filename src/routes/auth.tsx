@@ -120,6 +120,52 @@ function AuthPage() {
     }
   }
 
+  async function sendOtp(resend = false) {
+    if (!email) {
+      toast.error("Enter your email first");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: true,
+          emailRedirectTo: `${window.location.origin}${next ?? "/dashboard"}`,
+        },
+      });
+      if (error) throw error;
+      setOtpSent(true);
+      setOtp("");
+      setResendIn(45);
+      toast.success(resend ? "New code sent" : `We sent a 6-digit code to ${email}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not send the code");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function verifyOtp(e: React.FormEvent) {
+    e.preventDefault();
+    const token = otp.replace(/\D/g, "");
+    if (token.length !== 6) {
+      toast.error("Enter the 6-digit code");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.verifyOtp({ email, token, type: "email" });
+      if (error) throw error;
+      afterAuth();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Invalid or expired code");
+      setLoading(false);
+    }
+  }
+
+
+
   async function handleGoogle() {
     setLoading(true);
     // Full-page redirects must return to a PUBLIC origin URL; the intended
