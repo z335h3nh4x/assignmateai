@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { createPlanOrder, verifyPlanPayment } from "@/lib/razorpay.functions";
 import { PaymentSuccessDialog, type PaymentSuccessInfo } from "@/components/payment-success-dialog";
+import { createPayTimer, timeScriptLoad } from "@/lib/razorpay-perf";
+
 
 declare global {
   interface Window {
@@ -47,7 +49,7 @@ function loadCheckoutScript(): Promise<void> {
   if (window.Razorpay) return Promise.resolve();
   if (scriptPromise) return scriptPromise;
 
-  scriptPromise = new Promise<void>((resolve, reject) => {
+  const raw = new Promise<void>((resolve, reject) => {
     addConnectionHints();
     const existing = document.querySelector<HTMLScriptElement>(`script[src="${SCRIPT_SRC}"]`);
     const script = existing ?? document.createElement("script");
@@ -66,8 +68,12 @@ function loadCheckoutScript(): Promise<void> {
       document.head.appendChild(script);
     }
   });
-  return scriptPromise;
+  const timed = timeScriptLoad(raw, false);
+  scriptPromise = timed;
+  return timed;
 }
+
+
 
 async function readError(err: unknown, fallback: string): Promise<string> {
   if (err instanceof Response) {
@@ -131,12 +137,23 @@ export function RazorpayCheckoutButton({
     inFlight.current = true;
     setBusy(true);
     setCreatingOrder(true);
+    const perf = createPayTimer(`plan:${planId}`);
+    perf.mark("button click");
     try {
       // Script load, order creation and the (local, cached) session read all
       // run in parallel — nothing is serialised before the checkout opens.
+      const scriptReady = window.Razorpay
+        ? (perf.mark("checkout.js ready (cached)"), Promise.resolve())
+        : loadCheckoutScript().then(() => perf.mark("checkout.js loaded"));
+      perf.mark("order API request: start");
+      const orderPromise = createOrder({ data: { planId } }).then((o) => {
+        perf.mark("order API response received", { order_id: o.order_id });
+        return o;
+      });
+
       const [, order, sessionResult] = await Promise.all([
-        loadCheckoutScript(),
-        createOrder({ data: { planId } }),
+        scriptReady,
+        orderPromise,
         supabase.auth.getSession(),
       ]);
       setCreatingOrder(false);
@@ -159,6 +176,7 @@ export function RazorpayCheckoutButton({
         theme: { color: "#7c3aed" },
         modal: {
           ondismiss: () => {
+            perf.end("modal dismissed by user");
             release();
             toast.info("Payment cancelled");
           },
@@ -168,8 +186,10 @@ export function RazorpayCheckoutButton({
           razorpay_order_id: string;
           razorpay_signature: string;
         }) => {
+          perf.mark("payment success callback", { payment_id: response.razorpay_payment_id });
           try {
             const result = await verifyPayment({ data: response });
+            perf.end("payment verified", { activated: result.activated });
             setSuccess({
               planName: result.plan_name ?? "your new",
               alreadyProcessed: result.already_processed,
@@ -178,16 +198,20 @@ export function RazorpayCheckoutButton({
             // Refresh cached data after the success UI is already on screen.
             void queryClient.invalidateQueries();
           } catch (err) {
+            perf.end("payment verification failed");
             toast.error(await readError(err, "Payment verification failed"));
           } finally {
             release();
           }
         },
       });
+      perf.mark("Razorpay instance created");
 
       rzpRef.current = rzp;
 
       rzp.on("payment.failed", (response: unknown) => {
+        perf.end("payment failure callback");
+
         const description =
           (response as { error?: { description?: string } })?.error?.description ??
           "Payment failed. Please try again.";
@@ -196,13 +220,16 @@ export function RazorpayCheckoutButton({
       });
 
       rzp.open();
+      perf.mark("modal opened");
     } catch (err) {
+      perf.end("flow error before checkout opened");
       const detail = await readError(err, "");
       toast.error("Unable to start payment.", {
         description: detail || "Please try again.",
       });
       release();
     }
+
   }
 
   return (
