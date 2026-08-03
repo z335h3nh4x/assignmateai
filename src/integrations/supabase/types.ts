@@ -486,6 +486,65 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_emails: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          currency: string
+          email: string | null
+          error: string | null
+          id: string
+          plan_id: string | null
+          plan_name: string | null
+          provider: string
+          provider_payment_id: string
+          sent_at: string | null
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          email?: string | null
+          error?: string | null
+          id?: string
+          plan_id?: string | null
+          plan_name?: string | null
+          provider?: string
+          provider_payment_id: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          email?: string | null
+          error?: string | null
+          id?: string
+          plan_id?: string | null
+          plan_name?: string | null
+          provider?: string
+          provider_payment_id?: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_emails_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           billing_interval: string | null

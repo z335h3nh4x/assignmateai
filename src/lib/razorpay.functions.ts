@@ -131,6 +131,20 @@ export const verifyPlanPayment = createServerFn({ method: "POST" })
       plan?: { name?: string };
     };
 
+    // Confirmation email: only after a genuine activation, and never twice for
+    // the same payment (the email table's unique payment index is the guard).
+    // A delivery failure must never fail the payment response.
+    if (r.activated) {
+      const { sendSubscriptionConfirmationEmail } = await import("./subscription-email.server");
+      await sendSubscriptionConfirmationEmail({
+        userId: context.userId,
+        planId,
+        paymentId: data.razorpay_payment_id,
+        amountCents: Math.round(payment.amount),
+        currency: payment.currency,
+      });
+    }
+
     return {
       verified: true,
       payment_id: data.razorpay_payment_id,
@@ -139,4 +153,5 @@ export const verifyPlanPayment = createServerFn({ method: "POST" })
       plan_name: r.plan?.name ?? null,
     };
   });
+
 
