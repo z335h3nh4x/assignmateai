@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { createPlanOrder, verifyPlanPayment } from "@/lib/razorpay.functions";
 import { PaymentSuccessDialog, type PaymentSuccessInfo } from "@/components/payment-success-dialog";
+import { createPayTimer, timeScriptLoad } from "@/lib/razorpay-perf";
+
 
 declare global {
   interface Window {
