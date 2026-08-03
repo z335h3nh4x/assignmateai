@@ -220,13 +220,16 @@ export function RazorpayCheckoutButton({
       });
 
       rzp.open();
+      perf.mark("modal opened");
     } catch (err) {
+      perf.end("flow error before checkout opened");
       const detail = await readError(err, "");
       toast.error("Unable to start payment.", {
         description: detail || "Please try again.",
       });
       release();
     }
+
   }
 
   return (
