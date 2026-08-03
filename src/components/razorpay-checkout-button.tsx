@@ -68,9 +68,11 @@ function loadCheckoutScript(): Promise<void> {
       document.head.appendChild(script);
     }
   });
-  scriptPromise = timeScriptLoad(raw, false);
-  return scriptPromise;
+  const timed = timeScriptLoad(raw, false);
+  scriptPromise = timed;
+  return timed;
 }
+
 
 
 async function readError(err: unknown, fallback: string): Promise<string> {
