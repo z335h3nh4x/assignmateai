@@ -47,7 +47,7 @@ function loadCheckoutScript(): Promise<void> {
   if (window.Razorpay) return Promise.resolve();
   if (scriptPromise) return scriptPromise;
 
-  scriptPromise = new Promise<void>((resolve, reject) => {
+  const raw = new Promise<void>((resolve, reject) => {
     addConnectionHints();
     const existing = document.querySelector<HTMLScriptElement>(`script[src="${SCRIPT_SRC}"]`);
     const script = existing ?? document.createElement("script");
@@ -66,8 +66,10 @@ function loadCheckoutScript(): Promise<void> {
       document.head.appendChild(script);
     }
   });
+  scriptPromise = timeScriptLoad(raw, false);
   return scriptPromise;
 }
+
 
 async function readError(err: unknown, fallback: string): Promise<string> {
   if (err instanceof Response) {
