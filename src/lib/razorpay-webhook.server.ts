@@ -124,6 +124,21 @@ export async function processRazorpayWebhook(input: {
 
   if (error) return finish("failed", error.message);
 
-  const r = (result ?? {}) as { already_processed?: boolean };
+  const r = (result ?? {}) as { already_processed?: boolean; activated?: boolean };
+
+  // Confirmation email for webhook-driven activations. Deduped against the
+  // checkout path by the unique payment index; never blocks the 200 response.
+  if (r.activated) {
+    const { sendSubscriptionConfirmationEmail } = await import("./subscription-email.server");
+    await sendSubscriptionConfirmationEmail({
+      userId,
+      planId,
+      paymentId: payment.id,
+      amountCents: Math.round(payment.amount ?? 0),
+      currency: payment.currency ?? "INR",
+    });
+  }
+
   return finish(r.already_processed ? "already_active" : "activated");
 }
+
