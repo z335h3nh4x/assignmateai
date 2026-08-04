@@ -121,24 +121,29 @@ function AuthPage() {
   }
 
   async function sendOtp(resend = false) {
-    if (!email) {
+    const target = email.trim().toLowerCase();
+    if (!target) {
       toast.error("Enter your email first");
       return;
     }
     setLoading(true);
     try {
       const { error } = await supabase.auth.signInWithOtp({
-        email,
+        email: target,
         options: {
           shouldCreateUser: true,
           emailRedirectTo: `${window.location.origin}${next ?? "/dashboard"}`,
         },
       });
       if (error) throw error;
+      // Verify against the exact address the code was issued to — any drift
+      // (casing/whitespace/edited field) makes Supabase report "expired".
+      setSentEmail(target);
+      setEmail(target);
       setOtpSent(true);
       setOtp("");
       setResendIn(45);
-      toast.success(resend ? "New code sent" : `We sent a 6-digit code to ${email}`);
+      toast.success(resend ? "New code sent" : `We sent a 6-digit code to ${target}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not send the code");
     } finally {
@@ -153,13 +158,30 @@ function AuthPage() {
       toast.error("Enter the 6-digit code");
       return;
     }
+    const target = (sentEmail || email).trim().toLowerCase();
     setLoading(true);
     try {
-      const { error } = await supabase.auth.verifyOtp({ email, token, type: "email" });
+      let { error } = await supabase.auth.verifyOtp({ email: target, token, type: "email" });
+      if (error) {
+        // Brand-new users get a "signup" token; older sessions a "magiclink" one.
+        // "email" covers both in most cases, but fall back explicitly so a valid
+        // code is never rejected as expired.
+        const retry = await supabase.auth.verifyOtp({ email: target, token, type: "magiclink" });
+        if (!retry.error) error = null;
+        else {
+          const retry2 = await supabase.auth.verifyOtp({ email: target, token, type: "signup" });
+          if (!retry2.error) error = null;
+        }
+      }
       if (error) throw error;
       afterAuth();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Invalid or expired code");
+      const msg = err instanceof Error ? err.message : "";
+      toast.error(
+        /expired|invalid/i.test(msg)
+          ? "That code didn't work. Codes expire after a few minutes — tap Resend code."
+          : msg || "Could not verify the code",
+      );
       setLoading(false);
     }
   }
