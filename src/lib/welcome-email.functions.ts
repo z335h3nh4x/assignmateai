@@ -11,11 +11,7 @@ export const sendWelcomeEmailOnce = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { userId, claims } = context;
-
-    // Only after the email is actually confirmed.
-    const emailConfirmed =
-      Boolean((claims as Record<string, unknown>)?.["email_verified"]) ||
-      Boolean((claims as Record<string, unknown>)?.["email_confirmed_at"]);
+    const claimRecord = (claims ?? {}) as Record<string, any>;
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -25,13 +21,29 @@ export const sendWelcomeEmailOnce = createServerFn({ method: "POST" })
       .eq("id", userId)
       .maybeSingle();
 
-    const email = profile?.email ?? (claims as Record<string, unknown>)?.["email"];
+    // The JWT keeps email_verified under user_metadata (not as a top-level
+    // claim), so fall back to the Auth Admin record before giving up.
+    let emailConfirmed =
+      claimRecord["email_verified"] === true ||
+      claimRecord["user_metadata"]?.["email_verified"] === true ||
+      Boolean(claimRecord["email_confirmed_at"]);
+
+    let adminEmail: string | undefined;
+    if (!emailConfirmed) {
+      const { data: adminUser } = await supabaseAdmin.auth.admin.getUserById(userId);
+      const u = adminUser?.user;
+      emailConfirmed = Boolean(u?.email_confirmed_at || u?.confirmed_at);
+      adminEmail = u?.email ?? undefined;
+    }
+
+    const email = profile?.email ?? adminEmail ?? claimRecord["email"];
     if (!profile || profile.welcome_email_sent_at || typeof email !== "string" || !email) {
       return { sent: false as const, reason: "not_eligible" as const };
     }
     if (!emailConfirmed) {
       return { sent: false as const, reason: "not_confirmed" as const };
     }
+
 
     // Claim the send first so concurrent tabs can't double-send.
     const { data: claimed } = await supabaseAdmin

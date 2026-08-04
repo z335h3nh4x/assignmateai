@@ -44,11 +44,18 @@ function AuthedLayout() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (window.sessionStorage.getItem("welcome-email-checked")) return;
-    window.sessionStorage.setItem("welcome-email-checked", "1");
-    void sendWelcome({ data: undefined }).catch((error) => {
-      console.error("[welcome-email]", error);
-    });
+    void sendWelcome({ data: undefined })
+      .then((res: any) => {
+        // Retry later in this session only if the check was inconclusive.
+        if (res?.reason !== "not_confirmed") {
+          window.sessionStorage.setItem("welcome-email-checked", "1");
+        }
+      })
+      .catch((error) => {
+        console.error("[welcome-email]", error);
+      });
   }, [sendWelcome]);
+
 
 
 
