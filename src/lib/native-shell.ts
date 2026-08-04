@@ -40,7 +40,7 @@ export function useNativeShell() {
       // the in-app webview to that path instead of reloading the home screen.
       try {
         const { App } = await import("@capacitor/app");
-        const handle = await App.addListener("appUrlOpen", ({ url }) => {
+        const handle = await App.addListener("appUrlOpen", ({ url }: { url: string }) => {
           try {
             const target = new URL(url);
             if (!APP_LINK_HOSTS.includes(target.hostname)) return;
