@@ -34,11 +34,37 @@ export function useNativeShell() {
       } catch {
         /* splash unavailable */
       }
+
+      // Deep links: when Android hands an https app link to the app, navigate
+      // the in-app webview to that path instead of reloading the home screen.
+      try {
+        const { App } = await import("@capacitor/app");
+        const handle = await App.addListener("appUrlOpen", ({ url }) => {
+          try {
+            const target = new URL(url);
+            if (!APP_LINK_HOSTS.includes(target.hostname)) return;
+            const path = `${target.pathname}${target.search}${target.hash}`;
+            if (path && path !== window.location.pathname + window.location.search + window.location.hash) {
+              window.location.assign(path);
+            }
+          } catch {
+            /* malformed deep link */
+          }
+        });
+        removeUrlListener = () => {
+          void handle.remove();
+        };
+        if (cancelled) removeUrlListener();
+      } catch {
+        /* app plugin unavailable */
+      }
     })();
 
     return () => {
       cancelled = true;
+      removeUrlListener?.();
     };
+
   }, []);
 }
 
