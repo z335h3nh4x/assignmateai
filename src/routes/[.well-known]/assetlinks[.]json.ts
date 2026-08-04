@@ -17,10 +17,19 @@ export const Route = createFileRoute("/.well-known/assetlinks.json")({
   server: {
     handlers: {
       GET: () => {
-        const fingerprints = (process.env["ANDROID_CERT_SHA256"] ?? "")
-          .split(",")
-          .map((value) => value.trim().toUpperCase())
-          .filter(Boolean);
+        // App signing certificate fingerprint (override/extend with the
+        // ANDROID_CERT_SHA256 env var, comma separated, e.g. for Play App Signing).
+        const DEFAULT_FINGERPRINT =
+          "3B:BF:86:AE:AF:49:97:9C:01:3E:EF:17:31:31:06:0C:AA:EF:D5:01:EE:39:58:26:93:FA:09:A8:83:24:06:BA";
+
+        const fingerprints = Array.from(
+          new Set(
+            `${DEFAULT_FINGERPRINT},${process.env["ANDROID_CERT_SHA256"] ?? ""}`
+              .split(",")
+              .map((value) => value.trim().toUpperCase())
+              .filter(Boolean),
+          ),
+        );
 
         const body = [
           {
