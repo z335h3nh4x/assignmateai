@@ -40,6 +40,15 @@ function AuthedLayout() {
 
   useEffect(() => setOpen(false), [pathname]);
 
+  // Elevate the mobile header once the page scrolls under it.
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 4);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   // Fires once per browser session; the server side is idempotent per user.
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -100,14 +109,16 @@ function AuthedLayout() {
       </aside>
 
       {/* Mobile top bar */}
-      <header className="lg:hidden fixed inset-x-0 top-0 z-40 pt-safe">
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 glass px-4 py-3">
+      <header
+        className={`lg:hidden app-header glass border-b border-white/10 ${scrolled ? "app-header-scrolled" : ""}`}
+      >
+        <div className="grid h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4">
           <Link to="/dashboard" className="flex min-w-0 items-center gap-2">
             <BrandLogo />
           </Link>
           <button
             onClick={() => setOpen((v) => !v)}
-            className="shrink-0 grid h-11 w-11 place-items-center rounded-xl hover:bg-white/5"
+            className="shrink-0 grid h-10 w-10 place-items-center rounded-xl active:scale-95 transition hover:bg-white/5"
             aria-label={open ? "Close menu" : "Open menu"}
             aria-expanded={open}
           >
@@ -124,7 +135,7 @@ function AuthedLayout() {
             aria-label="Close menu"
             onClick={() => setOpen(false)}
           />
-          <div className="absolute inset-x-3 top-20 pt-safe glass rounded-2xl p-3 space-y-2">
+          <div className="absolute inset-x-3 top-app glass rounded-2xl p-3 space-y-2">
             <PromoCard placement="sidebar" />
             <Button
               variant="ghost"
@@ -137,7 +148,7 @@ function AuthedLayout() {
         </div>
       ) : null}
 
-      <main className="flex-1 min-w-0 p-4 pt-20 pb-28 lg:p-8 lg:pt-8 lg:pb-8">
+      <main className="flex-1 min-w-0 p-4 pt-app pb-app lg:p-8 lg:pt-8 lg:pb-8">
         <Outlet />
         <div className="mt-8">
           <PromoCard placement="bottom" />
@@ -146,7 +157,7 @@ function AuthedLayout() {
 
       {/* Mobile bottom tab bar */}
       <nav
-        className="lg:hidden fixed inset-x-0 bottom-0 z-40 glass border-t border-white/10 pb-safe"
+        className="lg:hidden fixed inset-x-0 bottom-0 z-50 glass border-t border-white/10 pb-safe"
         aria-label="Primary"
       >
         <ul className="grid grid-cols-4">
@@ -157,7 +168,7 @@ function AuthedLayout() {
                 <Link
                   to={item.to}
                   aria-current={active ? "page" : undefined}
-                  className={`flex h-16 flex-col items-center justify-center gap-1 text-[11px] transition ${
+                  className={`flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium transition active:scale-95 ${
                     active ? "text-primary" : "text-muted-foreground"
                   }`}
                 >

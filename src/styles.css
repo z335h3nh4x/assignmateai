@@ -213,6 +213,37 @@
 @utility pt-safe { padding-top: env(safe-area-inset-top, 0px); }
 @utility pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
 
+/* Mobile app chrome: header height + safe area offsets */
+:root {
+  --app-header-h: 3.5rem;
+  --app-tabbar-h: 4rem;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@utility app-header {
+  position: fixed;
+  inset-inline: 0;
+  top: 0;
+  z-index: 50;
+  padding-top: var(--safe-top);
+  transition: box-shadow 200ms ease, background-color 200ms ease;
+}
+@utility app-header-scrolled {
+  box-shadow: 0 8px 24px -12px rgb(0 0 0 / 0.45);
+}
+/* Content offsets so nothing hides behind the fixed chrome */
+@utility pt-app {
+  padding-top: calc(var(--safe-top) + var(--app-header-h) + 0.75rem);
+}
+@utility pb-app {
+  padding-bottom: calc(var(--safe-bottom) + var(--app-tabbar-h) + 1rem);
+}
+@utility top-app {
+  top: calc(var(--safe-top) + var(--app-header-h) + 0.5rem);
+}
+
+
 html.is-native, html.is-native body {
   overscroll-behavior-y: none;
   -webkit-user-select: none;
