@@ -9,6 +9,7 @@ import { APP_LINK_HOSTS, tryOpenInAndroidApp } from "@/lib/deeplinks";
 export function useNativeShell() {
   useEffect(() => {
     let cancelled = false;
+    let removeUrlListener: (() => void) | undefined;
 
     (async () => {
       const { Capacitor } = await import("@capacitor/core");
