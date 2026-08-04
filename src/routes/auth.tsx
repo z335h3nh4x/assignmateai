@@ -50,7 +50,7 @@ function AuthPage() {
 
 
   const navigate = useNavigate();
-  const { next } = Route.useSearch();
+  const { next, native_google: nativeGoogle } = Route.useSearch();
   const afterAuth = () => {
     if (next) {
       window.location.href = next;
@@ -65,10 +65,17 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
 
-
-
+  // Opened by the native app inside a Custom Tab: start Google immediately and
+  // never bounce this browser session into the dashboard.
+  useEffect(() => {
+    if (!nativeGoogle) return;
+    setCheckingSession(false);
+    void handleGoogle();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nativeGoogle]);
 
   useEffect(() => {
+    if (nativeGoogle) return;
     let active = true;
     supabase.auth.getSession().then(({ data }) => {
       if (!active) return;
@@ -86,7 +93,8 @@ function AuthPage() {
       sub.subscription.unsubscribe();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigate, next]);
+  }, [navigate, next, nativeGoogle]);
+
 
   if (checkingSession) {
     return <div className="min-h-screen" aria-busy="true" />;
