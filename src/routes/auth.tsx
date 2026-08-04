@@ -58,6 +58,7 @@ function AuthPage() {
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [method, setMethod] = useState<"password" | "otp">("otp");
   const [otpSent, setOtpSent] = useState(false);
+  const [sentEmail, setSentEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [resendIn, setResendIn] = useState(0);
   const [email, setEmail] = useState("");
