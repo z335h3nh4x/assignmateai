@@ -79,3 +79,53 @@ To ship the web assets inside the APK instead of loading the live site, remove
 the `server` block from `capacitor.config.ts`. Note that server-rendered routes
 and server functions require the hosted backend, so the live-URL mode above is
 the recommended setup.
+
+## Deep links (Android App Links)
+
+Package name: `app.assignmateai.in`. Links to `https://assignmateai.in` and
+`https://www.assignmateai.in` open the installed app directly; if the app isn't
+installed they open in the browser as usual.
+
+### 1. Server side (already done)
+
+`https://assignmateai.in/.well-known/assetlinks.json` is served by
+`src/routes/[.well-known]/assetlinks[.]json.ts`. Add your release signing
+certificate fingerprint(s) as the `ANDROID_CERT_SHA256` secret (comma separated
+if you have several, e.g. Play App Signing + upload key):
+
+```bash
+keytool -list -v -keystore assignmate.keystore -alias assignmate | grep SHA256
+```
+
+Verify after publishing: the file must return your fingerprint, not an empty
+array — Android will not verify the link otherwise.
+
+### 2. Native side (after `npx cap add android`)
+
+In `android/app/src/main/AndroidManifest.xml`, inside the main `<activity>`:
+
+```xml
+<intent-filter android:autoVerify="true">
+    <action android:name="android.intent.action.VIEW" />
+    <category android:name="android.intent.category.DEFAULT" />
+    <category android:name="android.intent.category.BROWSABLE" />
+    <data android:scheme="https" android:host="assignmateai.in" />
+    <data android:scheme="https" android:host="www.assignmateai.in" />
+</intent-filter>
+```
+
+Then rebuild: `npx cap sync android` and reinstall the APK.
+
+Test:
+
+```bash
+adb shell am start -a android.intent.action.VIEW -d "https://assignmateai.in/dashboard"
+adb shell pm get-app-links app.assignmateai.in   # expects: verified
+```
+
+### 3. Web side
+
+`src/lib/deeplinks.ts` also tries to hand the current URL to the app once per
+browser session on Android (via an `intent://` URL with a web fallback), so
+users who land on the site in Chrome get bounced into the app when it's
+installed.
