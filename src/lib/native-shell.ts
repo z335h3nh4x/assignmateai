@@ -1,5 +1,7 @@
 import { useEffect } from "react";
 
+import { APP_LINK_HOSTS, tryOpenInAndroidApp } from "@/lib/deeplinks";
+
 /**
  * Native (Capacitor) shell integration. No-ops in the browser, so the deployed
  * web app behaves exactly as before.
@@ -10,7 +12,11 @@ export function useNativeShell() {
 
     (async () => {
       const { Capacitor } = await import("@capacitor/core");
-      if (cancelled || !Capacitor.isNativePlatform()) return;
+      if (cancelled || !Capacitor.isNativePlatform()) {
+        // Web: offer the installed app the current deep link (no-op if absent).
+        tryOpenInAndroidApp();
+        return;
+      }
 
       document.documentElement.classList.add("is-native");
 
