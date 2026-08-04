@@ -64,6 +64,10 @@ export function useNativeShell() {
           try {
             const target = new URL(url);
             if (!APP_LINK_HOSTS.includes(target.hostname)) return;
+            if (target.pathname === NATIVE_CALLBACK_PATH) {
+              void handleNativeAuthCallback(target);
+              return;
+            }
             const path = `${target.pathname}${target.search}${target.hash}`;
             if (path && path !== window.location.pathname + window.location.search + window.location.hash) {
               window.location.assign(path);
