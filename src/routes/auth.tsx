@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { rememberPostAuthRedirect } from "@/lib/oauth-callback";
+import { isNativeApp } from "@/lib/native-shell";
+import { nativeCallbackUrl, startNativeGoogleSignIn } from "@/lib/native-auth";
 
 
 import { useSiteSettings, platformName } from "@/hooks/use-site-settings";
