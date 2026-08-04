@@ -1,6 +1,26 @@
 import { useEffect } from "react";
 
 import { APP_LINK_HOSTS, tryOpenInAndroidApp } from "@/lib/deeplinks";
+import { NATIVE_CALLBACK_PATH, closeNativeAuthBrowser } from "@/lib/native-auth";
+import { completeOAuthRedirect } from "@/lib/oauth-callback";
+
+/** Installs the OAuth session carried by an App Link opened from the Custom Tab. */
+async function handleNativeAuthCallback(target: URL) {
+  await closeNativeAuthBrowser();
+
+  // completeOAuthRedirect reads tokens off the current location, so put the
+  // callback query/hash there first (without navigating away).
+  const staged = `${window.location.pathname}${target.search}${target.hash}`;
+  window.history.replaceState({}, "", staged);
+
+  const result = await completeOAuthRedirect();
+  if (result.kind === "session") {
+    window.location.assign(result.redirectTo);
+    return;
+  }
+  window.location.assign("/auth");
+}
+
 
 /**
  * Native (Capacitor) shell integration. No-ops in the browser, so the deployed
