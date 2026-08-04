@@ -17,6 +17,7 @@ import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as AuthNativeCallbackRouteImport } from './routes/auth-native-callback'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
@@ -81,6 +82,11 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
   path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthNativeCallbackRoute = AuthNativeCallbackRouteImport.update({
+  id: '/auth-native-callback',
+  path: '/auth-native-callback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -221,6 +227,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
+  '/auth-native-callback': typeof AuthNativeCallbackRoute
   '/contact': typeof ContactRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/mcp': typeof McpRoute
@@ -254,6 +261,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
+  '/auth-native-callback': typeof AuthNativeCallbackRoute
   '/contact': typeof ContactRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/mcp': typeof McpRoute
@@ -290,6 +298,7 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
+  '/auth-native-callback': typeof AuthNativeCallbackRoute
   '/contact': typeof ContactRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/mcp': typeof McpRoute
@@ -326,6 +335,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/admin'
     | '/auth'
+    | '/auth-native-callback'
     | '/contact'
     | '/forgot-password'
     | '/mcp'
@@ -359,6 +369,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/auth'
+    | '/auth-native-callback'
     | '/contact'
     | '/forgot-password'
     | '/mcp'
@@ -394,6 +405,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/admin'
     | '/auth'
+    | '/auth-native-callback'
     | '/contact'
     | '/forgot-password'
     | '/mcp'
@@ -430,6 +442,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
+  AuthNativeCallbackRoute: typeof AuthNativeCallbackRoute
   ContactRoute: typeof ContactRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   McpRoute: typeof McpRoute
@@ -505,6 +518,13 @@ declare module '@tanstack/react-router' {
       path: '/contact'
       fullPath: '/contact'
       preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth-native-callback': {
+      id: '/auth-native-callback'
+      path: '/auth-native-callback'
+      fullPath: '/auth-native-callback'
+      preLoaderRoute: typeof AuthNativeCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -730,6 +750,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
+  AuthNativeCallbackRoute: AuthNativeCallbackRoute,
   ContactRoute: ContactRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   McpRoute: McpRoute,
