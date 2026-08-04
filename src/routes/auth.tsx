@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Mail, Lock, ArrowLeft } from "lucide-react";
+import { Mail, Lock, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { toast } from "sonner";
 
@@ -56,21 +56,13 @@ function AuthPage() {
     navigate({ to: "/dashboard" });
   };
   const [mode, setMode] = useState<"login" | "signup">("login");
-  const [method, setMethod] = useState<"password" | "otp">("otp");
-  const [otpSent, setOtpSent] = useState(false);
-  const [sentEmail, setSentEmail] = useState("");
-  const [otp, setOtp] = useState("");
-  const [resendIn, setResendIn] = useState(0);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
 
-  useEffect(() => {
-    if (resendIn <= 0) return;
-    const t = setTimeout(() => setResendIn((v) => v - 1), 1000);
-    return () => clearTimeout(t);
-  }, [resendIn]);
+
 
 
   useEffect(() => {
