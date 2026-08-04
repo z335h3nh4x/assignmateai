@@ -121,11 +121,27 @@ function AuthPage() {
 
   async function handleGoogle() {
     setLoading(true);
+
+    // Native shell (Capacitor WebView): Google rejects OAuth in embedded
+    // WebViews, so hand the flow to Chrome Custom Tabs and come back through
+    // the App Link callback.
+    if (isNativeApp()) {
+      try {
+        await startNativeGoogleSignIn(next ?? "/dashboard");
+      } catch {
+        toast.error("Could not open Google sign-in");
+      }
+      setLoading(false);
+      return;
+    }
+
     // Full-page redirects must return to a PUBLIC origin URL; the intended
     // destination is stored separately and applied after the session exists.
     rememberPostAuthRedirect(next ?? "/dashboard");
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      // Inside the Custom Tab the tokens must land on the App Link callback so
+      // Android can hand them to the installed app.
+      redirect_uri: nativeGoogle ? nativeCallbackUrl() : window.location.origin,
     });
     if (result.error) {
       toast.error(result.error.message ?? "Google sign-in failed");
@@ -135,6 +151,7 @@ function AuthPage() {
     if (result.redirected) return;
     afterAuth();
   }
+
 
 
   return (
