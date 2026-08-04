@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { rememberPostAuthRedirect } from "@/lib/oauth-callback";
+import { isNativeApp } from "@/lib/native-shell";
+import { nativeCallbackUrl, startNativeGoogleSignIn } from "@/lib/native-auth";
 
 
 import { useSiteSettings, platformName } from "@/hooks/use-site-settings";
@@ -36,6 +38,7 @@ export const Route = createFileRoute("/auth")({
   }),
   validateSearch: (s: Record<string, unknown>) => ({
     next: typeof s.next === "string" && s.next.startsWith("/") && !s.next.startsWith("//") ? s.next : undefined,
+    native_google: s.native_google === "1" || s.native_google === 1 ? ("1" as const) : undefined,
   }),
   component: AuthPage,
 });
@@ -47,7 +50,7 @@ function AuthPage() {
 
 
   const navigate = useNavigate();
-  const { next } = Route.useSearch();
+  const { next, native_google: nativeGoogle } = Route.useSearch();
   const afterAuth = () => {
     if (next) {
       window.location.href = next;
@@ -62,10 +65,17 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
 
-
-
+  // Opened by the native app inside a Custom Tab: start Google immediately and
+  // never bounce this browser session into the dashboard.
+  useEffect(() => {
+    if (!nativeGoogle) return;
+    setCheckingSession(false);
+    void handleGoogle();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nativeGoogle]);
 
   useEffect(() => {
+    if (nativeGoogle) return;
     let active = true;
     supabase.auth.getSession().then(({ data }) => {
       if (!active) return;
@@ -83,7 +93,8 @@ function AuthPage() {
       sub.subscription.unsubscribe();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigate, next]);
+  }, [navigate, next, nativeGoogle]);
+
 
   if (checkingSession) {
     return <div className="min-h-screen" aria-busy="true" />;
@@ -120,11 +131,27 @@ function AuthPage() {
 
   async function handleGoogle() {
     setLoading(true);
+
+    // Native shell (Capacitor WebView): Google rejects OAuth in embedded
+    // WebViews, so hand the flow to Chrome Custom Tabs and come back through
+    // the App Link callback.
+    if (isNativeApp()) {
+      try {
+        await startNativeGoogleSignIn(next ?? "/dashboard");
+      } catch {
+        toast.error("Could not open Google sign-in");
+      }
+      setLoading(false);
+      return;
+    }
+
     // Full-page redirects must return to a PUBLIC origin URL; the intended
     // destination is stored separately and applied after the session exists.
     rememberPostAuthRedirect(next ?? "/dashboard");
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      // Inside the Custom Tab the tokens must land on the App Link callback so
+      // Android can hand them to the installed app.
+      redirect_uri: nativeGoogle ? nativeCallbackUrl() : window.location.origin,
     });
     if (result.error) {
       toast.error(result.error.message ?? "Google sign-in failed");
@@ -134,6 +161,7 @@ function AuthPage() {
     if (result.redirected) return;
     afterAuth();
   }
+
 
 
   return (
