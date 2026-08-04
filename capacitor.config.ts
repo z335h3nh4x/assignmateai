@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
-  appId: "in.assignmateai.app",
+  appId: "app.assignmateai.in",
   appName: "Assignmate",
   webDir: "dist/client",
   // Assignmate is a server-rendered app, so the native shell loads the live
