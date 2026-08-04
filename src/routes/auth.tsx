@@ -113,67 +113,8 @@ function AuthPage() {
     }
   }
 
-  async function sendOtp(resend = false) {
-    const target = email.trim().toLowerCase();
-    if (!target) {
-      toast.error("Enter your email first");
-      return;
-    }
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: target,
-        options: {
-          shouldCreateUser: true,
-          emailRedirectTo: `${window.location.origin}${next ?? "/dashboard"}`,
-        },
-      });
-      if (error) throw error;
-      // Verify against the exact address the code was issued to — any drift
-      // (casing/whitespace/edited field) makes Supabase report "expired".
-      setSentEmail(target);
-      setEmail(target);
-      setOtpSent(true);
-      setOtp("");
-      setResendIn(45);
-      toast.success(resend ? "New code sent" : `We sent a 6-digit code to ${target}`);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not send the code");
-    } finally {
-      setLoading(false);
-    }
-  }
 
-  async function verifyOtp(e: React.FormEvent) {
-    e.preventDefault();
-    const token = otp.replace(/\D/g, "");
-    if (token.length !== 6) {
-      toast.error("Enter the 6-digit code");
-      return;
-    }
-    const target = (sentEmail || email).trim().toLowerCase();
-    setLoading(true);
-    try {
-      // This project's email hook issues passwordless login codes as recovery
-      // tokens. Verify with that matching type first. The generic `email` type
-      // remains a compatibility fallback for accounts issued a standard OTP.
-      let { error } = await supabase.auth.verifyOtp({ email: target, token, type: "recovery" });
-      if (error) {
-        const fallback = await supabase.auth.verifyOtp({ email: target, token, type: "email" });
-        if (!fallback.error) error = null;
-      }
-      if (error) throw error;
-      afterAuth();
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "";
-      toast.error(
-        /expired|invalid/i.test(msg)
-          ? "That code didn't work. Codes expire after a few minutes — tap Resend code."
-          : msg || "Could not verify the code",
-      );
-      setLoading(false);
-    }
-  }
+
 
 
 
