@@ -36,6 +36,7 @@ export const Route = createFileRoute("/auth")({
   }),
   validateSearch: (s: Record<string, unknown>) => ({
     next: typeof s.next === "string" && s.next.startsWith("/") && !s.next.startsWith("//") ? s.next : undefined,
+    native_google: s.native_google === "1" || s.native_google === 1 ? ("1" as const) : undefined,
   }),
   component: AuthPage,
 });
