@@ -162,17 +162,13 @@ function AuthPage() {
     const target = (sentEmail || email).trim().toLowerCase();
     setLoading(true);
     try {
-      let { error } = await supabase.auth.verifyOtp({ email: target, token, type: "email" });
+      // This project's email hook issues passwordless login codes as recovery
+      // tokens. Verify with that matching type first. The generic `email` type
+      // remains a compatibility fallback for accounts issued a standard OTP.
+      let { error } = await supabase.auth.verifyOtp({ email: target, token, type: "recovery" });
       if (error) {
-        // Brand-new users get a "signup" token; older sessions a "magiclink" one.
-        // "email" covers both in most cases, but fall back explicitly so a valid
-        // code is never rejected as expired.
-        const retry = await supabase.auth.verifyOtp({ email: target, token, type: "magiclink" });
-        if (!retry.error) error = null;
-        else {
-          const retry2 = await supabase.auth.verifyOtp({ email: target, token, type: "signup" });
-          if (!retry2.error) error = null;
-        }
+        const fallback = await supabase.auth.verifyOtp({ email: target, token, type: "email" });
+        if (!fallback.error) error = null;
       }
       if (error) throw error;
       afterAuth();
