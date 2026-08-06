@@ -19,6 +19,7 @@ import { PlanFeaturesProvider } from "@/lib/use-plan-features";
 import { useNativeShell } from "@/lib/native-shell";
 import { useSiteSettings, platformName, supportEmail, websiteUrl } from "@/hooks/use-site-settings";
 import { BrandLogo } from "@/components/brand-logo";
+import { InstallAppPrompt } from "@/components/install-app-prompt";
 
 
 
@@ -168,6 +169,7 @@ function RootComponent() {
           <Outlet />
         </MaintenanceGate>
         <Toaster position="top-right" />
+        <InstallAppPrompt />
       </PlanFeaturesProvider>
     </QueryClientProvider>
   );
