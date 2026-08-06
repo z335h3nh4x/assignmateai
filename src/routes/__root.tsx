@@ -19,6 +19,7 @@ import { PlanFeaturesProvider } from "@/lib/use-plan-features";
 import { useNativeShell } from "@/lib/native-shell";
 import { useSiteSettings, platformName, supportEmail, websiteUrl } from "@/hooks/use-site-settings";
 import { BrandLogo } from "@/components/brand-logo";
+import { InstallAppPrompt } from "@/components/install-app-prompt";
 
 
 
@@ -91,6 +92,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      { rel: "manifest", href: "/manifest.json" },
       { rel: "icon", type: "image/x-icon", href: "/favicon.ico" },
       { rel: "icon", type: "image/png", sizes: "32x32", href: "/favicon-32x32.png" },
       { rel: "icon", type: "image/png", sizes: "16x16", href: "/favicon-16x16.png" },
@@ -167,6 +169,7 @@ function RootComponent() {
           <Outlet />
         </MaintenanceGate>
         <Toaster position="top-right" />
+        <InstallAppPrompt />
       </PlanFeaturesProvider>
     </QueryClientProvider>
   );
