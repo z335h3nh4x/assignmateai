@@ -40,13 +40,8 @@ export const Route = createFileRoute("/_authenticated/assignment/$id")({
 });
 
 
-function downloadFile(name: string, mime: string, content: string | Blob) {
-  const blob = content instanceof Blob ? content : new Blob([content], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = name; a.click();
-  URL.revokeObjectURL(url);
-}
+
+
 
 // Split off "References" section (## References or # References at end)
 // and inject stable ids into every heading so the TOC and internal anchors work.
