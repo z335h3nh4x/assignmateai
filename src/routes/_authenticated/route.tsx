@@ -113,18 +113,21 @@ function AuthedLayout() {
         className={`lg:hidden app-header glass border-b border-white/10 ${scrolled ? "app-header-scrolled" : ""}`}
       >
         <div className="grid h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4">
-          <Link to="/dashboard" className="flex min-w-0 items-center gap-2">
-            <BrandLogo />
+          <Link to="/dashboard" className="flex min-w-0 items-center gap-2 overflow-hidden">
+            <span className="min-w-0 truncate">
+              <BrandLogo />
+            </span>
           </Link>
           <button
             onClick={() => setOpen((v) => !v)}
-            className="shrink-0 grid h-10 w-10 place-items-center rounded-xl active:scale-95 transition hover:bg-white/5"
+            className="-mr-1 shrink-0 grid h-10 w-10 place-items-center rounded-xl active:scale-95 transition hover:bg-white/5"
             aria-label={open ? "Close menu" : "Open menu"}
             aria-expanded={open}
           >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
+
       </header>
 
       {/* Mobile slide-over menu */}
