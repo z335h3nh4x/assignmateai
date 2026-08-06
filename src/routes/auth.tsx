@@ -36,7 +36,7 @@ export const Route = createFileRoute("/auth")({
     ],
     links: [{ rel: "canonical", href: "https://assignmateai.in/auth" }],
   }),
-  validateSearch: (s: Record<string, unknown>) => ({
+  validateSearch: (s: Record<string, unknown>): { next?: string; native_google?: "1" } => ({
     next: typeof s.next === "string" && s.next.startsWith("/") && !s.next.startsWith("//") ? s.next : undefined,
     native_google: s.native_google === "1" || s.native_google === 1 ? ("1" as const) : undefined,
   }),
