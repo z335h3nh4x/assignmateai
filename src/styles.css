@@ -226,15 +226,19 @@
   inset-inline: 0;
   top: 0;
   z-index: 50;
+  /* Reserve the status-bar strip above the header content */
   padding-top: var(--safe-top);
-  transition: box-shadow 200ms ease, background-color 200ms ease;
+  min-height: calc(var(--safe-top) + var(--app-header-h));
+  padding-inline: max(env(safe-area-inset-left, 0px), 0px) max(env(safe-area-inset-right, 0px), 0px);
+  transition: box-shadow 200ms ease, background-color 200ms ease, border-color 200ms ease;
 }
 @utility app-header-scrolled {
   box-shadow: 0 8px 24px -12px rgb(0 0 0 / 0.45);
+  --surface-opacity: 1;
 }
 /* Content offsets so nothing hides behind the fixed chrome */
 @utility pt-app {
-  padding-top: calc(var(--safe-top) + var(--app-header-h) + 0.75rem);
+  padding-top: calc(var(--safe-top) + var(--app-header-h) + 1rem);
 }
 @utility pb-app {
   padding-bottom: calc(var(--safe-bottom) + var(--app-tabbar-h) + 1rem);
@@ -242,6 +246,11 @@
 @utility top-app {
   top: calc(var(--safe-top) + var(--app-header-h) + 0.5rem);
 }
+/* Anchor targets shouldn't slide under the fixed header */
+@media (max-width: 1023px) {
+  :where(h1, h2, h3, h4, [id]) { scroll-margin-top: calc(var(--safe-top) + var(--app-header-h) + 1rem); }
+}
+
 
 
 html.is-native, html.is-native body {
