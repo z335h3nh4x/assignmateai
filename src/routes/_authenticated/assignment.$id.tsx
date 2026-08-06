@@ -336,8 +336,6 @@ function AssignmentView() {
 
   function downloadPdf() {
     if (!row?.result) return;
-    const w = window.open("", "_blank");
-    if (!w) return toast.error("Popup blocked — allow popups to export PDF");
     const doc = buildAcademicDocument(row.result, {
       title: row.title,
       studentName: pdfMeta.studentName.trim(),
@@ -345,9 +343,7 @@ function AssignmentView() {
       subject: pdfMeta.subject.trim(),
       date: pdfMeta.date.trim() || new Date().toLocaleDateString(),
     });
-    w.document.open();
-    w.document.write(doc);
-    w.document.close();
+    openDocument(doc, `${row.title || "assignment"}.pdf`);
     setPdfOpen(false);
     void trackExport();
   }
@@ -360,14 +356,12 @@ function AssignmentView() {
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
       <style>${PRINT_RICH_CSS}</style>
       </head><body>${body}</body></html>`;
-    downloadFile(`${row.title}.doc`, "application/msword", html);
+    downloadDocument(html, `${row.title || "assignment"}.doc`, "application/msword");
     void trackExport();
   }
 
   async function downloadNotebookPdf() {
     if (!row?.result) return;
-    const w = window.open("", "_blank");
-    if (!w) return toast.error("Popup blocked — allow popups to export PDF");
     const doc = buildNotebookDocument(row.result, {
       title: row.title,
       studentName: notebookMeta.studentName.trim(),
@@ -380,13 +374,11 @@ function AssignmentView() {
       template: notebookMeta.template,
       backgroundUrl: `${window.location.origin}${classicSchoolPaper.url}`,
     });
-
-    w.document.open();
-    w.document.write(doc);
-    w.document.close();
+    openDocument(doc, `${row.title || "assignment"}-notebook.pdf`);
     setNotebookOpen(false);
     void trackExport();
   }
+
 
   async function saveDraft(next: string) {
     await saveDraftFn({ data: { id, result: next } });
