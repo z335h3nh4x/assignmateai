@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "in.assignmateai.twa",
+    "sha256_cert_fingerprints": ["8D:74:6D:CF:B3:EB:D8:F4:EF:33:22:48:C3:0F:8B:33:BC:E2:65:1F:B3:F9:10:7B:14:E1:44:3E:DC:FA:5C:F0"]
+  }
+}]
