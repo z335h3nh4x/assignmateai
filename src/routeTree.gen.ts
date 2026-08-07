@@ -34,7 +34,6 @@ import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedHandwritingRouteImport } from './routes/_authenticated/handwriting'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
-import { Route as Char91DotwellKnownChar93AssetlinksChar91DotChar93jsonRouteImport } from './routes/[.well-known]/assetlinks[.]json'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as ApiPublicRazorpayWebhookRouteImport } from './routes/api/public/razorpay-webhook'
 import { Route as ApiPublicExportDocRouteImport } from './routes/api/public/export-doc'
@@ -171,12 +170,6 @@ const Char91DotwellKnownChar93OauthProtectedResourceRoute =
     path: '/.well-known/oauth-protected-resource',
     getParentRoute: () => rootRouteImport,
   } as any)
-const Char91DotwellKnownChar93AssetlinksChar91DotChar93jsonRoute =
-  Char91DotwellKnownChar93AssetlinksChar91DotChar93jsonRouteImport.update({
-    id: '/.well-known/assetlinks.json',
-    path: '/.well-known/assetlinks.json',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const Char91DotmcpChar93ListToolsRoute =
   Char91DotmcpChar93ListToolsRouteImport.update({
     id: '/.mcp/list-tools',
@@ -243,7 +236,6 @@ export interface FileRoutesByFullPath {
   '/subscription-policy': typeof SubscriptionPolicyRoute
   '/terms': typeof TermsRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
-  '/.well-known/assetlinks.json': typeof Char91DotwellKnownChar93AssetlinksChar91DotChar93jsonRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/handwriting': typeof AuthenticatedHandwritingRoute
@@ -278,7 +270,6 @@ export interface FileRoutesByTo {
   '/subscription-policy': typeof SubscriptionPolicyRoute
   '/terms': typeof TermsRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
-  '/.well-known/assetlinks.json': typeof Char91DotwellKnownChar93AssetlinksChar91DotChar93jsonRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/handwriting': typeof AuthenticatedHandwritingRoute
@@ -316,7 +307,6 @@ export interface FileRoutesById {
   '/subscription-policy': typeof SubscriptionPolicyRoute
   '/terms': typeof TermsRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
-  '/.well-known/assetlinks.json': typeof Char91DotwellKnownChar93AssetlinksChar91DotChar93jsonRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/handwriting': typeof AuthenticatedHandwritingRoute
@@ -354,7 +344,6 @@ export interface FileRouteTypes {
     | '/subscription-policy'
     | '/terms'
     | '/.mcp/list-tools'
-    | '/.well-known/assetlinks.json'
     | '/.well-known/oauth-protected-resource'
     | '/dashboard'
     | '/handwriting'
@@ -389,7 +378,6 @@ export interface FileRouteTypes {
     | '/subscription-policy'
     | '/terms'
     | '/.mcp/list-tools'
-    | '/.well-known/assetlinks.json'
     | '/.well-known/oauth-protected-resource'
     | '/dashboard'
     | '/handwriting'
@@ -426,7 +414,6 @@ export interface FileRouteTypes {
     | '/subscription-policy'
     | '/terms'
     | '/.mcp/list-tools'
-    | '/.well-known/assetlinks.json'
     | '/.well-known/oauth-protected-resource'
     | '/_authenticated/dashboard'
     | '/_authenticated/handwriting'
@@ -464,7 +451,6 @@ export interface RootRouteChildren {
   SubscriptionPolicyRoute: typeof SubscriptionPolicyRoute
   TermsRoute: typeof TermsRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
-  Char91DotwellKnownChar93AssetlinksChar91DotChar93jsonRoute: typeof Char91DotwellKnownChar93AssetlinksChar91DotChar93jsonRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
@@ -652,13 +638,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/.well-known/assetlinks.json': {
-      id: '/.well-known/assetlinks.json'
-      path: '/.well-known/assetlinks.json'
-      fullPath: '/.well-known/assetlinks.json'
-      preLoaderRoute: typeof Char91DotwellKnownChar93AssetlinksChar91DotChar93jsonRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/.mcp/list-tools': {
       id: '/.mcp/list-tools'
       path: '/.mcp/list-tools'
@@ -780,8 +759,6 @@ const rootRouteChildren: RootRouteChildren = {
   SubscriptionPolicyRoute: SubscriptionPolicyRoute,
   TermsRoute: TermsRoute,
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
-  Char91DotwellKnownChar93AssetlinksChar91DotChar93jsonRoute:
-    Char91DotwellKnownChar93AssetlinksChar91DotChar93jsonRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
