@@ -1,19 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import type { Database } from "@/integrations/supabase/types";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const EVENT = z.enum(["impression", "click", "dismiss"]);
 const PLACEMENT = z.enum(["dashboard", "workspace", "sidebar", "bottom"]);
-
-function serverClient() {
-  return createClient<Database>(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_PUBLISHABLE_KEY!,
-    { auth: { persistSession: false, autoRefreshToken: false, storage: undefined } },
-  );
-}
 
 export const logPromoEvent = createServerFn({ method: "POST" })
   .inputValidator((data) =>
@@ -27,8 +17,10 @@ export const logPromoEvent = createServerFn({ method: "POST" })
       .parse(data),
   )
   .handler(async ({ data }) => {
-    const sb = serverClient();
-    await sb.from("promo_events").insert({
+    // Clients cannot write promo_events directly (restrictive policy); only this
+    // validated server path may record events.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("promo_events").insert({
       event: data.event,
       placement: data.placement,
       content_hash: data.content_hash,
@@ -36,6 +28,7 @@ export const logPromoEvent = createServerFn({ method: "POST" })
     });
     return { ok: true };
   });
+
 
 export type PromoStats = {
   totals: { impressions: number; clicks: number; dismisses: number; ctr: number };
