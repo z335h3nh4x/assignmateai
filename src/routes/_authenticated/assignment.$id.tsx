@@ -146,7 +146,8 @@ function buildAcademicDocument(md: string, meta: AcademicMeta) {
     `<div><span class="lbl">Date</span><span class="val">${esc(meta.date)}</span></div>`,
   ].filter(Boolean).join("");
 
-  return `<!doctype html><html><head><meta charset="utf-8"><title> </title>
+  const docTitle = esc(sanitizeExportFilename(meta.title, "").replace(/\.pdf$/i, "") || "assignment");
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${docTitle}</title>
 ${PRINT_HEAD_ASSETS}
 <style>${PRINT_RICH_CSS}</style>
 <style>
@@ -252,7 +253,7 @@ ${hwHead}
 
   ${hwScript}
   <script>
-    document.title = " ";
+    document.title = ${JSON.stringify(docTitle)};
     // Wait for KaTeX/highlight.js CSS + mermaid diagrams to settle before printing.
     window.addEventListener('load', () => setTimeout(() => window.print(), 1200));
   </script>
