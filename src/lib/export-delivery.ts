@@ -9,6 +9,8 @@
  * A blob download is kept as a last-resort fallback for offline situations.
  */
 
+import { bytesToBase64 } from "./pdf-bytes";
+
 const ENDPOINT = "/api/public/export-doc";
 
 function postForm(fields: Record<string, string>, target: string) {
@@ -84,3 +86,34 @@ export function downloadDocument(html: string, filename: string, mime: string) {
     blobFallback(filename, mime, html);
   }
 }
+
+/**
+ * Downloads real binary bytes (e.g. generated PDF) as an attachment. The bytes
+ * are posted base64-encoded and streamed back with the correct MIME type so
+ * mobile browsers use their native download handling.
+ */
+export function downloadBinaryDocument(bytes: Uint8Array, filename: string, mime: string) {
+  try {
+    const base64 = bytesToBase64(bytes);
+    const name = `dl_${Date.now()}`;
+    const iframe = document.createElement("iframe");
+    iframe.name = name;
+    iframe.style.display = "none";
+    document.body.appendChild(iframe);
+    postForm({ html: base64, encoding: "base64", filename, mime, mode: "attachment" }, name);
+    setTimeout(() => iframe.remove(), 60_000);
+  } catch {
+    const url = URL.createObjectURL(
+      new Blob([bytes.slice().buffer as ArrayBuffer], { type: mime }),
+    );
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  }
+}
+

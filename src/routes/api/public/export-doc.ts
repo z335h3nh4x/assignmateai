@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { base64ToBytes } from "@/lib/pdf-bytes";
 
 /**
  * Delivers a generated document (assignment PDF print view, notebook PDF view,
@@ -27,17 +28,19 @@ export const Route = createFileRoute("/api/public/export-doc")({
         const form = await request.formData();
         const html = String(form.get("html") ?? "");
         const mode = String(form.get("mode") ?? "inline");
+        const encoding = String(form.get("encoding") ?? "");
         const mime = String(form.get("mime") ?? "text/html");
         const filename = sanitizeFilename(String(form.get("filename") ?? ""), "assignment.html");
 
         if (!html) return new Response("Missing document", { status: 400 });
-        if (html.length > MAX_BYTES) return new Response("Document too large", { status: 413 });
+        if (html.length > (encoding === "base64" ? MAX_BYTES * 5 : MAX_BYTES)) return new Response("Document too large", { status: 413 });
 
         const attachment = mode === "attachment";
+        const binary = encoding === "base64";
         const contentType = attachment && mime ? mime : "text/html";
 
         const headers: Record<string, string> = {
-          "Content-Type": `${contentType}; charset=utf-8`,
+          "Content-Type": binary ? contentType : `${contentType}; charset=utf-8`,
           "Cache-Control": "no-store, private",
           "X-Robots-Tag": "noindex, nofollow",
           "X-Content-Type-Options": "nosniff",
@@ -46,6 +49,11 @@ export const Route = createFileRoute("/api/public/export-doc")({
             ? `attachment; filename="${filename}"`
             : `inline; filename="${filename}"`,
         };
+
+        if (binary) {
+          const bytes = base64ToBytes(html);
+          return new Response(bytes as unknown as BodyInit, { headers });
+        }
 
         return new Response(html, { headers });
       },

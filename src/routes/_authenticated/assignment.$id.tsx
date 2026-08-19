@@ -27,7 +27,7 @@ import {
 import { AssignmentAssistant, AutosaveEditor } from "@/components/assignment-assistant";
 import { PromoCard } from "@/components/promo-card";
 import { incrementExport, saveAssignmentDraft } from "@/lib/assignments.functions";
-import { openDocument, downloadDocument } from "@/lib/export-delivery";
+import { openDocument, downloadDocument, downloadBinaryDocument } from "@/lib/export-delivery";
 
 import { buildNotebookDocument, type NotebookInk, type NotebookStyle, type NotebookTemplate } from "@/lib/notebook-pdf";
 import {
@@ -399,8 +399,15 @@ function AssignmentView() {
       date: pdfMeta.date.trim() || new Date().toLocaleDateString(),
       handwriting: pdfMeta.handwriting,
     });
-    downloadDocument(doc, sanitizeExportFilename(row.title, ".pdf"), "text/html");
-    setPdfOpen(false);
+    try {
+      const { generateAcademicPdfBytes } = await import("@/lib/academic-pdf");
+      const bytes = await generateAcademicPdfBytes(doc);
+      downloadBinaryDocument(bytes, sanitizeExportFilename(row.title, ".pdf"), "application/pdf");
+      setPdfOpen(false);
+    } catch (err) {
+      console.error("Academic PDF generation failed", err);
+      toast.error("Could not build the PDF. Please try again.");
+    }
   }
 
   async function downloadDocx() {
