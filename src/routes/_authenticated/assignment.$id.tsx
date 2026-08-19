@@ -575,7 +575,7 @@ function AssignmentView() {
               Notebook PDF
             </Button>
             <Button size="sm" variant="ghost" disabled={docxFeature.allowed && !canExport}
-              onClick={() => docxFeature.guard(() => guardExport(downloadDocx))}>
+              onClick={() => docxFeature.guard(() => guardExport(() => setDocxOpen(true)))}>
               {docxFeature.allowed ? <FileText className="h-4 w-4 mr-1.5" /> : <Lock className="h-4 w-4 mr-1.5" />}
               DOCX
             </Button>
