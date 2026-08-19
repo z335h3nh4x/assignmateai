@@ -652,6 +652,19 @@ function AssignmentView() {
               <Input id="pdf-date" value={pdfMeta.date}
                 onChange={(e) => setPdfMeta({ ...pdfMeta, date: e.target.value })} />
             </div>
+            <div className="space-y-1.5">
+              <Label>Writing style</Label>
+              <Select value={pdfMeta.handwriting}
+                onValueChange={(v) => setPdfMeta({ ...pdfMeta, handwriting: v as ExportHandwriting })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="standard">Standard (Times New Roman)</SelectItem>
+                  {HANDWRITING_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setPdfOpen(false)}>Cancel</Button>
