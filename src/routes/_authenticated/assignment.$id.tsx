@@ -370,6 +370,7 @@ function AssignmentView() {
       institution: pdfMeta.institution.trim(),
       subject: pdfMeta.subject.trim(),
       date: pdfMeta.date.trim() || new Date().toLocaleDateString(),
+      handwriting: pdfMeta.handwriting,
     });
     openDocument(doc, `${row.title || "assignment"}.pdf`);
     setPdfOpen(false);
@@ -379,12 +380,24 @@ function AssignmentView() {
   function downloadDocx() {
     if (!row?.result) return;
     const body = renderRichMarkdown(row.result);
+    // Word can't fetch webfonts, so the handwriting stack is applied inline with
+    // locally-installed script fallbacks; "standard" leaves the output untouched.
+    const hwCss = isHandwriting(docxHandwriting)
+      ? `<style>
+        body, p, li, td, th, h1, h2, h3, h4, blockquote { font-family: ${docxFontStack(docxHandwriting)} !important; }
+        code, pre { font-family: Consolas, 'Courier New', monospace !important; }
+        .katex, .katex * { font-family: 'Cambria Math', 'Times New Roman', serif !important; }
+      </style>`
+      : "";
     const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
       <head><meta charset="utf-8"><title>${row.title}</title>
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+      ${isHandwriting(docxHandwriting) ? HANDWRITING_FONT_LINKS : ""}
       <style>${PRINT_RICH_CSS}</style>
+      ${hwCss}
       </head><body>${body}</body></html>`;
     downloadDocument(html, `${row.title || "assignment"}.doc`, "application/msword");
+    setDocxOpen(false);
     void trackExport();
   }
 
