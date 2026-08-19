@@ -44,6 +44,62 @@ function blobFallback(name: string, mime: string, content: string) {
 }
 
 /**
+ * Client-side print delivery: writes the generated HTML straight into a new
+ * tab and triggers the browser's native print / "Save as PDF" dialog. No
+ * server round-trip, so it can't hang on a backend route.
+ *
+ * The document title becomes the browser's default save filename.
+ */
+export function printDocument(html: string, title: string): boolean {
+  const docTitle = title.replace(/\.(pdf|html?)$/i, "") || "assignment";
+  try {
+    const w = window.open("", "_blank");
+    if (!w) {
+      blobFallback(`${docTitle}.html`, "text/html", html);
+      return false;
+    }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    try {
+      w.document.title = docTitle;
+    } catch {
+      /* ignore */
+    }
+
+    let printed = false;
+    const fire = () => {
+      if (printed) return;
+      printed = true;
+      try {
+        w.document.title = docTitle;
+      } catch {
+        /* ignore */
+      }
+      try {
+        w.focus();
+        w.print();
+      } catch {
+        /* user can still print manually */
+      }
+    };
+
+    if (w.document.readyState === "complete") {
+      // Give inline scripts (pagination, fonts) a tick to settle.
+      w.setTimeout(fire, 400);
+    } else {
+      w.addEventListener("load", () => w.setTimeout(fire, 400));
+      // Safety net if load never fires (blocked asset, etc.)
+      w.setTimeout(fire, 6000);
+    }
+    return true;
+  } catch {
+    blobFallback(`${docTitle}.html`, "text/html", html);
+    return false;
+  }
+}
+
+/**
  * Opens a generated HTML document (print-ready PDF view) in a new tab as a real
  * URL response so the device's native print / "Save as PDF" flow works.
  */
