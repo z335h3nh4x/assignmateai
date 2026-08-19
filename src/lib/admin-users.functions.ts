@@ -39,15 +39,17 @@ export const listAdminUsers = createServerFn({ method: "GET" })
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const [profilesRes, rolesRes, subsRes, tokensRes, assignmentsRes] = await Promise.all([
+    const [profilesRes, rolesRes, subsRes, plansRes, usageRes, assignmentsRes, authRes] = await Promise.all([
       supabaseAdmin
         .from("profiles")
-        .select("id, email, display_name, avatar_url, created_at, banned_at")
+        .select("id, email, display_name, avatar_url, created_at, banned_at, updated_at")
         .order("created_at", { ascending: false }),
       supabaseAdmin.from("user_roles").select("user_id, role"),
-      supabaseAdmin.from("subscriptions").select("user_id, plan, status"),
-      supabaseAdmin.from("tokens").select("user_id, balance, used"),
-      supabaseAdmin.from("assignments").select("user_id, updated_at"),
+      supabaseAdmin.from("subscriptions").select("user_id, plan, plan_id, status"),
+      supabaseAdmin.from("plans").select("id, slug, credits"),
+      supabaseAdmin.from("usage_counters").select("user_id, credits_used, cycle_started_at, updated_at"),
+      supabaseAdmin.from("assignments").select("user_id, updated_at").range(0, 49999),
+      supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
     ]);
 
     const roleMap = new Map<string, "admin" | "moderator" | "user">();
@@ -59,10 +61,37 @@ export const listAdminUsers = createServerFn({ method: "GET" })
       } else if (!prev) roleMap.set(r.user_id, r.role);
       if (r.role === "admin") adminCount += 1;
     }
-    const subMap = new Map<string, { plan: string; status: string }>();
-    for (const s of subsRes.data ?? []) subMap.set(s.user_id, { plan: s.plan, status: s.status });
-    const tokMap = new Map<string, { balance: number; used: number }>();
-    for (const t of tokensRes.data ?? []) tokMap.set(t.user_id, { balance: t.balance, used: t.used });
+
+    // Plan credit allowances (source of truth for balances)
+    const planById = new Map<string, { slug: string; credits: number }>();
+    const planBySlug = new Map<string, { slug: string; credits: number }>();
+    for (const p of plansRes.data ?? []) {
+      planById.set(p.id, { slug: p.slug, credits: p.credits ?? 0 });
+      planBySlug.set(p.slug, { slug: p.slug, credits: p.credits ?? 0 });
+    }
+    const freeCredits = planBySlug.get("free")?.credits ?? 0;
+
+    const subMap = new Map<string, { plan: string; status: string; allowance: number }>();
+    for (const s of subsRes.data ?? []) {
+      const active = !s.status || s.status === "active" || s.status === "trialing";
+      const plan = (active && (s.plan_id ? planById.get(s.plan_id) : undefined)) ||
+        (active && s.plan ? planBySlug.get(s.plan) : undefined);
+      subMap.set(s.user_id, {
+        plan: plan?.slug ?? s.plan ?? "free",
+        status: s.status ?? "inactive",
+        allowance: plan?.credits ?? freeCredits,
+      });
+    }
+
+    // Credits used within the current 30-day cycle
+    const CYCLE_MS = 30 * 24 * 60 * 60 * 1000;
+    const usageMap = new Map<string, { used: number; updated_at: string | null }>();
+    for (const u of usageRes.data ?? []) {
+      const start = u.cycle_started_at ? new Date(u.cycle_started_at).getTime() : 0;
+      const inCycle = start > 0 && Date.now() < start + CYCLE_MS;
+      usageMap.set(u.user_id, { used: inCycle ? (u.credits_used ?? 0) : 0, updated_at: u.updated_at ?? null });
+    }
+
     const countMap = new Map<string, { count: number; last: string | null }>();
     for (const a of assignmentsRes.data ?? []) {
       const cur = countMap.get(a.user_id) ?? { count: 0, last: null };
@@ -71,24 +100,44 @@ export const listAdminUsers = createServerFn({ method: "GET" })
       countMap.set(a.user_id, cur);
     }
 
-    const users = (profilesRes.data ?? []).map((p) => ({
-      id: p.id,
-      email: p.email,
-      display_name: p.display_name,
-      avatar_url: p.avatar_url,
-      created_at: p.created_at,
-      banned_at: (p as any).banned_at ?? null,
-      role: roleMap.get(p.id) ?? "user",
-      plan: subMap.get(p.id)?.plan ?? "free",
-      plan_status: subMap.get(p.id)?.status ?? "inactive",
-      credits: tokMap.get(p.id)?.balance ?? 0,
-      used: tokMap.get(p.id)?.used ?? 0,
-      assignments_count: countMap.get(p.id)?.count ?? 0,
-      last_active: countMap.get(p.id)?.last ?? null,
-    }));
+    const signInMap = new Map<string, string | null>();
+    for (const u of authRes.data?.users ?? []) {
+      signInMap.set(u.id, (u.last_sign_in_at as string | null) ?? null);
+    }
+
+    const latest = (...vals: (string | null | undefined)[]) =>
+      vals.filter(Boolean).sort().pop() ?? null;
+
+    const users = (profilesRes.data ?? []).map((p) => {
+      const sub = subMap.get(p.id);
+      const allowance = sub?.allowance ?? freeCredits;
+      const usage = usageMap.get(p.id);
+      const used = usage?.used ?? 0;
+      return {
+        id: p.id,
+        email: p.email,
+        display_name: p.display_name,
+        avatar_url: p.avatar_url,
+        created_at: p.created_at,
+        banned_at: (p as any).banned_at ?? null,
+        role: roleMap.get(p.id) ?? "user",
+        plan: sub?.plan ?? "free",
+        plan_status: sub?.status ?? "inactive",
+        credits: Math.max(0, allowance - used),
+        used,
+        assignments_count: countMap.get(p.id)?.count ?? 0,
+        last_active: latest(
+          signInMap.get(p.id),
+          countMap.get(p.id)?.last,
+          usage?.updated_at,
+          (p as any).updated_at,
+        ),
+      };
+    });
 
     return { users, meId: context.userId, adminCount };
   });
+
 
 
 export const updateUserProfile = createServerFn({ method: "POST" })
