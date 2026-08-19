@@ -315,6 +315,10 @@ function AssignmentView() {
   const regenerationsLeft = Math.max(0, maxRegenerations - regenerationsUsed);
   const regenBlocked = regenerationsLeft <= 0;
 
+  const exportsUsed = row?.exports_count ?? 0;
+  const exportsLeft = exportsRemaining(exportsUsed);
+  const exportBlocked = exportsLeft <= 0;
+
   function guardExport(fn: () => void) {
     if (!canExport) {
       toast.error(
@@ -324,12 +328,33 @@ function AssignmentView() {
       );
       return;
     }
+    if (exportBlocked) {
+      toast.error(`Export limit reached — you've used all ${MAX_EXPORTS_PER_ASSIGNMENT} exports for this assignment.`);
+      return;
+    }
     fn();
   }
 
-  async function trackExport() {
-    try { await incrementExportFn({ data: { id } }); } catch { /* non-blocking */ }
-    qc.invalidateQueries({ queryKey: ["dashboard-stats"] });
+  /**
+   * Reserves one export slot atomically on the server before the file is built.
+   * Returns false (and shows the reason) when the limit is reached.
+   */
+  async function consumeExportSlot(): Promise<boolean> {
+    if (exporting) return false;
+    setExporting(true);
+    try {
+      const res = await incrementExportFn({ data: { id } });
+      qc.setQueryData(["assignment", id], (prev: typeof row) =>
+        prev ? { ...prev, exports_count: res.exports_count } : prev);
+      qc.invalidateQueries({ queryKey: ["dashboard-stats"] });
+      return true;
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Export failed");
+      qc.invalidateQueries({ queryKey: ["assignment", id] });
+      return false;
+    } finally {
+      setExporting(false);
+    }
   }
 
   const html = useMemo(() => (row?.result ? renderRichMarkdown(row.result) : ""), [row?.result]);
