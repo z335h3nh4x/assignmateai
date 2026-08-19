@@ -223,20 +223,28 @@ export const resetUserCredits = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const balance = data.balance ?? 10000;
+    const now = new Date().toISOString();
+    // Restore the user's full plan allowance by clearing this cycle's usage.
     const { error } = await supabaseAdmin
-      .from("tokens")
-      .upsert({ user_id: data.userId, balance, used: 0 }, { onConflict: "user_id" });
+      .from("usage_counters")
+      .upsert(
+        { user_id: data.userId, month_used: 0, credits_used: 0, cycle_started_at: now, updated_at: now },
+        { onConflict: "user_id" },
+      );
     if (error) throw new Error(error.message);
+    await supabaseAdmin
+      .from("tokens")
+      .upsert({ user_id: data.userId, balance: data.balance ?? 10000, used: 0 }, { onConflict: "user_id" });
     await logAudit(context, {
       action: "user.credits.reset",
       entityType: "user",
       entityId: data.userId,
       targetUserId: data.userId,
-      metadata: { balance },
+      metadata: { cycle_reset: true },
     });
-    return { ok: true, balance };
+    return { ok: true };
   });
+
 
 export const deleteUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
