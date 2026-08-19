@@ -7,6 +7,7 @@ import {
   ArrowLeft, Copy, Download, RefreshCw, FileText, Loader2, Pencil, Eye, BookOpen, AlertTriangle, Lock,
 } from "lucide-react";
 import { useFeature } from "@/lib/use-plan-features";
+import { MAX_EXPORTS_PER_ASSIGNMENT, exportsRemaining } from "@/lib/export-limits";
 
 import "katex/dist/katex.min.css";
 import "highlight.js/styles/github-dark.css";
@@ -266,6 +267,7 @@ function AssignmentView() {
   const saveDraftFn = useServerFn(saveAssignmentDraft);
   const incrementExportFn = useServerFn(incrementExport);
   const [regenerating, setRegenerating] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [pdfOpen, setPdfOpen] = useState(false);
   const [notebookOpen, setNotebookOpen] = useState(false);
   const [docxOpen, setDocxOpen] = useState(false);
