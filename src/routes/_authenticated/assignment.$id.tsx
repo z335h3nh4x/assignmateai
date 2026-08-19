@@ -27,7 +27,7 @@ import {
 import { AssignmentAssistant, AutosaveEditor } from "@/components/assignment-assistant";
 import { PromoCard } from "@/components/promo-card";
 import { incrementExport, saveAssignmentDraft } from "@/lib/assignments.functions";
-import { openDocument, downloadDocument } from "@/lib/export-delivery";
+import { printDocument, downloadDocument } from "@/lib/export-delivery";
 
 import { buildNotebookDocument, type NotebookInk, type NotebookStyle, type NotebookTemplate } from "@/lib/notebook-pdf";
 import {
@@ -400,10 +400,9 @@ function AssignmentView() {
       date: pdfMeta.date.trim() || new Date().toLocaleDateString(),
       handwriting: pdfMeta.handwriting,
     });
-    // Same reliable mechanism as Notebook PDF: stream the HTML from the export
-    // endpoint into a new tab and let the browser's native print / Save-as-PDF
-    // handle rendering (no rasterization, no text overlap).
-    openDocument(doc, sanitizeExportFilename(row.title, ".pdf"));
+    // Pure client-side print: write the HTML into a new tab and fire the
+    // browser's native print / Save-as-PDF dialog (no backend round-trip).
+    printDocument(doc, sanitizeExportFilename(row.title, ".pdf"));
     setPdfOpen(false);
   }
 
@@ -446,7 +445,7 @@ function AssignmentView() {
       template: notebookMeta.template,
       backgroundUrl: `${window.location.origin}${classicSchoolPaper.url}`,
     });
-    openDocument(doc, `${row.title || "assignment"}-notebook.pdf`);
+    printDocument(doc, `${row.title || "assignment"}-notebook`);
     setNotebookOpen(false);
   }
 
