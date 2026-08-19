@@ -7,6 +7,7 @@ import {
   ArrowLeft, Copy, Download, RefreshCw, FileText, Loader2, Pencil, Eye, BookOpen, AlertTriangle, Lock,
 } from "lucide-react";
 import { useFeature } from "@/lib/use-plan-features";
+import { MAX_EXPORTS_PER_ASSIGNMENT, exportsRemaining } from "@/lib/export-limits";
 
 import "katex/dist/katex.min.css";
 import "highlight.js/styles/github-dark.css";
@@ -266,6 +267,7 @@ function AssignmentView() {
   const saveDraftFn = useServerFn(saveAssignmentDraft);
   const incrementExportFn = useServerFn(incrementExport);
   const [regenerating, setRegenerating] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [pdfOpen, setPdfOpen] = useState(false);
   const [notebookOpen, setNotebookOpen] = useState(false);
   const [docxOpen, setDocxOpen] = useState(false);
@@ -315,6 +317,10 @@ function AssignmentView() {
   const regenerationsLeft = Math.max(0, maxRegenerations - regenerationsUsed);
   const regenBlocked = regenerationsLeft <= 0;
 
+  const exportsUsed = row?.exports_count ?? 0;
+  const exportsLeft = exportsRemaining(exportsUsed);
+  const exportBlocked = exportsLeft <= 0;
+
   function guardExport(fn: () => void) {
     if (!canExport) {
       toast.error(
@@ -324,12 +330,33 @@ function AssignmentView() {
       );
       return;
     }
+    if (exportBlocked) {
+      toast.error(`Export limit reached — you've used all ${MAX_EXPORTS_PER_ASSIGNMENT} exports for this assignment.`);
+      return;
+    }
     fn();
   }
 
-  async function trackExport() {
-    try { await incrementExportFn({ data: { id } }); } catch { /* non-blocking */ }
-    qc.invalidateQueries({ queryKey: ["dashboard-stats"] });
+  /**
+   * Reserves one export slot atomically on the server before the file is built.
+   * Returns false (and shows the reason) when the limit is reached.
+   */
+  async function consumeExportSlot(): Promise<boolean> {
+    if (exporting) return false;
+    setExporting(true);
+    try {
+      const res = await incrementExportFn({ data: { id } });
+      qc.setQueryData(["assignment", id], (prev: typeof row) =>
+        prev ? { ...prev, exports_count: res.exports_count } : prev);
+      qc.invalidateQueries({ queryKey: ["dashboard-stats"] });
+      return true;
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Export failed");
+      qc.invalidateQueries({ queryKey: ["assignment", id] });
+      return false;
+    } finally {
+      setExporting(false);
+    }
   }
 
   const html = useMemo(() => (row?.result ? renderRichMarkdown(row.result) : ""), [row?.result]);
@@ -358,12 +385,12 @@ function AssignmentView() {
     if (!row?.result) return;
     navigator.clipboard.writeText(row.result);
     toast.success("Copied to clipboard");
-    void trackExport();
   }
 
 
-  function downloadPdf() {
+  async function downloadPdf() {
     if (!row?.result) return;
+    if (!(await consumeExportSlot())) return;
     const doc = buildAcademicDocument(row.result, {
       title: row.title,
       studentName: pdfMeta.studentName.trim(),
@@ -374,11 +401,11 @@ function AssignmentView() {
     });
     openDocument(doc, `${row.title || "assignment"}.pdf`);
     setPdfOpen(false);
-    void trackExport();
   }
 
-  function downloadDocx() {
+  async function downloadDocx() {
     if (!row?.result) return;
+    if (!(await consumeExportSlot())) return;
     const body = renderRichMarkdown(row.result);
     // Word can't fetch webfonts, so the handwriting stack is applied inline with
     // locally-installed script fallbacks; "standard" leaves the output untouched.
@@ -398,11 +425,11 @@ function AssignmentView() {
       </head><body>${body}</body></html>`;
     downloadDocument(html, `${row.title || "assignment"}.doc`, "application/msword");
     setDocxOpen(false);
-    void trackExport();
   }
 
   async function downloadNotebookPdf() {
     if (!row?.result) return;
+    if (!(await consumeExportSlot())) return;
     const doc = buildNotebookDocument(row.result, {
       title: row.title,
       studentName: notebookMeta.studentName.trim(),
@@ -417,7 +444,6 @@ function AssignmentView() {
     });
     openDocument(doc, `${row.title || "assignment"}-notebook.pdf`);
     setNotebookOpen(false);
-    void trackExport();
   }
 
 
@@ -564,21 +590,32 @@ function AssignmentView() {
 
           <Card className="glass border-white/10 p-3 flex flex-wrap gap-2">
             <Button size="sm" variant="ghost" onClick={copy}><Copy className="h-4 w-4 mr-1.5" />Copy</Button>
-            <Button size="sm" variant="ghost" disabled={pdfFeature.allowed && !canExport}
+            <Button size="sm" variant="ghost" title={exportBlocked ? "Export limit reached" : undefined}
+              disabled={(pdfFeature.allowed && !canExport) || exportBlocked || exporting}
               onClick={() => pdfFeature.guard(() => guardExport(() => setPdfOpen(true)))}>
               {pdfFeature.allowed ? <Download className="h-4 w-4 mr-1.5" /> : <Lock className="h-4 w-4 mr-1.5" />}
               Academic PDF
             </Button>
-            <Button size="sm" variant="ghost" disabled={notebookFeature.allowed && !canExport}
+            <Button size="sm" variant="ghost" title={exportBlocked ? "Export limit reached" : undefined}
+              disabled={(notebookFeature.allowed && !canExport) || exportBlocked || exporting}
               onClick={() => notebookFeature.guard(() => guardExport(() => setNotebookOpen(true)))}>
               {notebookFeature.allowed ? <BookOpen className="h-4 w-4 mr-1.5" /> : <Lock className="h-4 w-4 mr-1.5" />}
               Notebook PDF
             </Button>
-            <Button size="sm" variant="ghost" disabled={docxFeature.allowed && !canExport}
+            <Button size="sm" variant="ghost" title={exportBlocked ? "Export limit reached" : undefined}
+              disabled={(docxFeature.allowed && !canExport) || exportBlocked || exporting}
               onClick={() => docxFeature.guard(() => guardExport(() => setDocxOpen(true)))}>
               {docxFeature.allowed ? <FileText className="h-4 w-4 mr-1.5" /> : <Lock className="h-4 w-4 mr-1.5" />}
               DOCX
             </Button>
+            <span className="text-xs text-muted-foreground self-center whitespace-nowrap">
+              Exports remaining: {exportsLeft}/{MAX_EXPORTS_PER_ASSIGNMENT}
+            </span>
+            {exportBlocked && (
+              <p className="w-full text-xs text-rose-300">
+                Export limit reached — you've used all {MAX_EXPORTS_PER_ASSIGNMENT} exports for this assignment.
+              </p>
+            )}
 
             <Button size="sm" variant="ghost" onClick={() => setEditing((e) => !e)}>
               {editing ? <><Eye className="h-4 w-4 mr-1.5" />View</> : <><Pencil className="h-4 w-4 mr-1.5" />Edit</>}
@@ -667,8 +704,9 @@ function AssignmentView() {
             </div>
           </div>
           <DialogFooter>
+            {exportBlocked && (<p className="text-xs text-rose-300 mr-auto self-center">Export limit reached — all {MAX_EXPORTS_PER_ASSIGNMENT} exports used.</p>)}
             <Button variant="ghost" onClick={() => setPdfOpen(false)}>Cancel</Button>
-            <Button onClick={downloadPdf} className="gradient-bg text-white border-0">
+            <Button onClick={downloadPdf} disabled={exportBlocked || exporting} className="gradient-bg text-white border-0">
               <Download className="h-4 w-4 mr-1.5" />Generate PDF
             </Button>
           </DialogFooter>
@@ -750,8 +788,9 @@ function AssignmentView() {
             </div>
           </div>
           <DialogFooter>
+            {exportBlocked && (<p className="text-xs text-rose-300 mr-auto self-center">Export limit reached — all {MAX_EXPORTS_PER_ASSIGNMENT} exports used.</p>)}
             <Button variant="ghost" onClick={() => setNotebookOpen(false)}>Cancel</Button>
-            <Button onClick={downloadNotebookPdf} className="gradient-bg text-white border-0">
+            <Button onClick={downloadNotebookPdf} disabled={exportBlocked || exporting} className="gradient-bg text-white border-0">
               <BookOpen className="h-4 w-4 mr-1.5" />Generate Notebook PDF
             </Button>
           </DialogFooter>
@@ -787,8 +826,9 @@ function AssignmentView() {
             )}
           </div>
           <DialogFooter>
+            {exportBlocked && (<p className="text-xs text-rose-300 mr-auto self-center">Export limit reached — all {MAX_EXPORTS_PER_ASSIGNMENT} exports used.</p>)}
             <Button variant="ghost" onClick={() => setDocxOpen(false)}>Cancel</Button>
-            <Button onClick={downloadDocx} className="gradient-bg text-white border-0">
+            <Button onClick={downloadDocx} disabled={exportBlocked || exporting} className="gradient-bg text-white border-0">
               <FileText className="h-4 w-4 mr-1.5" />Download DOCX
             </Button>
           </DialogFooter>
