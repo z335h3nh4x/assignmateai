@@ -400,15 +400,11 @@ function AssignmentView() {
       date: pdfMeta.date.trim() || new Date().toLocaleDateString(),
       handwriting: pdfMeta.handwriting,
     });
-    try {
-      const { generateAcademicPdfBytes } = await import("@/lib/academic-pdf");
-      const bytes = await generateAcademicPdfBytes(doc);
-      downloadBinaryDocument(bytes, sanitizeExportFilename(row.title, ".pdf"), "application/pdf");
-      setPdfOpen(false);
-    } catch (err) {
-      console.error("Academic PDF generation failed", err);
-      toast.error("Could not build the PDF. Please try again.");
-    }
+    // Same reliable mechanism as Notebook PDF: stream the HTML from the export
+    // endpoint into a new tab and let the browser's native print / Save-as-PDF
+    // handle rendering (no rasterization, no text overlap).
+    openDocument(doc, sanitizeExportFilename(row.title, ".pdf"));
+    setPdfOpen(false);
   }
 
   async function downloadDocx() {
