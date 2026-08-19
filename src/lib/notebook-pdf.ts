@@ -1,85 +1,24 @@
 // Builds a notebook-style HTML document for printing to PDF.
 // Text stays selectable — the notebook look is pure HTML/CSS.
+//
+// Handwriting styles/fonts come from the shared system in ./handwriting.
 
 import {
   renderRichMarkdown,
   PRINT_HEAD_ASSETS,
   PRINT_RICH_CSS,
 } from "./render-markdown";
+import {
+  STYLE_PROFILES,
+  HANDWRITING_FONT_LINKS,
+  handwritingJitterScript,
+  type HandwritingStyle,
+} from "./handwriting";
 
 export type NotebookInk = "blue" | "black";
-export type NotebookStyle = "clean" | "natural" | "cursive" | "exam" | "neat";
+export type NotebookStyle = HandwritingStyle;
 export type NotebookTemplate = "ruled" | "classic_school";
 
-type StyleProfile = {
-  fontFamily: string;
-  fontSize: string;
-  headerSize: string;
-  titleSize: string;
-  h1: string;
-  h2: string;
-  h3: string;
-  tableSize: string;
-  jitter: boolean;
-};
-
-const STYLE_PROFILES: Record<NotebookStyle, StyleProfile> = {
-  clean: {
-    fontFamily: `'Patrick Hand', 'Kalam', cursive`,
-    fontSize: "22px",
-    headerSize: "18px",
-    titleSize: "28px",
-    h1: "26px",
-    h2: "24px",
-    h3: "22px",
-    tableSize: "18px",
-    jitter: false,
-  },
-  natural: {
-    fontFamily: `'Caveat', 'Patrick Hand', cursive`,
-    fontSize: "26px",
-    headerSize: "22px",
-    titleSize: "34px",
-    h1: "32px",
-    h2: "28px",
-    h3: "26px",
-    tableSize: "20px",
-    jitter: true,
-  },
-  cursive: {
-    fontFamily: `'Dancing Script', 'Caveat', cursive`,
-    fontSize: "26px",
-    headerSize: "21px",
-    titleSize: "33px",
-    h1: "31px",
-    h2: "28px",
-    h3: "26px",
-    tableSize: "20px",
-    jitter: false,
-  },
-  exam: {
-    fontFamily: `'Reenie Beanie', 'Caveat', cursive`,
-    fontSize: "27px",
-    headerSize: "22px",
-    titleSize: "34px",
-    h1: "32px",
-    h2: "29px",
-    h3: "27px",
-    tableSize: "21px",
-    jitter: true,
-  },
-  neat: {
-    fontFamily: `'Architects Daughter', 'Patrick Hand', cursive`,
-    fontSize: "20px",
-    headerSize: "17px",
-    titleSize: "26px",
-    h1: "24px",
-    h2: "22px",
-    h3: "20px",
-    tableSize: "17px",
-    jitter: false,
-  },
-};
 
 
 export type NotebookMeta = {
@@ -130,53 +69,14 @@ export function buildNotebookDocument(markdown: string, meta: NotebookMeta): str
     </header>
   `;
 
-  // Natural handwriting jitter — only applied to plain text nodes so KaTeX
-  // formulas, tables and code blocks stay intact.
-  const naturalScript = profile.jitter ? `
-    <script>
-      (function () {
-        function rand(a, b) { return a + Math.random() * (b - a); }
-        var SKIP = new Set(['CODE','PRE','TABLE','THEAD','TBODY','TR','TH','TD','SVG','MATH']);
-        var walker = document.createTreeWalker(document.querySelector('.nb-body'), NodeFilter.SHOW_TEXT, null);
-        var textNodes = [];
-        while (walker.nextNode()) {
-          var n = walker.currentNode;
-          if (!n.nodeValue || !n.nodeValue.trim()) continue;
-          var p = n.parentElement;
-          var skip = false;
-          while (p) {
-            if (SKIP.has(p.tagName) || p.classList.contains('katex') || p.classList.contains('mermaid')) { skip = true; break; }
-            p = p.parentElement;
-          }
-          if (!skip) textNodes.push(n);
-        }
-        textNodes.forEach(function (n) {
-          var text = n.nodeValue;
-          var frag = document.createDocumentFragment();
-          var parts = text.split(/(\\s+)/);
-          parts.forEach(function (p) {
-            if (/^\\s+$/.test(p)) { frag.appendChild(document.createTextNode(p)); return; }
-            var s = document.createElement('span');
-            s.textContent = p;
-            s.style.display = 'inline-block';
-            s.style.transform = 'translateY(' + rand(-1.2,1.2).toFixed(2) + 'px) rotate(' + rand(-0.8,0.8).toFixed(2) + 'deg)';
-            s.style.letterSpacing = rand(-0.3,0.6).toFixed(2) + 'px';
-            s.style.opacity = rand(0.85,1).toFixed(2);
-            frag.appendChild(s);
-          });
-          n.parentNode.replaceChild(frag, n);
-        });
-      })();
-    <\/script>
-  ` : "";
+  // Natural handwriting jitter — shared implementation.
+  const naturalScript = profile.jitter ? handwritingJitterScript(".nb-body") : "";
 
 
   return `<!doctype html><html><head>
 <meta charset="utf-8">
 <title>${esc(meta.title)}</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Patrick+Hand&family=Kalam:wght@400;700&family=Dancing+Script:wght@400;600&family=Reenie+Beanie&family=Architects+Daughter&display=swap">
+${HANDWRITING_FONT_LINKS}
 ${PRINT_HEAD_ASSETS}
 <style>${PRINT_RICH_CSS}</style>
 <style>

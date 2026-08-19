@@ -29,6 +29,16 @@ import { incrementExport, saveAssignmentDraft } from "@/lib/assignments.function
 import { openDocument, downloadDocument } from "@/lib/export-delivery";
 
 import { buildNotebookDocument, type NotebookInk, type NotebookStyle, type NotebookTemplate } from "@/lib/notebook-pdf";
+import {
+  HANDWRITING_FONT_LINKS,
+  HANDWRITING_OPTIONS,
+  handwritingJitterScript,
+  handwritingOverrideCss,
+  docxFontStack,
+  getProfile,
+  isHandwriting,
+  type ExportHandwriting,
+} from "@/lib/handwriting";
 import classicSchoolPaper from "@/assets/classic-school-paper.png.asset.json";
 import {
   renderRichMarkdown,
@@ -89,6 +99,8 @@ type AcademicMeta = {
   institution: string;
   subject: string;
   date: string;
+  /** "standard" keeps the classic Times New Roman academic typography. */
+  handwriting?: ExportHandwriting;
 };
 
 
@@ -96,6 +108,15 @@ type AcademicMeta = {
 function buildAcademicDocument(md: string, meta: AcademicMeta) {
   const { bodyHtml, referencesHtml, outline } = renderAcademicMarkdown(md);
   const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!);
+  const hw = meta.handwriting ?? "standard";
+  const hwStyle = isHandwriting(hw) ? hw : null;
+  const hwHead = hwStyle
+    ? `${HANDWRITING_FONT_LINKS}<style>${handwritingOverrideCss(hwStyle)}</style>`
+    : "";
+  const hwScript = hwStyle && getProfile(hwStyle).jitter
+    ? handwritingJitterScript("main.content")
+    : "";
+
 
   const wordCount = md.split(/\s+/).filter(Boolean).length;
   // Show TOC only when there is meaningful structure and length
@@ -211,6 +232,7 @@ ${PRINT_HEAD_ASSETS}
     body { max-width: 7in; margin: 0.5in auto; padding: 1in; box-shadow: 0 0 20px rgba(0,0,0,.15); }
   }
 </style>
+${hwHead}
 </head>
 <body>
   <section class="title-page">
@@ -227,6 +249,7 @@ ${PRINT_HEAD_ASSETS}
 
   ${referencesHtml ? `<section class="references"><h2 id="references">References</h2>${referencesHtml}</section>` : ""}
 
+  ${hwScript}
   <script>
     document.title = " ";
     // Wait for KaTeX/highlight.js CSS + mermaid diagrams to settle before printing.
@@ -245,12 +268,15 @@ function AssignmentView() {
   const [regenerating, setRegenerating] = useState(false);
   const [pdfOpen, setPdfOpen] = useState(false);
   const [notebookOpen, setNotebookOpen] = useState(false);
+  const [docxOpen, setDocxOpen] = useState(false);
+  const [docxHandwriting, setDocxHandwriting] = useState<ExportHandwriting>("standard");
   const [editing, setEditing] = useState(false);
   const [pdfMeta, setPdfMeta] = useState({
     studentName: "",
     institution: "",
     subject: "",
     date: new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }),
+    handwriting: "standard" as ExportHandwriting,
   });
   const [notebookMeta, setNotebookMeta] = useState({
     studentName: "",
@@ -344,6 +370,7 @@ function AssignmentView() {
       institution: pdfMeta.institution.trim(),
       subject: pdfMeta.subject.trim(),
       date: pdfMeta.date.trim() || new Date().toLocaleDateString(),
+      handwriting: pdfMeta.handwriting,
     });
     openDocument(doc, `${row.title || "assignment"}.pdf`);
     setPdfOpen(false);
@@ -353,12 +380,24 @@ function AssignmentView() {
   function downloadDocx() {
     if (!row?.result) return;
     const body = renderRichMarkdown(row.result);
+    // Word can't fetch webfonts, so the handwriting stack is applied inline with
+    // locally-installed script fallbacks; "standard" leaves the output untouched.
+    const hwCss = isHandwriting(docxHandwriting)
+      ? `<style>
+        body, p, li, td, th, h1, h2, h3, h4, blockquote { font-family: ${docxFontStack(docxHandwriting)} !important; }
+        code, pre { font-family: Consolas, 'Courier New', monospace !important; }
+        .katex, .katex * { font-family: 'Cambria Math', 'Times New Roman', serif !important; }
+      </style>`
+      : "";
     const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
       <head><meta charset="utf-8"><title>${row.title}</title>
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+      ${isHandwriting(docxHandwriting) ? HANDWRITING_FONT_LINKS : ""}
       <style>${PRINT_RICH_CSS}</style>
+      ${hwCss}
       </head><body>${body}</body></html>`;
     downloadDocument(html, `${row.title || "assignment"}.doc`, "application/msword");
+    setDocxOpen(false);
     void trackExport();
   }
 
@@ -536,7 +575,7 @@ function AssignmentView() {
               Notebook PDF
             </Button>
             <Button size="sm" variant="ghost" disabled={docxFeature.allowed && !canExport}
-              onClick={() => docxFeature.guard(() => guardExport(downloadDocx))}>
+              onClick={() => docxFeature.guard(() => guardExport(() => setDocxOpen(true)))}>
               {docxFeature.allowed ? <FileText className="h-4 w-4 mr-1.5" /> : <Lock className="h-4 w-4 mr-1.5" />}
               DOCX
             </Button>
@@ -613,6 +652,19 @@ function AssignmentView() {
               <Input id="pdf-date" value={pdfMeta.date}
                 onChange={(e) => setPdfMeta({ ...pdfMeta, date: e.target.value })} />
             </div>
+            <div className="space-y-1.5">
+              <Label>Writing style</Label>
+              <Select value={pdfMeta.handwriting}
+                onValueChange={(v) => setPdfMeta({ ...pdfMeta, handwriting: v as ExportHandwriting })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="standard">Standard (Times New Roman)</SelectItem>
+                  {HANDWRITING_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setPdfOpen(false)}>Cancel</Button>
@@ -661,11 +713,9 @@ function AssignmentView() {
                 <Select value={notebookMeta.style} onValueChange={(v) => setNotebookMeta({ ...notebookMeta, style: v as NotebookStyle })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="clean">Clean Notebook</SelectItem>
-                    <SelectItem value="natural">Natural Handwriting</SelectItem>
-                    <SelectItem value="cursive">Student Cursive</SelectItem>
-                    <SelectItem value="exam">Fast Exam Writing</SelectItem>
-                    <SelectItem value="neat">Neat School Notes</SelectItem>
+                    {HANDWRITING_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -706,6 +756,42 @@ function AssignmentView() {
             </Button>
           </DialogFooter>
 
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={docxOpen} onOpenChange={setDocxOpen}>
+        <DialogContent className="glass-card border-white/10">
+          <DialogHeader>
+            <DialogTitle>DOCX export</DialogTitle>
+            <DialogDescription>
+              Choose the writing style for the Word document.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-1.5">
+            <Label>Writing style</Label>
+            <Select value={docxHandwriting}
+              onValueChange={(v) => setDocxHandwriting(v as ExportHandwriting)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="standard">Standard</SelectItem>
+                {HANDWRITING_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {isHandwriting(docxHandwriting) && (
+              <p className="text-xs text-muted-foreground">
+                Word can't download web fonts — the closest handwriting font installed on the
+                device is used. Export as Academic PDF for exact handwriting rendering.
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDocxOpen(false)}>Cancel</Button>
+            <Button onClick={downloadDocx} className="gradient-bg text-white border-0">
+              <FileText className="h-4 w-4 mr-1.5" />Download DOCX
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
