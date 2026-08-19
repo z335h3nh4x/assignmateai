@@ -268,12 +268,15 @@ function AssignmentView() {
   const [regenerating, setRegenerating] = useState(false);
   const [pdfOpen, setPdfOpen] = useState(false);
   const [notebookOpen, setNotebookOpen] = useState(false);
+  const [docxOpen, setDocxOpen] = useState(false);
+  const [docxHandwriting, setDocxHandwriting] = useState<ExportHandwriting>("standard");
   const [editing, setEditing] = useState(false);
   const [pdfMeta, setPdfMeta] = useState({
     studentName: "",
     institution: "",
     subject: "",
     date: new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }),
+    handwriting: "standard" as ExportHandwriting,
   });
   const [notebookMeta, setNotebookMeta] = useState({
     studentName: "",
