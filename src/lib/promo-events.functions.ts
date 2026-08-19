@@ -27,8 +27,10 @@ export const logPromoEvent = createServerFn({ method: "POST" })
       .parse(data),
   )
   .handler(async ({ data }) => {
-    const sb = serverClient();
-    await sb.from("promo_events").insert({
+    // Clients cannot write promo_events directly (restrictive policy); only this
+    // validated server path may record events.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("promo_events").insert({
       event: data.event,
       placement: data.placement,
       content_hash: data.content_hash,
@@ -36,6 +38,7 @@ export const logPromoEvent = createServerFn({ method: "POST" })
     });
     return { ok: true };
   });
+
 
 export type PromoStats = {
   totals: { impressions: number; clicks: number; dismisses: number; ctr: number };
