@@ -719,6 +719,10 @@ export type Database = {
         }
         Returns: Json
       }
+      consume_export_slot: {
+        Args: { _assignment_id: string; _max_exports?: number }
+        Returns: Json
+      }
       get_entitlements: { Args: { _user_id: string }; Returns: Json }
       has_role: {
         Args: {
