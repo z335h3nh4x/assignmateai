@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
   FileStack, Search, MoreHorizontal, Eye, ExternalLink, Copy, Trash2, Loader2,
-  Clock, FileText, Download, BookOpen,
+  Clock, FileText, Download, BookOpen, RotateCcw,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Card } from "@/components/ui/card";
@@ -27,9 +27,10 @@ import {
   Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
 import {
-  listAdminAssignments, getAdminAssignment, deleteAdminAssignments,
+  listAdminAssignments, getAdminAssignment, deleteAdminAssignments, resetAssignmentExports,
   type AdminAssignmentRow,
 } from "@/lib/admin-assignments.functions";
+import { MAX_EXPORTS_PER_ASSIGNMENT } from "@/lib/export-limits";
 import { renderRichMarkdown } from "@/lib/render-markdown";
 
 export const Route = createFileRoute("/admin/assignments")({
@@ -88,6 +89,7 @@ function AdminAssignments() {
   const listFn = useServerFn(listAdminAssignments);
   const getFn = useServerFn(getAdminAssignment);
   const delFn = useServerFn(deleteAdminAssignments);
+  const resetExportsFn = useServerFn(resetAssignmentExports);
 
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ["admin", "assignments"],
@@ -112,6 +114,8 @@ function AdminAssignments() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<AdminAssignmentRow | null>(null);
+  const [resetting, setResetting] = useState<AdminAssignmentRow | null>(null);
+  const [resetBusy, setResetBusy] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const users = useMemo(() => {
@@ -197,6 +201,21 @@ function AdminAssignments() {
       qc.invalidateQueries({ queryKey: ["admin", "assignments"] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Delete failed");
+    }
+  }
+
+  async function runResetExports(id: string) {
+    setResetBusy(true);
+    try {
+      await resetExportsFn({ data: { id } });
+      toast.success(`Export limit reset — ${MAX_EXPORTS_PER_ASSIGNMENT} exports available again`);
+      setResetting(null);
+      qc.invalidateQueries({ queryKey: ["admin", "assignments"] });
+      qc.invalidateQueries({ queryKey: ["assignment", id] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Reset failed");
+    } finally {
+      setResetBusy(false);
     }
   }
 
@@ -447,6 +466,9 @@ function AdminAssignments() {
                           <DropdownMenuItem onClick={() => copyAssignment(r.id)}>
                             <Copy className="h-4 w-4 mr-2" /> Copy content
                           </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setResetting(r)}>
+                            <RotateCcw className="h-4 w-4 mr-2" /> Reset export limit
+                          </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
@@ -480,6 +502,30 @@ function AdminAssignments() {
       </Card>
 
       <PreviewDrawer id={previewId} onClose={() => setPreviewId(null)} getFn={getFn} />
+
+      <AlertDialog open={!!resetting} onOpenChange={(o) => !o && !resetBusy && setResetting(null)}>
+        <AlertDialogContent className="glass border-white/10">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset export limit?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will restore {MAX_EXPORTS_PER_ASSIGNMENT} available exports for this assignment.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={resetBusy}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={resetBusy}
+              onClick={(e) => {
+                e.preventDefault();
+                if (resetting) void runResetExports(resetting.id);
+              }}
+            >
+              {resetBusy ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              Reset
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent className="glass border-white/10">
