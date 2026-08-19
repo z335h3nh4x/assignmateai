@@ -758,6 +758,42 @@ function AssignmentView() {
 
         </DialogContent>
       </Dialog>
+
+      <Dialog open={docxOpen} onOpenChange={setDocxOpen}>
+        <DialogContent className="glass-card border-white/10">
+          <DialogHeader>
+            <DialogTitle>DOCX export</DialogTitle>
+            <DialogDescription>
+              Choose the writing style for the Word document.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-1.5">
+            <Label>Writing style</Label>
+            <Select value={docxHandwriting}
+              onValueChange={(v) => setDocxHandwriting(v as ExportHandwriting)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="standard">Standard</SelectItem>
+                {HANDWRITING_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {isHandwriting(docxHandwriting) && (
+              <p className="text-xs text-muted-foreground">
+                Word can't download web fonts — the closest handwriting font installed on the
+                device is used. Export as Academic PDF for exact handwriting rendering.
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDocxOpen(false)}>Cancel</Button>
+            <Button onClick={downloadDocx} className="gradient-bg text-white border-0">
+              <FileText className="h-4 w-4 mr-1.5" />Download DOCX
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
