@@ -544,7 +544,7 @@ function Footer({ site }: { site?: SiteSettings }) {
             )}
             {website && (
               <a href={website} target="_blank" rel="noreferrer" className="hover:text-foreground transition">
-                Visit our website
+                Visit our socialmedia pages
               </a>
             )}
           </div>
