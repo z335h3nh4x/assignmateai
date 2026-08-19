@@ -33,7 +33,7 @@ export const Route = createFileRoute("/api/public/export-doc")({
         const filename = sanitizeFilename(String(form.get("filename") ?? ""), "assignment.html");
 
         if (!html) return new Response("Missing document", { status: 400 });
-        if (html.length > MAX_BYTES) return new Response("Document too large", { status: 413 });
+        if (html.length > (encoding === "base64" ? MAX_BYTES * 5 : MAX_BYTES)) return new Response("Document too large", { status: 413 });
 
         const attachment = mode === "attachment";
         const binary = encoding === "base64";
