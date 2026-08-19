@@ -29,6 +29,16 @@ import { incrementExport, saveAssignmentDraft } from "@/lib/assignments.function
 import { openDocument, downloadDocument } from "@/lib/export-delivery";
 
 import { buildNotebookDocument, type NotebookInk, type NotebookStyle, type NotebookTemplate } from "@/lib/notebook-pdf";
+import {
+  HANDWRITING_FONT_LINKS,
+  HANDWRITING_OPTIONS,
+  handwritingJitterScript,
+  handwritingOverrideCss,
+  docxFontStack,
+  getProfile,
+  isHandwriting,
+  type ExportHandwriting,
+} from "@/lib/handwriting";
 import classicSchoolPaper from "@/assets/classic-school-paper.png.asset.json";
 import {
   renderRichMarkdown,
@@ -222,6 +232,7 @@ ${PRINT_HEAD_ASSETS}
     body { max-width: 7in; margin: 0.5in auto; padding: 1in; box-shadow: 0 0 20px rgba(0,0,0,.15); }
   }
 </style>
+${hwHead}
 </head>
 <body>
   <section class="title-page">
@@ -238,6 +249,7 @@ ${PRINT_HEAD_ASSETS}
 
   ${referencesHtml ? `<section class="references"><h2 id="references">References</h2>${referencesHtml}</section>` : ""}
 
+  ${hwScript}
   <script>
     document.title = " ";
     // Wait for KaTeX/highlight.js CSS + mermaid diagrams to settle before printing.
