@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.consume_export_slot(uuid, integer) FROM anon;
