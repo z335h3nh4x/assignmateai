@@ -704,8 +704,9 @@ function AssignmentView() {
             </div>
           </div>
           <DialogFooter>
+            {exportBlocked && (<p className="text-xs text-rose-300 mr-auto self-center">Export limit reached — all {MAX_EXPORTS_PER_ASSIGNMENT} exports used.</p>)}
             <Button variant="ghost" onClick={() => setPdfOpen(false)}>Cancel</Button>
-            <Button onClick={downloadPdf} className="gradient-bg text-white border-0">
+            <Button onClick={downloadPdf} disabled={exportBlocked || exporting} className="gradient-bg text-white border-0">
               <Download className="h-4 w-4 mr-1.5" />Generate PDF
             </Button>
           </DialogFooter>
@@ -787,8 +788,9 @@ function AssignmentView() {
             </div>
           </div>
           <DialogFooter>
+            {exportBlocked && (<p className="text-xs text-rose-300 mr-auto self-center">Export limit reached — all {MAX_EXPORTS_PER_ASSIGNMENT} exports used.</p>)}
             <Button variant="ghost" onClick={() => setNotebookOpen(false)}>Cancel</Button>
-            <Button onClick={downloadNotebookPdf} className="gradient-bg text-white border-0">
+            <Button onClick={downloadNotebookPdf} disabled={exportBlocked || exporting} className="gradient-bg text-white border-0">
               <BookOpen className="h-4 w-4 mr-1.5" />Generate Notebook PDF
             </Button>
           </DialogFooter>
@@ -824,8 +826,9 @@ function AssignmentView() {
             )}
           </div>
           <DialogFooter>
+            {exportBlocked && (<p className="text-xs text-rose-300 mr-auto self-center">Export limit reached — all {MAX_EXPORTS_PER_ASSIGNMENT} exports used.</p>)}
             <Button variant="ghost" onClick={() => setDocxOpen(false)}>Cancel</Button>
-            <Button onClick={downloadDocx} className="gradient-bg text-white border-0">
+            <Button onClick={downloadDocx} disabled={exportBlocked || exporting} className="gradient-bg text-white border-0">
               <FileText className="h-4 w-4 mr-1.5" />Download DOCX
             </Button>
           </DialogFooter>
