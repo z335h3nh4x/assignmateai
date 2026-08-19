@@ -662,7 +662,7 @@ function AssignmentView() {
             <DialogTitle>Export academic PDF</DialogTitle>
             <DialogDescription>
               These details appear on the cover page. All fields are optional except date.
-              A print dialog opens next — choose "Save as PDF" as the destination.
+              The file downloads next — open it and choose "Save as PDF" as the destination.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
