@@ -590,21 +590,32 @@ function AssignmentView() {
 
           <Card className="glass border-white/10 p-3 flex flex-wrap gap-2">
             <Button size="sm" variant="ghost" onClick={copy}><Copy className="h-4 w-4 mr-1.5" />Copy</Button>
-            <Button size="sm" variant="ghost" disabled={pdfFeature.allowed && !canExport}
+            <Button size="sm" variant="ghost" title={exportBlocked ? "Export limit reached" : undefined}
+              disabled={(pdfFeature.allowed && !canExport) || exportBlocked || exporting}
               onClick={() => pdfFeature.guard(() => guardExport(() => setPdfOpen(true)))}>
               {pdfFeature.allowed ? <Download className="h-4 w-4 mr-1.5" /> : <Lock className="h-4 w-4 mr-1.5" />}
               Academic PDF
             </Button>
-            <Button size="sm" variant="ghost" disabled={notebookFeature.allowed && !canExport}
+            <Button size="sm" variant="ghost" title={exportBlocked ? "Export limit reached" : undefined}
+              disabled={(notebookFeature.allowed && !canExport) || exportBlocked || exporting}
               onClick={() => notebookFeature.guard(() => guardExport(() => setNotebookOpen(true)))}>
               {notebookFeature.allowed ? <BookOpen className="h-4 w-4 mr-1.5" /> : <Lock className="h-4 w-4 mr-1.5" />}
               Notebook PDF
             </Button>
-            <Button size="sm" variant="ghost" disabled={docxFeature.allowed && !canExport}
+            <Button size="sm" variant="ghost" title={exportBlocked ? "Export limit reached" : undefined}
+              disabled={(docxFeature.allowed && !canExport) || exportBlocked || exporting}
               onClick={() => docxFeature.guard(() => guardExport(() => setDocxOpen(true)))}>
               {docxFeature.allowed ? <FileText className="h-4 w-4 mr-1.5" /> : <Lock className="h-4 w-4 mr-1.5" />}
               DOCX
             </Button>
+            <span className="text-xs text-muted-foreground self-center whitespace-nowrap">
+              Exports remaining: {exportsLeft}/{MAX_EXPORTS_PER_ASSIGNMENT}
+            </span>
+            {exportBlocked && (
+              <p className="w-full text-xs text-rose-300">
+                Export limit reached — you've used all {MAX_EXPORTS_PER_ASSIGNMENT} exports for this assignment.
+              </p>
+            )}
 
             <Button size="sm" variant="ghost" onClick={() => setEditing((e) => !e)}>
               {editing ? <><Eye className="h-4 w-4 mr-1.5" />View</> : <><Pencil className="h-4 w-4 mr-1.5" />Edit</>}
