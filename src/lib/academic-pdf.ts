@@ -18,9 +18,17 @@ const CONTENT_H_IN = PAGE_H_IN - MARGIN_IN * 2; // 9in
 const CONTENT_W_PX = CONTENT_W_IN * DPI; // 624
 
 /** CSS that maps the print-oriented document onto a fixed-width screen render. */
+const RENDER_WIDTH_PX = 800;
 const SCREEN_FIT_CSS = `
-  html, body { width: ${CONTENT_W_PX}px !important; margin: 0 !important; padding: 0 !important; background: #fff !important; }
-  body { overflow: visible !important; }
+  html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
+  body {
+    width: ${RENDER_WIDTH_PX}px !important;
+    overflow: visible !important;
+    line-height: 1.6 !important;
+    word-break: break-word !important;
+    white-space: normal !important;
+    letter-spacing: normal !important;
+  }
   img, svg, table, pre { max-width: 100% !important; }
   /* Keep the cover page exactly one printed page tall so slicing lines up. */
   .title-page { height: ${CONTENT_H_IN * DPI}px !important; min-height: ${CONTENT_H_IN * DPI}px !important; box-sizing: border-box !important; }
