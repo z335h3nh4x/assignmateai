@@ -7,7 +7,7 @@ import {
   ArrowLeft, Copy, Download, RefreshCw, FileText, Loader2, Pencil, Eye, BookOpen, AlertTriangle, Lock,
 } from "lucide-react";
 import { useFeature } from "@/lib/use-plan-features";
-import { MAX_EXPORTS_PER_ASSIGNMENT, exportsRemaining } from "@/lib/export-limits";
+import { MAX_EXPORTS_PER_ASSIGNMENT, exportsRemaining, sanitizeExportFilename } from "@/lib/export-limits";
 
 import "katex/dist/katex.min.css";
 import "highlight.js/styles/github-dark.css";
@@ -399,7 +399,7 @@ function AssignmentView() {
       date: pdfMeta.date.trim() || new Date().toLocaleDateString(),
       handwriting: pdfMeta.handwriting,
     });
-    downloadDocument(doc, `${row.title || "assignment"}.pdf`, "text/html");
+    downloadDocument(doc, sanitizeExportFilename(row.title, ".pdf"), "text/html");
     setPdfOpen(false);
   }
 
