@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { base64ToBytes } from "@/lib/pdf-bytes";
 
 /**
  * Delivers a generated document (assignment PDF print view, notebook PDF view,
