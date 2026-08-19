@@ -25,7 +25,7 @@ export function sanitizeExportFilename(
   if (!trimmed) return `assignment${ext}`;
 
   // Strip reserved filesystem characters.
-  let name = trimmed.replace(/[\\/: *?"<>|]+/g, "");
+  let name = trimmed.replace(/[\\/*?:"<>|]+/g, "");
 
   // Trim leading/trailing spaces and periods.
   name = name.replace(/^[.\s]+|[.\s]+$/g, "");
