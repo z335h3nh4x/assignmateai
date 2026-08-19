@@ -399,7 +399,7 @@ function AssignmentView() {
       date: pdfMeta.date.trim() || new Date().toLocaleDateString(),
       handwriting: pdfMeta.handwriting,
     });
-    downloadDocument(doc, `${row.title || "assignment"}.pdf`, "text/html");
+    downloadDocument(doc, sanitizeExportFilename(row.title, ".pdf"), "text/html");
     setPdfOpen(false);
   }
 
