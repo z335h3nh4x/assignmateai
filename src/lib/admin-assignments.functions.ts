@@ -206,3 +206,31 @@ export const deleteAdminAssignments = createServerFn({ method: "POST" })
     return { ok: true, deleted: data.ids.length };
   });
 
+
+/**
+ * Admin-only: restore an assignment's export allowance by zeroing exports_count.
+ * Authorization is enforced server-side via the shared admin role check; the
+ * service-role client is only loaded after that check passes.
+ */
+export const resetAssignmentExports = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row, error } = await supabaseAdmin
+      .from("assignments")
+      .update({ exports_count: 0 })
+      .eq("id", data.id)
+      .select("id, exports_count")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!row) throw new Error("Assignment not found");
+    await logAudit(context, {
+      action: "assignment.reset_exports",
+      entityType: "assignment",
+      entityId: data.id,
+      metadata: { exports_count: 0 },
+    });
+    return { ok: true, exports_count: 0 };
+  });
