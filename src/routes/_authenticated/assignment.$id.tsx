@@ -89,6 +89,8 @@ type AcademicMeta = {
   institution: string;
   subject: string;
   date: string;
+  /** "standard" keeps the classic Times New Roman academic typography. */
+  handwriting?: ExportHandwriting;
 };
 
 
@@ -96,6 +98,15 @@ type AcademicMeta = {
 function buildAcademicDocument(md: string, meta: AcademicMeta) {
   const { bodyHtml, referencesHtml, outline } = renderAcademicMarkdown(md);
   const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!);
+  const hw = meta.handwriting ?? "standard";
+  const hwStyle = isHandwriting(hw) ? hw : null;
+  const hwHead = hwStyle
+    ? `${HANDWRITING_FONT_LINKS}<style>${handwritingOverrideCss(hwStyle)}</style>`
+    : "";
+  const hwScript = hwStyle && getProfile(hwStyle).jitter
+    ? handwritingJitterScript("main.content")
+    : "";
+
 
   const wordCount = md.split(/\s+/).filter(Boolean).length;
   // Show TOC only when there is meaningful structure and length
