@@ -1,19 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import type { Database } from "@/integrations/supabase/types";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const EVENT = z.enum(["impression", "click", "dismiss"]);
 const PLACEMENT = z.enum(["dashboard", "workspace", "sidebar", "bottom"]);
-
-function serverClient() {
-  return createClient<Database>(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_PUBLISHABLE_KEY!,
-    { auth: { persistSession: false, autoRefreshToken: false, storage: undefined } },
-  );
-}
 
 export const logPromoEvent = createServerFn({ method: "POST" })
   .inputValidator((data) =>
