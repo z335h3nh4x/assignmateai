@@ -58,10 +58,10 @@ async function renderInIframe(html: string): Promise<HTMLCanvasElement> {
       iframe.contentWindow!.addEventListener("load", () => resolve(), { once: true });
       setTimeout(resolve, 4000);
     });
-    try {
-      await (doc as Document & { fonts?: FontFaceSet }).fonts?.ready;
-    } catch {
-      /* font loading is best-effort */
+    // Ensure fonts are fully loaded so text metrics are stable before rasterising.
+    const fontSet = (doc as Document & { fonts?: FontFaceSet }).fonts;
+    if (fontSet) {
+      await fontSet.ready;
     }
     await Promise.all(
       Array.from(doc.images).map((img) =>
@@ -86,9 +86,9 @@ async function renderInIframe(html: string): Promise<HTMLCanvasElement> {
       scale: 2,
       useCORS: true,
       logging: false,
-      width: CONTENT_W_PX,
+      width: RENDER_WIDTH_PX,
       height,
-      windowWidth: CONTENT_W_PX,
+      windowWidth: RENDER_WIDTH_PX,
       windowHeight: height,
     });
   } finally {
