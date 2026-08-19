@@ -445,24 +445,28 @@ export const saveAssignmentDraft = createServerFn({ method: "POST" })
   });
 
 
-// ---------- Increment export counter ----------
+// ---------- Consume one export slot (atomic, server-enforced) ----------
 export const incrementExport = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
-    const { data: row } = await context.supabase
-      .from("assignments")
-      .select("exports_count")
-      .eq("id", data.id)
-      .eq("user_id", context.userId)
-      .maybeSingle();
-    const next = (row?.exports_count ?? 0) + 1;
-    await context.supabase
-      .from("assignments")
-      .update({ exports_count: next })
-      .eq("id", data.id)
-      .eq("user_id", context.userId);
-    return { exports_count: next };
+    const { MAX_EXPORTS_PER_ASSIGNMENT } = await import("./export-limits");
+    const { data: res, error } = await context.supabase.rpc("consume_export_slot", {
+      _assignment_id: data.id,
+      _max_exports: MAX_EXPORTS_PER_ASSIGNMENT,
+    });
+    if (error) throw new Error(error.message);
+    const parsed = res as unknown as { allowed: boolean; exports_count: number; max: number };
+    if (!parsed?.allowed) {
+      throw new Error(
+        `Export limit reached — you've used all ${MAX_EXPORTS_PER_ASSIGNMENT} exports for this assignment.`,
+      );
+    }
+    return {
+      exports_count: parsed.exports_count,
+      max: MAX_EXPORTS_PER_ASSIGNMENT,
+      remaining: Math.max(0, MAX_EXPORTS_PER_ASSIGNMENT - parsed.exports_count),
+    };
   });
 
 // ---------- Chat about assignment ----------
