@@ -27,7 +27,7 @@ import {
 import { AssignmentAssistant, AutosaveEditor } from "@/components/assignment-assistant";
 import { PromoCard } from "@/components/promo-card";
 import { incrementExport, saveAssignmentDraft } from "@/lib/assignments.functions";
-import { openDocument, downloadDocument, downloadBinaryDocument } from "@/lib/export-delivery";
+import { openDocument, downloadDocument } from "@/lib/export-delivery";
 
 import { buildNotebookDocument, type NotebookInk, type NotebookStyle, type NotebookTemplate } from "@/lib/notebook-pdf";
 import {
@@ -146,7 +146,8 @@ function buildAcademicDocument(md: string, meta: AcademicMeta) {
     `<div><span class="lbl">Date</span><span class="val">${esc(meta.date)}</span></div>`,
   ].filter(Boolean).join("");
 
-  return `<!doctype html><html><head><meta charset="utf-8"><title> </title>
+  const docTitle = esc(sanitizeExportFilename(meta.title, "").replace(/\.pdf$/i, "") || "assignment");
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${docTitle}</title>
 ${PRINT_HEAD_ASSETS}
 <style>${PRINT_RICH_CSS}</style>
 <style>
@@ -252,7 +253,7 @@ ${hwHead}
 
   ${hwScript}
   <script>
-    document.title = " ";
+    document.title = ${JSON.stringify(docTitle)};
     // Wait for KaTeX/highlight.js CSS + mermaid diagrams to settle before printing.
     window.addEventListener('load', () => setTimeout(() => window.print(), 1200));
   </script>
@@ -399,15 +400,11 @@ function AssignmentView() {
       date: pdfMeta.date.trim() || new Date().toLocaleDateString(),
       handwriting: pdfMeta.handwriting,
     });
-    try {
-      const { generateAcademicPdfBytes } = await import("@/lib/academic-pdf");
-      const bytes = await generateAcademicPdfBytes(doc);
-      downloadBinaryDocument(bytes, sanitizeExportFilename(row.title, ".pdf"), "application/pdf");
-      setPdfOpen(false);
-    } catch (err) {
-      console.error("Academic PDF generation failed", err);
-      toast.error("Could not build the PDF. Please try again.");
-    }
+    // Same reliable mechanism as Notebook PDF: stream the HTML from the export
+    // endpoint into a new tab and let the browser's native print / Save-as-PDF
+    // handle rendering (no rasterization, no text overlap).
+    openDocument(doc, sanitizeExportFilename(row.title, ".pdf"));
+    setPdfOpen(false);
   }
 
   async function downloadDocx() {
@@ -669,7 +666,7 @@ function AssignmentView() {
             <DialogTitle>Export academic PDF</DialogTitle>
             <DialogDescription>
               These details appear on the cover page. All fields are optional except date.
-              The file downloads next — open it and choose "Save as PDF" as the destination.
+              A print dialog opens next — choose "Save as PDF" as the destination.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
