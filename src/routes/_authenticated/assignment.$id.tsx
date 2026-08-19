@@ -383,12 +383,12 @@ function AssignmentView() {
     if (!row?.result) return;
     navigator.clipboard.writeText(row.result);
     toast.success("Copied to clipboard");
-    void trackExport();
   }
 
 
-  function downloadPdf() {
+  async function downloadPdf() {
     if (!row?.result) return;
+    if (!(await consumeExportSlot())) return;
     const doc = buildAcademicDocument(row.result, {
       title: row.title,
       studentName: pdfMeta.studentName.trim(),
@@ -399,11 +399,11 @@ function AssignmentView() {
     });
     openDocument(doc, `${row.title || "assignment"}.pdf`);
     setPdfOpen(false);
-    void trackExport();
   }
 
-  function downloadDocx() {
+  async function downloadDocx() {
     if (!row?.result) return;
+    if (!(await consumeExportSlot())) return;
     const body = renderRichMarkdown(row.result);
     // Word can't fetch webfonts, so the handwriting stack is applied inline with
     // locally-installed script fallbacks; "standard" leaves the output untouched.
@@ -423,11 +423,11 @@ function AssignmentView() {
       </head><body>${body}</body></html>`;
     downloadDocument(html, `${row.title || "assignment"}.doc`, "application/msword");
     setDocxOpen(false);
-    void trackExport();
   }
 
   async function downloadNotebookPdf() {
     if (!row?.result) return;
+    if (!(await consumeExportSlot())) return;
     const doc = buildNotebookDocument(row.result, {
       title: row.title,
       studentName: notebookMeta.studentName.trim(),
@@ -442,7 +442,6 @@ function AssignmentView() {
     });
     openDocument(doc, `${row.title || "assignment"}-notebook.pdf`);
     setNotebookOpen(false);
-    void trackExport();
   }
 
 
