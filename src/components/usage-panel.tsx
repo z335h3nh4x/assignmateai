@@ -10,7 +10,9 @@ import { useMyEntitlements } from "@/lib/use-plan-features";
 import { PlanBadge } from "@/components/plan-badge";
 import { LimitReachedDialog } from "@/components/upgrade-limit-dialog";
 import { UpgradePlansDialog } from "@/components/upgrade-plans-dialog";
-import { formatDateLong, useMySubscription } from "@/hooks/use-my-subscription";
+import { formatDateLong } from "@/hooks/use-my-subscription";
+import { displayStatus, periodEndLabel } from "@/lib/subscription-lifecycle";
+
 
 function formatResetDate(iso: string): string {
   const d = new Date(iso);
@@ -93,16 +95,21 @@ function CapacityBlock({
 
 export function UsagePanel() {
   const ent = useMyEntitlements();
-  const sub = useMySubscription();
   const [limitOpen, setLimitOpen] = useState(false);
   const [plansOpen, setPlansOpen] = useState(false);
   if (!ent) return null;
   const { plan, usage, remaining, resets } = ent;
+  // Authoritative subscription state comes from the server entitlement resolver.
+  const subState = ent.subscription ?? { status: "none", period_end: null, valid: false, is_paid: false };
+  const status = displayStatus(subState);
+  const periodLabel = periodEndLabel(subState);
+  const showPeriodEnd = !!subState.period_end && subState.is_paid;
   const monthlyExhausted = remaining.monthly === 0;
   const creditsExhausted = remaining.credits === 0;
   const anyExhausted = monthlyExhausted || creditsExhausted;
   const isFree = plan.slug === "free";
   const showCredits = plan.credits > 0;
+
 
   return (
     <Card className="glass border-white/10 p-5 space-y-4 animate-fade-in">
@@ -113,19 +120,30 @@ export function UsagePanel() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <PlanBadge size="md" />
-            <span className="inline-flex items-center gap-1 text-xs text-emerald-300">
-              <CheckCircle2 className="h-3.5 w-3.5" /> Active
-            </span>
+            {status === "expired" ? (
+              <span className="inline-flex items-center gap-1 text-xs text-destructive">
+                <AlertTriangle className="h-3.5 w-3.5" /> Expired
+              </span>
+            ) : status === "cancelled" ? (
+              <span className="inline-flex items-center gap-1 text-xs text-amber-300">
+                <AlertTriangle className="h-3.5 w-3.5" /> Cancelled
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-xs text-emerald-300">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Active
+              </span>
+            )}
           </div>
         </div>
         <div className="text-xs text-muted-foreground sm:text-right space-y-0.5">
           <div className="flex items-center gap-1.5 sm:justify-end">
             <CalendarClock className="h-3.5 w-3.5" />
-            Next renewal:{" "}
+            {periodLabel}:{" "}
             <span className="text-foreground/90 font-medium">
-              {sub?.renewal_at ? formatDateLong(sub.renewal_at) : formatResetDate(resets.monthly)}
+              {showPeriodEnd ? formatDateLong(subState.period_end) : formatResetDate(resets.monthly)}
             </span>
           </div>
+
           <div className="sm:text-right">
             {remaining.monthly == null ? "Unlimited" : `${remaining.monthly} assignments`} ·{" "}
             {remaining.credits == null ? "Unlimited" : `${remaining.credits.toLocaleString()} credits`} remaining

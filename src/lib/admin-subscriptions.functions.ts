@@ -279,17 +279,26 @@ export const changeSubscriberPlan = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: plan, error: pErr } = await supabaseAdmin
       .from("plans")
-      .select("slug, credits")
+      .select("slug, credits, monthly_price_cents, yearly_price_cents")
       .eq("id", data.planId)
       .single();
     if (pErr || !plan) throw new Error(pErr?.message ?? "Plan not found");
+    const isFree = (plan as any).slug === "free";
+    const now = new Date();
+    const days = data.billing_interval === "yearly" ? 365 : 30;
+    // Every non-free grant (including TEST MEMBER / promotional) gets a real
+    // period end so it expires exactly like a paid Razorpay subscription.
+    const periodEnd = isFree ? null : new Date(now.getTime() + days * 86400000).toISOString();
     const patch: any = {
       plan_id: data.planId,
       plan: (plan as any).slug,
       status: "active",
-      started_at: new Date().toISOString(),
+      started_at: now.toISOString(),
+      current_period_end: periodEnd,
+      renewal_at: periodEnd,
       cancelled_at: null,
     };
+
     if (data.billing_interval !== undefined) patch.billing_interval = data.billing_interval;
     const { error } = await supabaseAdmin.from("subscriptions").upsert({ user_id: data.userId, ...patch });
     if (error) throw new Error(error.message);
@@ -335,8 +344,12 @@ export const extendSubscription = createServerFn({ method: "POST" })
       .select("renewal_at, current_period_end")
       .eq("user_id", data.userId)
       .maybeSingle();
-    const base = (sub as any)?.renewal_at || (sub as any)?.current_period_end || new Date().toISOString();
-    const next = new Date(new Date(base).getTime() + data.days * 86400000).toISOString();
+    // Extend from whichever is later: the existing period end or now, so an
+    // already-expired subscription is genuinely reactivated for `days` days.
+    const existing = (sub as any)?.current_period_end || (sub as any)?.renewal_at;
+    const baseMs = Math.max(existing ? new Date(existing).getTime() : 0, Date.now());
+    const next = new Date(baseMs + data.days * 86400000).toISOString();
+
     const { error } = await supabaseAdmin
       .from("subscriptions")
       .update({ renewal_at: next, current_period_end: next, status: "active" })
