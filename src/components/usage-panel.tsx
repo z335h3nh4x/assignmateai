@@ -134,7 +134,13 @@ export function UsagePanel() {
               </span>
             )}
           </div>
+          {status === "expired" && subState.period_end && (
+            <div className="text-[11px] text-amber-300/90">
+              Your previous plan ended on {formatDateLong(subState.period_end)}.
+            </div>
+          )}
         </div>
+
         <div className="text-xs text-muted-foreground sm:text-right space-y-0.5">
           <div className="flex items-center gap-1.5 sm:justify-end">
             <CalendarClock className="h-3.5 w-3.5" />

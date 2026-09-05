@@ -37,8 +37,12 @@ export type DisplayStatus = "active" | "expired" | "cancelled" | "none";
 export function displayStatus(sub: SubscriptionState | null | undefined): DisplayStatus {
   if (!sub || sub.status === "none") return "none";
   if (sub.status === "cancelled") return "cancelled";
-  return sub.valid ? "active" : "expired";
+  // A subscription that ran out reads as "expired" until the resolver has
+  // fully fallen back — an expired paid/test plan can never read "active".
+  if (sub.status === "expired" || !sub.valid) return "expired";
+  return "active";
 }
+
 
 /**
  * Assignmate does not charge automatically — a period end is when the plan
