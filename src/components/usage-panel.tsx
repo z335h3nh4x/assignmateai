@@ -113,19 +113,30 @@ export function UsagePanel() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <PlanBadge size="md" />
-            <span className="inline-flex items-center gap-1 text-xs text-emerald-300">
-              <CheckCircle2 className="h-3.5 w-3.5" /> Active
-            </span>
+            {status === "expired" ? (
+              <span className="inline-flex items-center gap-1 text-xs text-destructive">
+                <AlertTriangle className="h-3.5 w-3.5" /> Expired
+              </span>
+            ) : status === "cancelled" ? (
+              <span className="inline-flex items-center gap-1 text-xs text-amber-300">
+                <AlertTriangle className="h-3.5 w-3.5" /> Cancelled
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-xs text-emerald-300">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Active
+              </span>
+            )}
           </div>
         </div>
         <div className="text-xs text-muted-foreground sm:text-right space-y-0.5">
           <div className="flex items-center gap-1.5 sm:justify-end">
             <CalendarClock className="h-3.5 w-3.5" />
-            Next renewal:{" "}
+            {periodLabel}:{" "}
             <span className="text-foreground/90 font-medium">
-              {sub?.renewal_at ? formatDateLong(sub.renewal_at) : formatResetDate(resets.monthly)}
+              {showPeriodEnd ? formatDateLong(subState.period_end) : formatResetDate(resets.monthly)}
             </span>
           </div>
+
           <div className="sm:text-right">
             {remaining.monthly == null ? "Unlimited" : `${remaining.monthly} assignments`} ·{" "}
             {remaining.credits == null ? "Unlimited" : `${remaining.credits.toLocaleString()} credits`} remaining
