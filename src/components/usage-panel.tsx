@@ -10,7 +10,9 @@ import { useMyEntitlements } from "@/lib/use-plan-features";
 import { PlanBadge } from "@/components/plan-badge";
 import { LimitReachedDialog } from "@/components/upgrade-limit-dialog";
 import { UpgradePlansDialog } from "@/components/upgrade-plans-dialog";
-import { formatDateLong, useMySubscription } from "@/hooks/use-my-subscription";
+import { formatDateLong } from "@/hooks/use-my-subscription";
+import { displayStatus, periodEndLabel } from "@/lib/subscription-lifecycle";
+
 
 function formatResetDate(iso: string): string {
   const d = new Date(iso);
