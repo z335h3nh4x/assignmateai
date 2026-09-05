@@ -279,17 +279,26 @@ export const changeSubscriberPlan = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: plan, error: pErr } = await supabaseAdmin
       .from("plans")
-      .select("slug, credits")
+      .select("slug, credits, monthly_price_cents, yearly_price_cents")
       .eq("id", data.planId)
       .single();
     if (pErr || !plan) throw new Error(pErr?.message ?? "Plan not found");
+    const isFree = (plan as any).slug === "free";
+    const now = new Date();
+    const days = data.billing_interval === "yearly" ? 365 : 30;
+    // Every non-free grant (including TEST MEMBER / promotional) gets a real
+    // period end so it expires exactly like a paid Razorpay subscription.
+    const periodEnd = isFree ? null : new Date(now.getTime() + days * 86400000).toISOString();
     const patch: any = {
       plan_id: data.planId,
       plan: (plan as any).slug,
       status: "active",
-      started_at: new Date().toISOString(),
+      started_at: now.toISOString(),
+      current_period_end: periodEnd,
+      renewal_at: periodEnd,
       cancelled_at: null,
     };
+
     if (data.billing_interval !== undefined) patch.billing_interval = data.billing_interval;
     const { error } = await supabaseAdmin.from("subscriptions").upsert({ user_id: data.userId, ...patch });
     if (error) throw new Error(error.message);
