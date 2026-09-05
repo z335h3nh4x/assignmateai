@@ -16,10 +16,23 @@ export type Entitlements = {
     max_upload_mb: number;
     max_upload_pages: number;
   };
+  /**
+   * Authoritative subscription state resolved server-side. `valid` already
+   * accounts for expiry — an expired subscription always resolves `plan` to Free.
+   */
+  subscription: {
+    status: string;
+    period_end: string | null;
+    valid: boolean;
+    is_paid: boolean;
+  };
   usage: { month_used: number; credits_used: number };
   remaining: { monthly: number | null; credits: number | null };
   resets: { monthly: string };
+  /** Database clock at resolution time — the UI must compare against this, not the browser clock. */
+  server_time: string;
 };
+
 
 export type QuotaReason = "monthly_limit" | "credits" | "upload_size" | "upload_pages";
 
