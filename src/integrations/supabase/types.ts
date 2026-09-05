@@ -723,6 +723,10 @@ export type Database = {
         Args: { _assignment_id: string; _max_exports?: number }
         Returns: Json
       }
+      expire_subscription_if_due: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       get_entitlements: { Args: { _user_id: string }; Returns: Json }
       has_role: {
         Args: {
@@ -731,6 +735,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      reconcile_expired_subscriptions: { Args: never; Returns: number }
       refund_assignment_slot: {
         Args: { _credits?: number; _user_id: string }
         Returns: undefined
@@ -738,6 +743,10 @@ export type Database = {
       reserve_assignment_slot: {
         Args: { _credits?: number; _user_id: string }
         Returns: Json
+      }
+      subscription_is_valid: {
+        Args: { _period_end: string; _status: string }
+        Returns: boolean
       }
     }
     Enums: {
