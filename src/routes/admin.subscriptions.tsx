@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+import { sourceLabel, GRANT_DURATIONS, defaultGrantDays } from "@/lib/subscription-lifecycle";
 import {
   CreditCard, Users, DollarSign, TrendingUp, TrendingDown, Percent, Plus, Search,
   MoreHorizontal, Star, Copy, Archive, ArchiveRestore, Trash2, Loader2, Pencil, Check, X,
@@ -600,7 +601,7 @@ function SubscribersTab({
                   <TableHead>Plan</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Start</TableHead>
-                  <TableHead>Renewal</TableHead>
+                  <TableHead>Ends</TableHead>
                   <TableHead>Payment</TableHead>
                   <TableHead className="text-right">Lifetime</TableHead>
                   <TableHead className="text-right">Credits</TableHead>
@@ -627,7 +628,7 @@ function SubscribersTab({
                     <TableCell><Badge variant={s.status === "active" ? "default" : "outline"}>{s.status}</Badge></TableCell>
                     <TableCell className="text-xs">{s.started_at ? new Date(s.started_at).toLocaleDateString() : "—"}</TableCell>
                     <TableCell className="text-xs">{s.renewal_at ? new Date(s.renewal_at).toLocaleDateString() : "—"}</TableCell>
-                    <TableCell className="text-xs">{s.payment_method ?? "—"}</TableCell>
+                    <TableCell className="text-xs">{sourceLabel(s.payment_method)}</TableCell>
                     <TableCell className="text-right tabular-nums">{money(s.lifetime_spending_cents, currency, locale)}</TableCell>
                     <TableCell className="text-right tabular-nums">{s.credits.toLocaleString()}</TableCell>
                     <TableCell className="text-right tabular-nums">{s.used.toLocaleString()}</TableCell>
@@ -663,9 +664,9 @@ function SubscribersTab({
         user={changePlanFor}
         plans={plans}
         onClose={() => setChangePlanFor(null)}
-        onSave={async (planId, interval) => {
+        onSave={async (planId, interval, durationDays) => {
           if (!changePlanFor) return;
-          try { await changePlanFn({ data: { userId: changePlanFor.user_id, planId, billing_interval: interval } }); toast.success("Plan updated"); setChangePlanFor(null); refresh(); }
+          try { await changePlanFn({ data: { userId: changePlanFor.user_id, planId, billing_interval: interval, durationDays } }); toast.success("Plan updated"); setChangePlanFor(null); refresh(); }
           catch (e: any) { toast.error(e.message); }
         }}
       />
@@ -697,11 +698,13 @@ function SubscribersTab({
 
 function ChangePlanDialog({
   open, user, plans, onClose, onSave,
-}: { open: boolean; user: SubscriberRow | null; plans: AdminPlan[]; onClose: () => void; onSave: (planId: string, interval: "monthly" | "yearly") => void }) {
+}: { open: boolean; user: SubscriberRow | null; plans: AdminPlan[]; onClose: () => void; onSave: (planId: string, interval: "monthly" | "yearly", durationDays: number | null) => void }) {
   const { currency, locale } = useBillingCurrency();
   const [planId, setPlanId] = useState<string>("");
   const [interval, setInterval] = useState<"monthly" | "yearly">("monthly");
-  useEffect(() => { if (user) { setPlanId(user.plan_id ?? ""); setInterval((user.billing_interval as any) ?? "monthly"); } }, [user]);
+  const [duration, setDuration] = useState<string>("30");
+  useEffect(() => { if (user) { setPlanId(user.plan_id ?? ""); const iv = (user.billing_interval as any) ?? "monthly"; setInterval(iv); setDuration(String(defaultGrantDays(iv))); } }, [user]);
+  const isFreePlan = plans.find((p) => p.id === planId)?.slug === "free";
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="glass border-white/10">
@@ -726,10 +729,25 @@ function ChangePlanDialog({
               </SelectContent>
             </Select>
           </Field>
+          {!isFreePlan && (
+            <Field label="Grant duration">
+              <Select value={duration} onValueChange={setDuration}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {GRANT_DURATIONS.map((d) => (
+                    <SelectItem key={String(d.days)} value={String(d.days)}>{d.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Granted plans end on this date and then fall back to Free. Source is recorded as Admin.
+              </p>
+            </Field>
+          )}
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => onSave(planId, interval)} disabled={!planId}>Apply</Button>
+          <Button onClick={() => onSave(planId, interval, duration === "null" ? null : Number(duration))} disabled={!planId}>Apply</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

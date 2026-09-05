@@ -52,3 +52,73 @@ export function periodEndLabel(sub: SubscriptionState | null | undefined): strin
   if (!sub || !sub.is_paid || !sub.period_end) return "Usage resets";
   return sub.valid ? "Plan ends" : "Expired on";
 }
+
+/* ------------------------------------------------------------------ */
+/* Subscription source (how the subscription came to exist)            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Stored in `subscriptions.payment_method` — the existing column, reused
+ * rather than duplicated. It records the SOURCE of the subscription, which is
+ * independent of the plan: a paid plan can be granted by an admin without any
+ * payment, and a payment always carries its gateway name.
+ */
+export const SUBSCRIPTION_SOURCES = {
+  RAZORPAY: "razorpay",
+  ADMIN: "admin",
+  PROMO: "promo",
+  TEST: "test",
+} as const;
+
+export type SubscriptionSource = (typeof SUBSCRIPTION_SOURCES)[keyof typeof SUBSCRIPTION_SOURCES];
+
+const SOURCE_LABELS: Record<string, string> = {
+  razorpay: "Razorpay",
+  admin: "Admin",
+  promo: "Promotional",
+  promotional: "Promotional",
+  test: "Test",
+  manual: "Admin",
+};
+
+/** Human label for the source column. Never guesses "Razorpay" from the plan. */
+export function sourceLabel(paymentMethod: string | null | undefined): string {
+  if (!paymentMethod) return "—";
+  return SOURCE_LABELS[paymentMethod.toLowerCase()] ?? paymentMethod;
+}
+
+/* ------------------------------------------------------------------ */
+/* Admin grant periods                                                 */
+/* ------------------------------------------------------------------ */
+
+export const DAY_MS = 86_400_000;
+
+/** Duration presets offered in the admin grant dialog. null = no expiry. */
+export const GRANT_DURATIONS: { label: string; days: number | null }[] = [
+  { label: "30 days (1 month)", days: 30 },
+  { label: "90 days (3 months)", days: 90 },
+  { label: "180 days (6 months)", days: 180 },
+  { label: "365 days (1 year)", days: 365 },
+  { label: "Permanent (no expiry)", days: null },
+];
+
+export function defaultGrantDays(interval: "monthly" | "yearly" | null | undefined): number {
+  return interval === "yearly" ? 365 : 30;
+}
+
+/**
+ * Computes the real subscription period for an admin grant.
+ * `durationDays === null` means the admin explicitly chose "permanent".
+ * A free plan never carries a period.
+ */
+export function computeGrantPeriod(opts: {
+  start: Date;
+  durationDays: number | null;
+  isFree: boolean;
+}): { started_at: string; period_end: string | null } {
+  const started_at = opts.start.toISOString();
+  if (opts.isFree || opts.durationDays === null) return { started_at, period_end: null };
+  const days = Math.max(1, Math.round(opts.durationDays));
+  return { started_at, period_end: new Date(opts.start.getTime() + days * DAY_MS).toISOString() };
+}
+

@@ -273,10 +273,21 @@ export const listSubscribers = createServerFn({ method: "GET" })
 
 export const changeSubscriberPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { userId: string; planId: string; billing_interval?: "monthly" | "yearly" | null }) => d)
+  .inputValidator(
+    (d: {
+      userId: string;
+      planId: string;
+      billing_interval?: "monthly" | "yearly" | null;
+      /** undefined = derive from interval, null = permanent (no expiry). */
+      durationDays?: number | null;
+    }) => d,
+  )
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { computeGrantPeriod, defaultGrantDays, SUBSCRIPTION_SOURCES } = await import(
+      "./subscription-lifecycle"
+    );
     const { data: plan, error: pErr } = await supabaseAdmin
       .from("plans")
       .select("slug, credits, monthly_price_cents, yearly_price_cents")
@@ -284,19 +295,26 @@ export const changeSubscriberPlan = createServerFn({ method: "POST" })
       .single();
     if (pErr || !plan) throw new Error(pErr?.message ?? "Plan not found");
     const isFree = (plan as any).slug === "free";
-    const now = new Date();
-    const days = data.billing_interval === "yearly" ? 365 : 30;
+    const durationDays =
+      data.durationDays === undefined ? defaultGrantDays(data.billing_interval) : data.durationDays;
     // Every non-free grant (including TEST MEMBER / promotional) gets a real
     // period end so it expires exactly like a paid Razorpay subscription.
-    const periodEnd = isFree ? null : new Date(now.getTime() + days * 86400000).toISOString();
+    const { started_at, period_end } = computeGrantPeriod({
+      start: new Date(),
+      durationDays,
+      isFree,
+    });
     const patch: any = {
       plan_id: data.planId,
       plan: (plan as any).slug,
       status: "active",
-      started_at: now.toISOString(),
-      current_period_end: periodEnd,
-      renewal_at: periodEnd,
+      started_at,
+      current_period_end: period_end,
+      renewal_at: period_end,
       cancelled_at: null,
+      // Source of the subscription, not the plan: an admin grant is never a
+      // gateway payment. Free downgrades carry no source at all.
+      payment_method: isFree ? null : SUBSCRIPTION_SOURCES.ADMIN,
     };
 
     if (data.billing_interval !== undefined) patch.billing_interval = data.billing_interval;
@@ -307,10 +325,17 @@ export const changeSubscriberPlan = createServerFn({ method: "POST" })
       entityType: "subscription",
       entityId: data.userId,
       targetUserId: data.userId,
-      metadata: { plan_id: data.planId, billing_interval: data.billing_interval ?? null },
+      metadata: {
+        plan_id: data.planId,
+        billing_interval: data.billing_interval ?? null,
+        duration_days: durationDays,
+        period_end,
+        source: patch.payment_method,
+      },
     });
     return { ok: true };
   });
+
 
 export const setSubscriptionStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
