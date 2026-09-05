@@ -93,16 +93,21 @@ function CapacityBlock({
 
 export function UsagePanel() {
   const ent = useMyEntitlements();
-  const sub = useMySubscription();
   const [limitOpen, setLimitOpen] = useState(false);
   const [plansOpen, setPlansOpen] = useState(false);
   if (!ent) return null;
   const { plan, usage, remaining, resets } = ent;
+  // Authoritative subscription state comes from the server entitlement resolver.
+  const subState = ent.subscription ?? { status: "none", period_end: null, valid: false, is_paid: false };
+  const status = displayStatus(subState);
+  const periodLabel = periodEndLabel(subState);
+  const showPeriodEnd = !!subState.period_end && subState.is_paid;
   const monthlyExhausted = remaining.monthly === 0;
   const creditsExhausted = remaining.credits === 0;
   const anyExhausted = monthlyExhausted || creditsExhausted;
   const isFree = plan.slug === "free";
   const showCredits = plan.credits > 0;
+
 
   return (
     <Card className="glass border-white/10 p-5 space-y-4 animate-fade-in">
