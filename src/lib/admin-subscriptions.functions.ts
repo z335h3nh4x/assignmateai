@@ -344,8 +344,12 @@ export const extendSubscription = createServerFn({ method: "POST" })
       .select("renewal_at, current_period_end")
       .eq("user_id", data.userId)
       .maybeSingle();
-    const base = (sub as any)?.renewal_at || (sub as any)?.current_period_end || new Date().toISOString();
-    const next = new Date(new Date(base).getTime() + data.days * 86400000).toISOString();
+    // Extend from whichever is later: the existing period end or now, so an
+    // already-expired subscription is genuinely reactivated for `days` days.
+    const existing = (sub as any)?.current_period_end || (sub as any)?.renewal_at;
+    const baseMs = Math.max(existing ? new Date(existing).getTime() : 0, Date.now());
+    const next = new Date(baseMs + data.days * 86400000).toISOString();
+
     const { error } = await supabaseAdmin
       .from("subscriptions")
       .update({ renewal_at: next, current_period_end: next, status: "active" })
