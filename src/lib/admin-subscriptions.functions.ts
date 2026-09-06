@@ -343,10 +343,30 @@ export const setSubscriptionStatus = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const patch =
-      data.action === "cancel"
-        ? { status: "cancelled", cancelled_at: new Date().toISOString() }
-        : { status: "active", cancelled_at: null };
+    const { defaultGrantDays, DAY_MS } = await import("./subscription-lifecycle");
+
+    let patch: Record<string, unknown>;
+    let restoredEnd: string | null = null;
+    if (data.action === "cancel") {
+      patch = { status: "cancelled", cancelled_at: new Date().toISOString() };
+    } else {
+      const { data: sub } = await supabaseAdmin
+        .from("subscriptions")
+        .select("plan, current_period_end, renewal_at, billing_interval")
+        .eq("user_id", data.userId)
+        .maybeSingle();
+      const existing = (sub as any)?.current_period_end || (sub as any)?.renewal_at;
+      const isFree = ((sub as any)?.plan ?? "free") === "free";
+      patch = { status: "active", cancelled_at: null };
+      // A reactivation whose period already lapsed would be re-expired on the
+      // next entitlement read, so move the period forward by one full term.
+      if (!isFree && existing && new Date(existing).getTime() <= Date.now()) {
+        const days = defaultGrantDays((sub as any)?.billing_interval ?? null);
+        restoredEnd = new Date(Date.now() + days * DAY_MS).toISOString();
+        patch.current_period_end = restoredEnd;
+        patch.renewal_at = restoredEnd;
+      }
+    }
     const { error } = await supabaseAdmin.from("subscriptions").update(patch).eq("user_id", data.userId);
     if (error) throw new Error(error.message);
     await logAudit(context, {
@@ -354,9 +374,11 @@ export const setSubscriptionStatus = createServerFn({ method: "POST" })
       entityType: "subscription",
       entityId: data.userId,
       targetUserId: data.userId,
+      metadata: restoredEnd ? { restored_period_end: restoredEnd } : undefined,
     });
     return { ok: true };
   });
+
 
 export const extendSubscription = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
