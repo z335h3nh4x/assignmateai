@@ -27,6 +27,8 @@ export interface TemplateEntry {
 export const TEMPLATES: Record<string, TemplateEntry> = {
   welcome: welcomeTemplate,
   'subscription-confirmation': subscriptionConfirmationTemplate,
+  'plan-expiring': planExpiringTemplate,
+  'plan-expired': planExpiredTemplate,
 }
 
 
