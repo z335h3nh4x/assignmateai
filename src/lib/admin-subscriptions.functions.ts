@@ -367,7 +367,7 @@ export const setSubscriptionStatus = createServerFn({ method: "POST" })
         patch.renewal_at = restoredEnd;
       }
     }
-    const { error } = await supabaseAdmin.from("subscriptions").update(patch).eq("user_id", data.userId);
+    const { error } = await supabaseAdmin.from("subscriptions").update(patch as never).eq("user_id", data.userId);
     if (error) throw new Error(error.message);
     await logAudit(context, {
       action: `subscription.${data.action}`,
