@@ -2,6 +2,8 @@ import type { ComponentType } from 'react'
 
 import { template as welcomeTemplate } from './welcome'
 import { template as subscriptionConfirmationTemplate } from './subscription-confirmation'
+import { template as planExpiringTemplate } from './plan-expiring'
+import { template as planExpiredTemplate } from './plan-expired'
 
 
 
@@ -25,6 +27,8 @@ export interface TemplateEntry {
 export const TEMPLATES: Record<string, TemplateEntry> = {
   welcome: welcomeTemplate,
   'subscription-confirmation': subscriptionConfirmationTemplate,
+  'plan-expiring': planExpiringTemplate,
+  'plan-expired': planExpiredTemplate,
 }
 
 
