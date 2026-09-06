@@ -2,6 +2,8 @@ import type { ComponentType } from 'react'
 
 import { template as welcomeTemplate } from './welcome'
 import { template as subscriptionConfirmationTemplate } from './subscription-confirmation'
+import { template as planExpiringTemplate } from './plan-expiring'
+import { template as planExpiredTemplate } from './plan-expired'
 
 
 
