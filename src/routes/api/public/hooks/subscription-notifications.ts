@@ -8,17 +8,31 @@ export const Route = createFileRoute("/api/public/hooks/subscription-notificatio
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const secret = process.env["SUBSCRIPTION_CRON_SECRET"];
-        if (!secret) {
-          return Response.json({ error: "Scheduler secret not configured" }, { status: 503 });
-        }
         const provided =
           request.headers.get("x-cron-secret") ??
           request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ??
           "";
-        if (provided !== secret) {
+
+        // The scheduler's shared token lives in platform_settings (admin-only
+        // row), so the database job can present it without a copy in code.
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { data: row } = await supabaseAdmin
+          .from("platform_settings")
+          .select("value")
+          .eq("key", "cron.subscription_notifications")
+          .maybeSingle();
+        const expected =
+          (row?.value as { token?: string } | null)?.token ??
+          process.env["SUBSCRIPTION_CRON_SECRET"] ??
+          "";
+
+        if (!expected) {
+          return Response.json({ error: "Scheduler token not configured" }, { status: 503 });
+        }
+        if (!provided || provided !== expected) {
           return Response.json({ error: "Unauthorized" }, { status: 401 });
         }
+
 
         try {
           const { runSubscriptionNotifications } = await import(
