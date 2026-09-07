@@ -43,6 +43,7 @@ import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
+import { Route as ApiPublicHooksSubscriptionNotificationsRouteImport } from './routes/api/public/hooks/subscription-notifications'
 
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
@@ -220,6 +221,12 @@ const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   path: '/lovable/email/auth/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksSubscriptionNotificationsRoute =
+  ApiPublicHooksSubscriptionNotificationsRouteImport.update({
+    id: '/api/public/hooks/subscription-notifications',
+    path: '/api/public/hooks/subscription-notifications',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -252,6 +259,7 @@ export interface FileRoutesByFullPath {
   '/assignment/$id': typeof AuthenticatedAssignmentIdRoute
   '/api/public/export-doc': typeof ApiPublicExportDocRoute
   '/api/public/razorpay-webhook': typeof ApiPublicRazorpayWebhookRoute
+  '/api/public/hooks/subscription-notifications': typeof ApiPublicHooksSubscriptionNotificationsRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -286,6 +294,7 @@ export interface FileRoutesByTo {
   '/assignment/$id': typeof AuthenticatedAssignmentIdRoute
   '/api/public/export-doc': typeof ApiPublicExportDocRoute
   '/api/public/razorpay-webhook': typeof ApiPublicRazorpayWebhookRoute
+  '/api/public/hooks/subscription-notifications': typeof ApiPublicHooksSubscriptionNotificationsRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -323,6 +332,7 @@ export interface FileRoutesById {
   '/_authenticated/assignment/$id': typeof AuthenticatedAssignmentIdRoute
   '/api/public/export-doc': typeof ApiPublicExportDocRoute
   '/api/public/razorpay-webhook': typeof ApiPublicRazorpayWebhookRoute
+  '/api/public/hooks/subscription-notifications': typeof ApiPublicHooksSubscriptionNotificationsRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -360,6 +370,7 @@ export interface FileRouteTypes {
     | '/assignment/$id'
     | '/api/public/export-doc'
     | '/api/public/razorpay-webhook'
+    | '/api/public/hooks/subscription-notifications'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/transactional/preview'
@@ -394,6 +405,7 @@ export interface FileRouteTypes {
     | '/assignment/$id'
     | '/api/public/export-doc'
     | '/api/public/razorpay-webhook'
+    | '/api/public/hooks/subscription-notifications'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/transactional/preview'
@@ -430,6 +442,7 @@ export interface FileRouteTypes {
     | '/_authenticated/assignment/$id'
     | '/api/public/export-doc'
     | '/api/public/razorpay-webhook'
+    | '/api/public/hooks/subscription-notifications'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/transactional/preview'
@@ -456,6 +469,7 @@ export interface RootRouteChildren {
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiPublicExportDocRoute: typeof ApiPublicExportDocRoute
   ApiPublicRazorpayWebhookRoute: typeof ApiPublicRazorpayWebhookRoute
+  ApiPublicHooksSubscriptionNotificationsRoute: typeof ApiPublicHooksSubscriptionNotificationsRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
@@ -701,6 +715,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/subscription-notifications': {
+      id: '/api/public/hooks/subscription-notifications'
+      path: '/api/public/hooks/subscription-notifications'
+      fullPath: '/api/public/hooks/subscription-notifications'
+      preLoaderRoute: typeof ApiPublicHooksSubscriptionNotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -765,6 +786,8 @@ const rootRouteChildren: RootRouteChildren = {
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiPublicExportDocRoute: ApiPublicExportDocRoute,
   ApiPublicRazorpayWebhookRoute: ApiPublicRazorpayWebhookRoute,
+  ApiPublicHooksSubscriptionNotificationsRoute:
+    ApiPublicHooksSubscriptionNotificationsRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
