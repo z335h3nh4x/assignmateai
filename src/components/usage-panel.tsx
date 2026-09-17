@@ -194,15 +194,36 @@ export function UsagePanel() {
           Usage resets: <span className="text-foreground/90 font-medium">{formatResetDate(resets.monthly)}</span>
           <span className="text-muted-foreground/70">({formatResetIn(resets.monthly)})</span>
         </div>
-        {(isFree || anyExhausted) && (
+        <div className="flex flex-wrap items-center gap-2">
+          {!isFree && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-white/20 transition-transform duration-200 hover:scale-105"
+              onClick={() => {
+                setPlansMode("renew");
+                setPlansOpen(true);
+              }}
+            >
+              <RefreshCw className="h-3.5 w-3.5 mr-1" /> Renew plan
+            </Button>
+          )}
           <Button
             size="sm"
             className="gradient-bg text-white border-0 transition-transform duration-200 hover:scale-105"
-            onClick={() => (anyExhausted ? setLimitOpen(true) : setPlansOpen(true))}
+            onClick={() => {
+              if (anyExhausted) {
+                setLimitOpen(true);
+                return;
+              }
+              setPlansMode("upgrade");
+              setPlansOpen(true);
+            }}
           >
-            <Sparkles className="h-3.5 w-3.5 mr-1" /> Upgrade plan
+            <Sparkles className="h-3.5 w-3.5 mr-1" />
+            {status === "expired" ? "Renew or upgrade" : "Upgrade plan"}
           </Button>
-        )}
+        </div>
       </div>
 
       {anyExhausted && (
