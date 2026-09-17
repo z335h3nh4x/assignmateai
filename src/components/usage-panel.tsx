@@ -97,6 +97,7 @@ export function UsagePanel() {
   const ent = useMyEntitlements();
   const [limitOpen, setLimitOpen] = useState(false);
   const [plansOpen, setPlansOpen] = useState(false);
+  const [plansMode, setPlansMode] = useState<"upgrade" | "renew">("upgrade");
   if (!ent) return null;
   const { plan, usage, remaining, resets } = ent;
   // Authoritative subscription state comes from the server entitlement resolver.
