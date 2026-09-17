@@ -101,7 +101,14 @@ export function UpgradePlansDialog({
                   ))}
                 </ul>
 
-                {isCurrent ? (
+                {isCurrent && mode === "renew" ? (
+                  <RazorpayCheckoutButton
+                    planId={p.id}
+                    label={`Renew ${p.name}`}
+                    className="mt-5 w-full rounded-xl gradient-bg text-white border-0 h-auto py-3 font-medium"
+                    onPaid={() => onOpenChange(false)}
+                  />
+                ) : isCurrent ? (
                   <Button
                     disabled
                     variant="secondary"
