@@ -621,7 +621,7 @@ function AssignmentView() {
             )}
 
             <Button size="sm" variant="ghost" onClick={() => setEditing((e) => !e)}>
-              {editing ? <><Eye className="h-4 w-4 mr-1.5" />View</> : <><Pencil className="h-4 w-4 mr-1.5" />Edit</>}
+              {editing ? <><Eye className="h-4 w-4 mr-1.5" />save</> : <><Pencil className="h-4 w-4 mr-1.5" />Edit</>}
             </Button>
             <div className="flex-1" />
             <div className="flex items-center gap-3">
