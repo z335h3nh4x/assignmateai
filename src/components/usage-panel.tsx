@@ -4,7 +4,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import {
   Gauge, Infinity as InfinityIcon, Sparkles, CalendarClock, AlertTriangle,
-  HardDrive, FileStack, CheckCircle2,
+  HardDrive, FileStack, CheckCircle2, RefreshCw,
 } from "lucide-react";
 import { useMyEntitlements } from "@/lib/use-plan-features";
 import { PlanBadge } from "@/components/plan-badge";
@@ -97,6 +97,7 @@ export function UsagePanel() {
   const ent = useMyEntitlements();
   const [limitOpen, setLimitOpen] = useState(false);
   const [plansOpen, setPlansOpen] = useState(false);
+  const [plansMode, setPlansMode] = useState<"upgrade" | "renew">("upgrade");
   if (!ent) return null;
   const { plan, usage, remaining, resets } = ent;
   // Authoritative subscription state comes from the server entitlement resolver.
@@ -194,15 +195,36 @@ export function UsagePanel() {
           Usage resets: <span className="text-foreground/90 font-medium">{formatResetDate(resets.monthly)}</span>
           <span className="text-muted-foreground/70">({formatResetIn(resets.monthly)})</span>
         </div>
-        {(isFree || anyExhausted) && (
+        <div className="flex flex-wrap items-center gap-2">
+          {!isFree && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-white/20 transition-transform duration-200 hover:scale-105"
+              onClick={() => {
+                setPlansMode("renew");
+                setPlansOpen(true);
+              }}
+            >
+              <RefreshCw className="h-3.5 w-3.5 mr-1" /> Renew plan
+            </Button>
+          )}
           <Button
             size="sm"
             className="gradient-bg text-white border-0 transition-transform duration-200 hover:scale-105"
-            onClick={() => (anyExhausted ? setLimitOpen(true) : setPlansOpen(true))}
+            onClick={() => {
+              if (anyExhausted) {
+                setLimitOpen(true);
+                return;
+              }
+              setPlansMode("upgrade");
+              setPlansOpen(true);
+            }}
           >
-            <Sparkles className="h-3.5 w-3.5 mr-1" /> Upgrade plan
+            <Sparkles className="h-3.5 w-3.5 mr-1" />
+            {status === "expired" ? "Renew or upgrade" : "Upgrade plan"}
           </Button>
-        )}
+        </div>
       </div>
 
       {anyExhausted && (
@@ -224,7 +246,17 @@ export function UsagePanel() {
         onOpenChange={setLimitOpen}
         reason={monthlyExhausted ? "monthly" : "credits"}
       />
-      <UpgradePlansDialog open={plansOpen} onOpenChange={setPlansOpen} />
+      <UpgradePlansDialog
+        open={plansOpen}
+        onOpenChange={setPlansOpen}
+        mode={plansMode}
+        title={plansMode === "renew" ? "Renew your plan" : "Choose your plan"}
+        description={
+          plansMode === "renew"
+            ? `Renew ${plan.name} to extend your period, or pick a higher plan for more assignments and credits.`
+            : undefined
+        }
+      />
     </Card>
   );
 }
