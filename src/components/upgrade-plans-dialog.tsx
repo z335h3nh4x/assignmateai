@@ -19,12 +19,15 @@ export function UpgradePlansDialog({
   highlightPlanId,
   title = "Choose your plan",
   description,
+  mode = "upgrade",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   highlightPlanId?: string;
   title?: string;
   description?: string;
+  /** "renew" lets the user re-purchase the plan they are already on. */
+  mode?: "upgrade" | "renew";
 }) {
   const { currency, locale } = useBillingCurrency();
   const ent = useMyEntitlements();
