@@ -246,7 +246,17 @@ export function UsagePanel() {
         onOpenChange={setLimitOpen}
         reason={monthlyExhausted ? "monthly" : "credits"}
       />
-      <UpgradePlansDialog open={plansOpen} onOpenChange={setPlansOpen} />
+      <UpgradePlansDialog
+        open={plansOpen}
+        onOpenChange={setPlansOpen}
+        mode={plansMode}
+        title={plansMode === "renew" ? "Renew your plan" : "Choose your plan"}
+        description={
+          plansMode === "renew"
+            ? `Renew ${plan.name} to extend your period, or pick a higher plan for more assignments and credits.`
+            : undefined
+        }
+      />
     </Card>
   );
 }
