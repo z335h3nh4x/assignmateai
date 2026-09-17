@@ -4,7 +4,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import {
   Gauge, Infinity as InfinityIcon, Sparkles, CalendarClock, AlertTriangle,
-  HardDrive, FileStack, CheckCircle2,
+  HardDrive, FileStack, CheckCircle2, RefreshCw,
 } from "lucide-react";
 import { useMyEntitlements } from "@/lib/use-plan-features";
 import { PlanBadge } from "@/components/plan-badge";
