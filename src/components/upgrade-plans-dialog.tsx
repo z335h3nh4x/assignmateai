@@ -19,15 +19,12 @@ export function UpgradePlansDialog({
   highlightPlanId,
   title = "Choose your plan",
   description,
-  mode = "upgrade",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   highlightPlanId?: string;
   title?: string;
   description?: string;
-  /** "renew" lets the user re-purchase the plan they are already on. */
-  mode?: "upgrade" | "renew";
 }) {
   const { currency, locale } = useBillingCurrency();
   const ent = useMyEntitlements();
@@ -59,7 +56,7 @@ export function UpgradePlansDialog({
           <p className="text-sm text-muted-foreground">No paid plans are available right now.</p>
         )}
 
-        {onHighestPlan && mode === "upgrade" && (
+        {onHighestPlan && (
           <div className="flex items-center gap-2 rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-sm text-amber-300 animate-fade-in">
             <Crown className="h-4 w-4" /> You already have the highest available plan.
           </div>
@@ -101,14 +98,7 @@ export function UpgradePlansDialog({
                   ))}
                 </ul>
 
-                {isCurrent && mode === "renew" ? (
-                  <RazorpayCheckoutButton
-                    planId={p.id}
-                    label={`Renew ${p.name}`}
-                    className="mt-5 w-full rounded-xl gradient-bg text-white border-0 h-auto py-3 font-medium"
-                    onPaid={() => onOpenChange(false)}
-                  />
-                ) : isCurrent ? (
+                {isCurrent ? (
                   <Button
                     disabled
                     variant="secondary"
