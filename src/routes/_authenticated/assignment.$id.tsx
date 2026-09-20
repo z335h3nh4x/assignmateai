@@ -287,9 +287,9 @@ function AssignmentView() {
     ink: "blue" as NotebookInk,
     style: "clean" as NotebookStyle,
     template: "ruled" as NotebookTemplate,
-    showDate: true,
-    showStudentName: true,
-    showPageNumbers: true,
+    showDate: false,
+    showStudentName: false,
+    showPageNumbers: false,
   });
 
   const pdfFeature = useFeature("pdf_export");
