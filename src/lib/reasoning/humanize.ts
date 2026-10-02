@@ -89,10 +89,33 @@ OUTPUT
  * Humanize one chunk of assignment prose. Freezes math/code/tables first so
  * the model cannot corrupt them, then rewords the surrounding prose.
  */
+const MAX_HUMANIZE_CHARS = 12000;
+
 export async function humanizeChunk(
   markdown: string,
   opts: HumanizeOptions = {},
 ): Promise<string> {
+  // Long assignments (multi-thousand words) are polished section by section so
+  // no single model call has to reproduce the whole document (avoids truncation).
+  if (markdown && markdown.length > MAX_HUMANIZE_CHARS) {
+    const parts = markdown.split(/\n(?=#{1,3} )/);
+    if (parts.length > 1) {
+      const out: string[] = [];
+      for (const part of parts) {
+        out.push(
+          part.length > MAX_HUMANIZE_CHARS
+            ? part
+            : await humanizeSingle(part, { ...opts, wordCount: undefined }),
+        );
+      }
+      return out.join("\n");
+    }
+    return markdown;
+  }
+  return humanizeSingle(markdown, opts);
+}
+
+async function humanizeSingle(markdown: string, opts: HumanizeOptions): Promise<string> {
   const trimmed = markdown?.trim();
   if (!trimmed || trimmed.length < 80) return markdown; // too short to be worth a pass
 

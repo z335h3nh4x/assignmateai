@@ -147,7 +147,7 @@ function Dashboard() {
       }
       if (res.wordCountSuggested && res.wordCountSuggested >= 300) {
         // snap to nearest option
-        const opts = [500, 1000, 1500, 2000];
+        const opts = [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000];
         const nearest = opts.reduce((a, b) =>
           Math.abs(b - res.wordCountSuggested!) < Math.abs(a - res.wordCountSuggested!) ? b : a,
         );
@@ -529,10 +529,9 @@ function Dashboard() {
             <Select value={wordCount} onValueChange={setWordCount}>
               <SelectTrigger className="mt-1.5 bg-white/5 border-white/10"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="500">500 words</SelectItem>
-                <SelectItem value="1000">1,000 words</SelectItem>
-                <SelectItem value="1500">1,500 words</SelectItem>
-                <SelectItem value="2000">2,000+ words</SelectItem>
+                {[1000,2000,3000,4000,5000,6000,7000,8000].map((n) => (
+                  <SelectItem key={n} value={String(n)}>{n.toLocaleString("en-US")} words</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

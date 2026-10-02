@@ -19,7 +19,7 @@ const GenerateInput = z.object({
   prompt: z.string().max(30000).optional().default(""),
   educationLevel: z.enum(["school", "college", "university", "masters"]),
   outputStyle: z.enum(["simple", "detailed", "academic", "humanized"]),
-  wordCount: z.number().int().min(300).max(6000),
+  wordCount: z.number().int().min(300).max(8000),
   title: z.string().max(200).optional(),
   subject: z.string().max(200).optional(),
   subjectDomain: z.string().max(80).optional(),
@@ -153,7 +153,7 @@ export const generateAssignment = createServerFn({ method: "POST" })
       : "";
 
     const levelLine = `Write at ${levelMap[data.educationLevel]}. Output-style preference: ${styleMap[data.outputStyle]}`;
-    const targetLine = `Target roughly ${data.wordCount} words in total across all answers.`;
+    const targetLine = `Target roughly ${data.wordCount} words in total across all answers (stay within about ±10%). This length is a firm requirement: develop every section fully with explanation, examples and analysis so the total genuinely reaches about ${data.wordCount} words — do not stop early or summarise.`;
 
     const systemPrompt = `${reasoning.systemBlock}
 
@@ -260,7 +260,7 @@ ${sourcesBlock ? `\n${sourcesBlock}` : ""}${instructionsBlock}${marksBlock}${dia
     async function generateOneQuestion(q: QStatus, perQuestionWords: number): Promise<string> {
       const perQuestionSystem = `${systemPrompt}
 
-STRICT SCOPE: Answer ONLY the single question below. Do not answer other questions from the assignment. Do not repeat other answers. Begin the response with a heading exactly like: "## ${q.id}: <short question title>". Aim for roughly ${perQuestionWords} words.
+STRICT SCOPE: Answer ONLY the single question below. Do not answer other questions from the assignment. Do not repeat other answers. Begin the response with a heading exactly like: "## ${q.id}: <short question title>". Aim for roughly ${perQuestionWords} words for this answer (within about ±10%) — develop it fully; do not stop short.
 
 QUESTION (${q.id}):
 ${q.text}`;
@@ -426,7 +426,7 @@ export const saveAssignmentDraft = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) =>
     z.object({
       id: z.string().uuid(),
-      result: z.string().max(200000).optional(),
+      result: z.string().max(400000).optional(),
       title: z.string().trim().min(1).max(200).optional(),
     }).parse(data),
   )
@@ -712,7 +712,7 @@ Never invent questions, marks, or instructions that are not in the document. Ret
       instructions: typeof parsed.instructions === "string" ? parsed.instructions.trim().slice(0, 4000) : "",
       wordCountSuggested:
         typeof parsed.wordCountSuggested === "number" && parsed.wordCountSuggested > 0
-          ? Math.min(6000, Math.round(parsed.wordCountSuggested))
+          ? Math.min(8000, Math.round(parsed.wordCountSuggested))
           : null,
       marks,
       questions,
