@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+// @vitest-environment happy-dom
 import { describe, it, expect } from "vitest";
 import JSZip from "jszip";
 import { buildDocxBlob, normalizeWhitespace } from "./docx-export";
