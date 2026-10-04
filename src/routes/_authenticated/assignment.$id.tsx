@@ -410,23 +410,19 @@ function AssignmentView() {
     if (!row?.result) return;
     if (!(await consumeExportSlot())) return;
     const body = renderRichMarkdown(row.result);
-    // Word can't fetch webfonts, so the handwriting stack is applied inline with
-    // locally-installed script fallbacks; "standard" leaves the output untouched.
-    const hwCss = isHandwriting(docxHandwriting)
-      ? `<style>
-        body, p, li, td, th, h1, h2, h3, h4, blockquote { font-family: ${docxFontStack(docxHandwriting)} !important; }
-        code, pre { font-family: Consolas, 'Courier New', monospace !important; }
-        .katex, .katex * { font-family: 'Cambria Math', 'Times New Roman', serif !important; }
-      </style>`
-      : "";
-    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
-      <head><meta charset="utf-8"><title>${row.title}</title>
-      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
-      ${isHandwriting(docxHandwriting) ? HANDWRITING_FONT_LINKS : ""}
-      <style>${PRINT_RICH_CSS}</style>
-      ${hwCss}
-      </head><body>${body}</body></html>`;
-    downloadDocument(html, `${row.title || "assignment"}.doc`, "application/msword");
+    // Real .docx (not HTML-as-.doc) so Android Word / Google Docs keep normal
+    // word spacing. Standard uses Times New Roman; handwriting uses its font.
+    const font = isHandwriting(docxHandwriting)
+      ? docxFontStack(docxHandwriting).split(",")[0].replace(/['"]/g, "").trim()
+      : "Times New Roman";
+    const { buildDocxBlob } = await import("@/lib/docx-export");
+    const blob = await buildDocxBlob(body, { title: row.title || "Assignment", font });
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    downloadBinaryDocument(
+      bytes,
+      sanitizeExportFilename(row.title, ".docx"),
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    );
     setDocxOpen(false);
   }
 
