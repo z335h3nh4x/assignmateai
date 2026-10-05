@@ -27,8 +27,9 @@ export default defineConfig({
     plugins: [mcpPlugin()],
     resolve: {
       alias: {
-        "entities/lib/decode.js": path.resolve(rootDir, "node_modules/entities/lib/decode.js"),
-        "entities/lib/encode.js": path.resolve(rootDir, "node_modules/entities/lib/encode.js"),
+        // entities v7 moved lib/* to dist/esm/*; @react-email/render still imports the old paths.
+        "entities/lib/decode.js": path.resolve(rootDir, "node_modules/entities/dist/esm/decode.js"),
+        "entities/lib/encode.js": path.resolve(rootDir, "node_modules/entities/dist/esm/encode.js"),
         entities: path.resolve(rootDir, "node_modules/entities"),
       },
     },
